@@ -24,6 +24,14 @@ export type AuthProvider = "none" | "better-auth";
 export interface InitOptions {
   cwd: string;
   metadata?: string;
+  /**
+   * Explicit metadata path. `create-dashild` uses it before `prisma generate`
+   * has run: the file is imported by the generated runtime but does not need to
+   * exist while the plan is built. Pass `schemaPath` too.
+   */
+  metadataPath?: string;
+  /** Explicit Prisma schema path, used when metadata is not read. */
+  schemaPath?: string;
   path?: string;
   auth?: string;
   locale?: Locale;
@@ -977,8 +985,15 @@ export function planInit(options: InitOptions): InitPlan {
     );
   }
 
-  const metadataPath = findMetadata(cwd, options.metadata, locale);
-  const metadata = readMetadata(metadataPath, locale);
+  let metadataPath: string;
+  let metadataSchemaPath: string | undefined;
+
+  if (options.metadataPath) {
+    metadataPath = resolve(cwd, options.metadataPath);
+  } else {
+    metadataPath = findMetadata(cwd, options.metadata, locale);
+    metadataSchemaPath = readMetadata(metadataPath, locale).schemaPath;
+  }
 
   const warnings: string[] = [];
   const appDir = appDirectory(cwd);
@@ -997,7 +1012,8 @@ export function planInit(options: InitOptions): InitPlan {
   }
 
   const schemaCandidates = [
-    metadata.schemaPath,
+    options.schemaPath ? resolve(cwd, options.schemaPath) : undefined,
+    metadataSchemaPath,
     resolve(cwd, "prisma/schema.prisma"),
     resolve(cwd, "schema.prisma"),
   ].filter((path): path is string => Boolean(path));
@@ -1158,7 +1174,12 @@ export function planInit(options: InitOptions): InitPlan {
       });
     }
 
-    const secret = env.match(/^BETTER_AUTH_SECRET=(.*)$/m);
+    // `.env` is what the app reads; `.env.example` is written empty on purpose.
+    const realEnvPath = resolve(cwd, ".env");
+    const envSource = existsSync(realEnvPath)
+      ? readFileSync(realEnvPath, "utf8")
+      : env;
+    const secret = envSource.match(/^BETTER_AUTH_SECRET=(.*)$/m);
     if (
       secret?.[1] !== undefined &&
       !secret[1].replace(/["']/g, "").trim()

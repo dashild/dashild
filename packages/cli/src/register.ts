@@ -145,6 +145,29 @@ function lastImportEnd(program: Program): number {
   return typeof end === "number" ? end : 0;
 }
 
+function appendedElement(
+  source: string,
+  last: { start?: number | null; end?: number | null } | null | undefined,
+  close: number,
+  name: string,
+): string {
+  const between = source.slice(last?.end ?? close, close);
+  // A trailing comma (left by an earlier insert) already separates entries;
+  // adding another would punch a hole in the array and type it as undefined.
+  if (!between.includes(",")) return `, ${name}`;
+  if (!between.includes("\n")) return name;
+
+  const start = last?.start ?? 0;
+  const lineStart = source.lastIndexOf("\n", start - 1) + 1;
+  const indent = source.slice(lineStart, start).match(/^\s*/)?.[0] ?? "";
+  const closeIndent = between.slice(between.lastIndexOf("\n") + 1);
+  // closeIndent is already written before `]`, so only add what it lacks.
+  const extra = indent.startsWith(closeIndent)
+    ? indent.slice(closeIndent.length)
+    : indent;
+  return `${extra}${name},\n${closeIndent}`;
+}
+
 function panelEdits(
   source: string,
   program: Program,
@@ -182,10 +205,12 @@ function panelEdits(
       text: `\n    ${input.exportName},\n  `,
     });
   } else {
+    const close = resources.end! - 1;
+    const last = resources.elements.at(-1);
     edits.push({
-      start: resources.end! - 1,
-      end: resources.end! - 1,
-      text: `, ${input.exportName}`,
+      start: close,
+      end: close,
+      text: appendedElement(source, last, close, input.exportName),
     });
   }
 

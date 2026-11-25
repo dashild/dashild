@@ -112,6 +112,33 @@ export const policies = definePolicies({
   }
 });
 
+test("register: consecutive inserts do not leave array holes", () => {
+  const f = fixture();
+
+  try {
+    registerResource({
+      panelPath: f.panelPath,
+      policiesPath: f.policiesPath,
+      resourceFile: f.resourceFile,
+      exportName: "customerResource",
+      model: "Customer",
+    });
+    registerResource({
+      panelPath: f.panelPath,
+      policiesPath: f.policiesPath,
+      resourceFile: f.resourceFile,
+      exportName: "orderResource",
+      model: "Order",
+    });
+
+    const panelSource = readFileSync(f.panelPath, "utf8");
+    assert.ok(!panelSource.includes(",,"));
+    assert.match(panelSource, /customerResource,\s+orderResource/);
+  } finally {
+    rmSync(f.directory, { recursive: true, force: true });
+  }
+});
+
 test("register: is idempotent", () => {
   const f = fixture();
 

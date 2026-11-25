@@ -1,7 +1,6 @@
 {
   "name": "create-dashild",
   "version": "0.1.0-alpha.2",
-  "private": true,
   "type": "module",
   "description": "Create a Next.js app with Dashild preconfigured",
   "license": "MIT",
@@ -15,7 +14,21 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist dist-test",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/test/*.test.js\""
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.9.0",
+    "@dashild/cli": "workspace:*",
+    "commander": "^15.1.0",
+    "semver": "^7.8.6",
+    "tar": "^7.5.23",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/semver": "^7.8.0",
+    "typescript": "^7.0.2"
   },
   "author": "Daljomar Morillo",
   "keywords": [
@@ -36,5 +49,9 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
   }
 }

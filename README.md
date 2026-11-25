@@ -21,7 +21,16 @@ aislamiento de datos) no vive ahí: la aplica el servidor.
 **Estado: alpha.** Versión `0.1.0-alpha.2`, todavía no estable. La API puede
 cambiar entre versiones `alpha`.
 
-## Instalación
+## Crear una app
+
+```bash
+pnpm create dashild@latest mi-app
+```
+
+Pregunta starter, autenticación, base de datos y si migrar y sembrar. Para CI
+acepta flags y `--yes`; añade `--dry-run` para ver el plan sin escribir nada.
+
+## Instalación manual
 
 ```bash
 pnpm add @dashild/core@alpha @dashild/admin@alpha @dashild/prisma@alpha
@@ -49,7 +58,7 @@ packages/
   admin/           runtime de cliente: shell, tabla, formulario y primitivas shadcn
   prisma/          generador oficial de Prisma (metadatos)
   cli/             binario `dashild` + plantillas copy-in
-  create-dashild/  `pnpm create dashild` (aún no publicado)
+  create-dashild/  `pnpm create dashild`: scaffold interactivo o por flags
 
 apps/
   playground/      app de desarrollo y demo; no se publica en npm
@@ -85,7 +94,7 @@ relativos llevan extensión `.js`, también en el código fuente.
   estética. Hoy son cinco.
 - `internal/` está en `.gitignore`: la planificación no se publica.
 - Versionado lockstep: todos los paquetes comparten versión.
-- `@dashild/core`, `@dashild/admin`, `@dashild/prisma` y `@dashild/cli` se publican con tag `alpha`; `create-dashild` sigue privado.
+- `@dashild/core`, `@dashild/admin`, `@dashild/prisma`, `@dashild/cli` y `create-dashild` comparten versión y se publican con tag `alpha`.
 
 ## Licencia
 

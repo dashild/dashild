@@ -7,6 +7,16 @@
   "bin": {
     "dashild": "./dist/index.js"
   },
+  "exports": {
+    "./init": {
+      "types": "./dist/init.d.ts",
+      "default": "./dist/init.js"
+    },
+    "./register": {
+      "types": "./dist/register.d.ts",
+      "default": "./dist/register.js"
+    }
+  },
   "files": [
     "dist"
   ],

@@ -5,12 +5,22 @@ Versión de esta guía: `0.1.0-alpha.2`.
 Dashild es un panel administrativo para Next.js + Prisma. Un recurso es un
 archivo de datos; no hay páginas que generar ni archivos que sincronizar.
 
+## App nueva
+
+```bash
+pnpm create dashild@latest mi-app
+```
+
+El scaffold elige starter, autenticación y base de datos, y deja el panel en
+`/admin`. El resto de esta guía es la instalación manual sobre una app existente.
+
 ## Requisitos
 
 - Node.js 22 o superior.
 - Next.js 15 o 16 con App Router.
 - Prisma 7.10 o superior y un cliente Prisma generado con `prisma-client`.
-- PostgreSQL, MySQL o MariaDB. La alpha está probada con PostgreSQL.
+- PostgreSQL, MySQL o MariaDB, o SQLite para desarrollo local. La alpha está
+  probada con PostgreSQL.
 - Tailwind CSS v4 y shadcn/ui para el shell.
 
 ## 1. Instalar los paquetes
