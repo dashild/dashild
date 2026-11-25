@@ -75,6 +75,10 @@ No hay comando para esto: es un archivo de la app, como `panel.ts`. Un nombre de
 
 `pnpm --filter playground db:write-smoke` crea, actualiza y borra un usuario con el mismo camino que la acción de servidor.
 
+### Celdas y campos propios
+
+`src/dashild/registry.tsx` registra `avatar` como celda y `email` como campo. El recurso los usa con `cell: "avatar"` y `component: "email"`. `AppRegistryProvider` envuelve `AdminPage` en la ruta.
+
 ### Acciones
 
 Por defecto: `create`, `view`, `edit`, `delete` en tabla y `save`, `cancel` en formulario. Declarar `table.actions` o `form.actions` **reemplaza** la lista: si omites `delete`, desaparece.

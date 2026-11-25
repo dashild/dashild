@@ -35,7 +35,7 @@ import {
 import type { DeleteAction, RunAction } from "../types.js";
 
 import { ActionButton } from "./action-button.js";
-import { formatCell } from "./format-cell.js";
+import { CellValue } from "./cell-value.js";
 import { RowActions } from "./row-actions.js";
 
 interface ResourceTableProps {
@@ -261,7 +261,12 @@ export function ResourceTable({
                 <TableRow key={String(row.id)}>
                   {resource.table.columns.map((column) => (
                     <TableCell key={column.field}>
-                      {formatCell(row[column.field], column, locale)}
+                      <CellValue
+                        value={row[column.field]}
+                        row={row}
+                        column={column}
+                        locale={locale}
+                      />
                     </TableCell>
                   ))}
                   {rowActions.length > 0 ? (

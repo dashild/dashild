@@ -32,14 +32,10 @@ import { Spinner } from "../ui/spinner.js";
 import { Switch } from "../ui/switch.js";
 import { Textarea } from "../ui/textarea.js";
 import { buildFormSchema } from "../forms/schema.js";
-import type { RunAction, SaveAction } from "../types.js";
+import type { FormOption, RunAction, SaveAction } from "../types.js";
 
+import { useRegistry } from "../registry.js";
 import { ActionButton } from "./action-button.js";
-
-export interface FormOption {
-  value: string;
-  label: string;
-}
 
 interface ResourceFormProps {
   slug: string;
@@ -104,6 +100,7 @@ export function ResourceForm({
   locale,
   allowedActions,
 }: ResourceFormProps) {
+  const registry = useRegistry();
   const schema = useMemo(() => buildFormSchema(resource), [resource]);
 
   const defaultValues = useMemo(() => {
@@ -145,11 +142,29 @@ export function ResourceForm({
                 <FieldLabel htmlFor={field.field}>
                   {field.label ?? field.field}
                 </FieldLabel>
-                {renderControl(
-                  field,
-                  control,
-                  options[field.field] ?? [],
-                  locale,
+                {field.component && registry.fields[field.component] ? (
+                  (() => {
+                    const Custom = registry.fields[field.component]!;
+                    return (
+                      <Custom
+                        field={field}
+                        value={control.value}
+                        onChange={control.onChange}
+                        onBlur={control.onBlur}
+                        id={field.field}
+                        name={field.field}
+                        options={options[field.field] ?? []}
+                        locale={locale}
+                      />
+                    );
+                  })()
+                ) : (
+                  renderControl(
+                    field,
+                    control,
+                    options[field.field] ?? [],
+                    locale,
+                  )
                 )}
                 <FieldError errors={[fieldState.error]} />
               </Field>

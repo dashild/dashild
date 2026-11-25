@@ -6,6 +6,11 @@
  * Next server actions or with a test double.
  */
 
+export interface FormOption {
+  value: string;
+  label: string;
+}
+
 export interface FieldErrors {
   [field: string]: string[];
 }

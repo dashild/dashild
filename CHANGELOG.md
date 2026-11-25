@@ -8,6 +8,8 @@
   acciones y los predicados `requires`.
 - `withDashildScope` aplica el ámbito a consultas directas de Prisma; el runtime
   usa el cliente extendido y expone `runtime.client(user)`.
+- `registerCell`/`registerField` con `RegistryProvider`: celdas y campos propios
+  en cliente, referenciados desde el recurso con `cell` y `component`.
 
 ## 0.1.0-alpha.2 — 2026-11-25
 

@@ -21,7 +21,14 @@ export {
 export { NavMain, type NavGroup, type NavResource } from "./components/nav-main.js";
 export { PanelTheme } from "./components/panel-theme.js";
 export { ResourceDetail } from "./components/resource-detail.js";
-export { ResourceForm, type FormOption } from "./components/resource-form.js";
+export { ResourceForm } from "./components/resource-form.js";
+export {
+  RegistryProvider,
+  useRegistry,
+  type CellRendererProps,
+  type FieldRendererProps,
+  type Registry,
+} from "./registry.js";
 export { ResourceTable } from "./components/resource-table.js";
 export { ThemeSync } from "./components/theme-sync.js";
 
@@ -41,6 +48,7 @@ export type {
   RunActionInput,
   RunActionResult,
   SaveAction,
+  FormOption,
   SaveInput,
   SaveResult,
 } from "./types.js";

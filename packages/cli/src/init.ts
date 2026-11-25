@@ -836,6 +836,27 @@ export async function runResourceAction(
 `;
 }
 
+function registryFile(): string {
+  return `"use client";
+
+import { RegistryProvider } from "@dashild/admin";
+
+/**
+ * App registry for custom cells and fields.
+ *
+ * Register components with registerCell/registerField from @dashild/core:
+ *
+ *   registerCell("avatar", AvatarCell);
+ *   registerField("color", ColorField);
+ *
+ * The provider is a client component because the renderers are functions.
+ */
+export function AppRegistryProvider({ children }: { children: React.ReactNode }) {
+  return <RegistryProvider>{children}</RegistryProvider>;
+}
+`;
+}
+
 function routeFile(
   routePath: string,
   panelModule: string,
@@ -843,10 +864,12 @@ function routeFile(
   runtimeModule: string,
   serverModule: string,
   iconsModule: string,
+  registryModule: string,
 ): string {
   return `import { AdminPage } from "@dashild/admin/server";
 
 import { AppIconProvider } from ${quote(importPath(routePath, iconsModule))};
+import { AppRegistryProvider } from ${quote(importPath(routePath, registryModule))};
 import { panel } from ${quote(importPath(routePath, panelModule))};
 import { policies } from ${quote(importPath(routePath, policiesModule))};
 import { runtime } from ${quote(importPath(routePath, runtimeModule))};
@@ -875,19 +898,21 @@ export default async function DashildPage({
   searchParams: Promise<SearchParams>;
 }) {
   return (
-    <AdminPage
-      panel={panel}
-      policies={policies}
-      runtime={runtime}
-      saveAction={saveResource}
-      deleteAction={deleteResource}
-      runAction={runResourceAction}
-      IconProvider={AppIconProvider}
-      params={params}
-      searchParams={searchParams}
-      theme={panel.theme?.defaultMode ?? "light"}
-      themeToggle={panel.theme?.toggle ?? false}
-    />
+    <AppRegistryProvider>
+      <AdminPage
+        panel={panel}
+        policies={policies}
+        runtime={runtime}
+        saveAction={saveResource}
+        deleteAction={deleteResource}
+        runAction={runResourceAction}
+        IconProvider={AppIconProvider}
+        params={params}
+        searchParams={searchParams}
+        theme={panel.theme?.defaultMode ?? "light"}
+        themeToggle={panel.theme?.toggle ?? false}
+      />
+    </AppRegistryProvider>
   );
 }
 `;
@@ -992,6 +1017,10 @@ export function planInit(options: InitOptions): InitPlan {
       content: serverFile(),
     },
     {
+      path: resolve(dashildDir, "registry.tsx"),
+      content: registryFile(),
+    },
+    {
       path: routePath,
       content: routeFile(
         routePath,
@@ -1000,6 +1029,7 @@ export function planInit(options: InitOptions): InitPlan {
         runtimePath,
         resolve(dashildDir, "server.ts"),
         resolve(dashildDir, "icons.tsx"),
+        resolve(dashildDir, "registry.tsx"),
       ),
     },
   ];

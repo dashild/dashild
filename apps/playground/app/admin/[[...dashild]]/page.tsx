@@ -1,6 +1,7 @@
 import { AdminPage } from "@dashild/admin/server";
 
 import { AppIconProvider } from "@/components/dashild/icon-provider";
+import { AppRegistryProvider } from "@/src/dashild/registry";
 import { switchOrganization, toggleTheme } from "@/lib/auth-actions";
 import { resolveActiveOrganization } from "@/lib/organizations";
 import { DEFAULT_THEME_MODE, getThemeMode } from "@/lib/theme";
@@ -39,23 +40,25 @@ export default async function AdminRoute({
     : { id: null, name: null, options: [] };
 
   return (
-    <AdminPage
-      panel={panel}
-      policies={policies}
-      runtime={runtime}
-      saveAction={saveResource}
-      deleteAction={deleteResource}
-      runAction={runResourceAction}
-      IconProvider={AppIconProvider}
-      params={params}
-      searchParams={searchParams}
-      theme={theme}
-      themeToggle={panel.theme?.toggle ?? false}
-      themeAction={toggleTheme}
-      organizations={organization.options}
-      activeOrganizationId={organization.id}
-      switchOrganization={switchOrganization}
-      accountHref="/dashboard"
-    />
+    <AppRegistryProvider>
+      <AdminPage
+        panel={panel}
+        policies={policies}
+        runtime={runtime}
+        saveAction={saveResource}
+        deleteAction={deleteResource}
+        runAction={runResourceAction}
+        IconProvider={AppIconProvider}
+        params={params}
+        searchParams={searchParams}
+        theme={theme}
+        themeToggle={panel.theme?.toggle ?? false}
+        themeAction={toggleTheme}
+        organizations={organization.options}
+        activeOrganizationId={organization.id}
+        switchOrganization={switchOrganization}
+        accountHref="/dashboard"
+      />
+    </AppRegistryProvider>
   );
 }

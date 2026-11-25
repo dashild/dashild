@@ -23,7 +23,7 @@ export const userResource = defineResource({
     searchable: ["name", "email"],
     pageSize: 2,
     columns: [
-      { field: "name", label: "Nombre", sortable: true },
+      { field: "name", label: "Nombre", sortable: true, cell: "avatar" },
       { field: "email", label: "Email", sortable: true },
       {
         field: "role",
@@ -77,6 +77,7 @@ export const userResource = defineResource({
         field: "email",
         type: "email",
         label: "Email",
+        component: "email",
         rules: { required: true },
       },
       { field: "role", type: "select", label: "Rol", default: "USER" },

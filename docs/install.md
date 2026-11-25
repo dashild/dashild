@@ -225,7 +225,40 @@ intencionado.
 Si no quieres que `make:resource` toque `panel.ts`/`policies.ts`, usa
 `--no-register`.
 
-## 7. Arrancar
+## 7. Celdas y campos propios
+
+Opcional. Crea `src/dashild/registry.tsx` en el cliente:
+
+```tsx
+"use client";
+
+import { registerCell, registerField, registeredCells, registeredFields } from "@dashild/core";
+import { RegistryProvider } from "@dashild/admin";
+
+registerCell("avatar", AvatarCell);
+registerField("email", EmailField);
+
+export function AppRegistryProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <RegistryProvider cells={registeredCells()} fields={registeredFields()}>
+      {children}
+    </RegistryProvider>
+  );
+}
+```
+
+Envuelve `AdminPage` con `AppRegistryProvider` y referencia los componentes
+desde el recurso:
+
+```ts
+table: { columns: [{ field: "name", cell: "avatar" }] }
+form: { fields: [{ field: "email", type: "email", component: "email" }] }
+```
+
+Los renderers reciben `CellRendererProps`/`FieldRendererProps` de
+`@dashild/admin`.
+
+## 8. Arrancar
 
 ```bash
 pnpm dev

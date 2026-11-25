@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "../ui/card.js";
 
-import { formatCell } from "./format-cell.js";
+import { CellValue } from "./cell-value.js";
 
 interface ResourceDetailProps {
   resource: ResourceDefinition;
@@ -71,7 +71,12 @@ export function ResourceDetail({
                   {column.label ?? column.field}
                 </dt>
                 <dd className="text-sm">
-                  {formatCell(row[column.field], column, locale)}
+                  <CellValue
+                        value={row[column.field]}
+                        row={row}
+                        column={column}
+                        locale={locale}
+                      />
                 </dd>
               </div>
             ))}

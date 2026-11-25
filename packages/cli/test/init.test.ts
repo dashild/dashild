@@ -77,12 +77,13 @@ test("init: plans the panel, runtime, icons and route", () => {
     assert.equal(plan.panelPath, "/admin");
     assert.equal(plan.scriptAdded, true);
     assert.equal(plan.warnings.length, 0);
-    assert.equal(plan.files.length, 7);
+    assert.equal(plan.files.length, 8);
 
     const paths = plan.files.map((file) => file.path);
     assert.ok(paths.some((path) => path.endsWith("src/dashild/panel.ts")));
     assert.ok(paths.some((path) => path.endsWith("src/dashild/runtime.ts")));
     assert.ok(paths.some((path) => path.endsWith("src/dashild/server.ts")));
+    assert.ok(paths.some((path) => path.endsWith("src/dashild/registry.tsx")));
     assert.ok(
       paths.some((path) =>
         path.endsWith("src/app/admin/[[...dashild]]/page.tsx"),

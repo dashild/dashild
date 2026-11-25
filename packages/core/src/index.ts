@@ -69,6 +69,8 @@ export interface FieldDefinition {
   field: string;
   type: FieldType;
   label?: string;
+  /** Nombre registrado con `registerField`; sustituye al control por defecto. */
+  component?: string;
   /** Prisma relation name when `type` is "relation". */
   relation?: string;
   display?: string;
@@ -276,6 +278,26 @@ export function registerCell(name: string, renderer: ComponentRenderer): void {
 /** Registra un campo de formulario propio. Usar desde `registry.tsx`. */
 export function registerField(name: string, renderer: ComponentRenderer): void {
   fields.set(name, renderer);
+}
+
+export function getRegisteredCell(
+  name: string,
+): ComponentRenderer | undefined {
+  return cells.get(name);
+}
+
+export function getRegisteredField(
+  name: string,
+): ComponentRenderer | undefined {
+  return fields.get(name);
+}
+
+export function registeredCells(): Record<string, ComponentRenderer> {
+  return Object.fromEntries(cells);
+}
+
+export function registeredFields(): Record<string, ComponentRenderer> {
+  return Object.fromEntries(fields);
 }
 
 // ---------------------------------------------------------------------------

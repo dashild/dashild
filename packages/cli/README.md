@@ -52,6 +52,7 @@ src/dashild/actions/index.ts  registro de handlers
 src/dashild/icons.tsx         IconProvider + iconos propios
 src/dashild/runtime.ts        Prisma + metadata + panel + policies
 src/dashild/server.ts         server actions (save/delete/action)
+src/dashild/registry.tsx      RegistryProvider para celdas/campos propios
 src/app/<ruta>/[[...dashild]]/page.tsx
 ```
 

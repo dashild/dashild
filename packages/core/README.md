@@ -6,7 +6,10 @@ Declaraciones públicas y lógica isomorfa. **No puede importar React ni Prisma*
 
 ```ts
 // Declaraciones (datos serializables)
-export { defineResource, definePanel, definePolicies, registerCell, registerField }
+export { defineResource, definePanel, definePolicies }
+
+// Registro de la app (componentes, no datos)
+export { registerCell, registerField }
 
 // Contrato de metadatos (DMMF → JSON)
 export type { FieldMetadata, ModelMetadata, EnumMetadata, DashildMetadata }
@@ -21,6 +24,20 @@ export {
   mappingContext,
 }
 ```
+
+## Celdas y campos propios
+
+`registerCell(name, component)` y `registerField(name, component)` guardan
+renderers para el cliente. El recurso los referencia con datos:
+
+```ts
+table: { columns: [{ field: "name", cell: "avatar" }] }
+form: { fields: [{ field: "email", type: "email", component: "email" }] }
+```
+
+`registerCell`/`registerField` se llaman desde un módulo cliente
+(`src/dashild/registry.tsx`) y el renderer se sirve con `RegistryProvider`.
+Core no importa React: el tipo es deliberadamente genérico.
 
 ## `metadata.ts` y `mapping.ts`
 

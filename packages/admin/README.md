@@ -10,6 +10,8 @@ Runtime del panel: shell, tabla, formulario y primitivas shadcn. El subpath
 - `ResourceTable`, `ResourceDetail`, `ResourceForm` y sus acciones.
 - `DashboardHome`, `NavMain`, `NavUser`, `SiteHeader`, `OrganizationSwitcher`.
 - `IconProvider`/`useIcons`: registro de iconos de la app.
+- `RegistryProvider`/`useRegistry`: celdas y campos propios. `ColumnDefinition.cell`
+  elige una celda; `FieldDefinition.component` elige un campo.
 - `buildFormSchema`: Zod de cliente, la misma validación que aplica el servidor.
 - `ui/*`: primitivas shadcn autocontenidas (`@dashild/admin/ui/button`, etc.).
 - Tipos de acciones (`SaveAction`, `DeleteAction`, `RunAction`) para que la app
@@ -20,9 +22,9 @@ Runtime del panel: shell, tabla, formulario y primitivas shadcn. El subpath
 - `"use client"` en los módulos que lo necesiten. El build conserva el directive.
 - Nunca importa `@/dashild/policies`, `panel.ts`, el cliente de Prisma ni las
   acciones de la app. La página pasa datos serializables y server actions.
-- Los iconos son componentes React: no se pueden serializar. El shell los lee
-  de `IconProvider`, que la app monta en un módulo cliente con su propio
-  `src/dashild/icons.tsx`.
+- Los iconos, celdas y campos son componentes React: no se pueden serializar.
+  El shell los lee de `IconProvider` y `RegistryProvider`, que la app monta en
+  módulos cliente (`src/dashild/icons.tsx`, `src/dashild/registry.tsx`).
 - React, React DOM y Next son `peerDependencies`.
 - El CSS del shell se escanea desde la app con `@source`; no hay CSS propio.
 
