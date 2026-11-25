@@ -18,7 +18,7 @@ Ese archivo describe la tabla, el formulario, los filtros y las acciones. No hay
 páginas que generar ni archivos que sincronizar. La seguridad (autorización y
 aislamiento de datos) no vive ahí: la aplica el servidor.
 
-**Estado: alpha.** Versión `0.1.0-alpha.2`, todavía no estable. La API puede
+**Estado: alpha.** Versión `0.1.0-alpha.3`, todavía no estable. La API puede
 cambiar entre versiones `alpha`.
 
 ## Crear una app

@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.3 — 2026-11-25
 
+- Nuevo `create-dashild` (`npm create dashild`): scaffold interactivo o por
+  flags sobre `create-next-app`, starters `basic`/`demo`, Better Auth y
+  PostgreSQL, MySQL o SQLite, con migración y seed opcionales.
+- `@dashild/cli` expone `./init` y `./register` para planificar el scaffold
+  antes de `prisma generate`.
+- El registro de recursos conserva la indentación y ya no deja huecos en
+  `resources`.
 - `make:resource` registra el recurso en `panel.ts` y una política fail-closed
   en `policies.ts`; `--no-register` lo desactiva.
 - `doctor` comprueba la entrada del modelo en `policies.ts`, los handlers de
