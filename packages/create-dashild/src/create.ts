@@ -166,6 +166,10 @@ export async function createProject(
     try {
       await runCommand(installCommand(options.packageManager), {
         cwd: options.dir,
+        // Native install scripts must target the Node that runs the app.
+        // Otherwise a version shim can build the wrong ABI (and pnpm has no
+        // bundled node-gyp to fall back to).
+        env: nativeEnv(),
       });
       installed = true;
     } catch (error) {
@@ -178,8 +182,8 @@ export async function createProject(
     }
   }
 
-  onStep?.("native");
   if (installed && options.database === "sqlite") {
+    onStep?.("native");
     if (!(await nativeModuleLoads(options.dir, SQLITE_NATIVE))) {
       const rebuild = rebuildCommand(options.packageManager, SQLITE_NATIVE);
       let repaired = false;
@@ -203,10 +207,10 @@ export async function createProject(
     }
   }
 
-  onStep?.("migrate");
   const migrateCommand = scriptCommand(options.packageManager, "db:migrate");
   let migrated = false;
   if (options.databaseUrl && options.migrate && installed) {
+    onStep?.("migrate");
     try {
       await runCommand(
         execCommand(options.packageManager, "prisma", [
@@ -230,10 +234,10 @@ export async function createProject(
     pending.push(migrateCommand);
   }
 
-  onStep?.("seed");
   let seeded = false;
   if (applied.hasSeed) {
     if (options.seed && migrated) {
+      onStep?.("seed");
       try {
         await runCommand(
           execCommand(options.packageManager, "tsx", ["prisma/seed.ts"]),

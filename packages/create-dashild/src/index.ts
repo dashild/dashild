@@ -16,7 +16,7 @@ import {
   promptOptions,
   type PromptFlags,
 } from "./prompt.js";
-import { DASHILD_VERSION } from "./scaffold.js";
+import { CREATE_VERSION, DASHILD_VERSION } from "./scaffold.js";
 import { loadTemplate, validateTemplate } from "./template.js";
 import type {
   AuthProvider,
@@ -101,7 +101,7 @@ const program = new Command();
 program
   .name("create-dashild")
   .description("Create a Next.js app with Dashild preconfigured")
-  .version(DASHILD_VERSION)
+  .version(CREATE_VERSION)
   .argument("[name]", "project name and default directory")
   .option("--name <name>", "project name, when the positional is omitted")
   .option("--dir <dir>", "target directory (defaults to the project name)")

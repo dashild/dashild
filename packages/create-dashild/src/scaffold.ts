@@ -17,21 +17,36 @@ import type {
 const PRISMA_VERSION = "7.10.1";
 const BETTER_AUTH_VERSION = "^1.7.27";
 
-function readVersion(): string {
+function readPackage(): {
+  version?: string;
+  dashildPackages?: string;
+} {
   for (const candidate of ["../package.json", "../../package.json"]) {
     try {
       const parsed = JSON.parse(
         readFileSync(new URL(candidate, import.meta.url), "utf8"),
-      ) as { version?: string };
-      if (parsed.version) return parsed.version;
+      ) as { version?: string; dashildPackages?: string };
+      if (parsed.version) return parsed;
     } catch {
       // Try the next location (source tree vs dist-test).
     }
   }
-  return "0.0.0";
+  return {};
 }
 
-export const DASHILD_VERSION = readVersion();
+const packageInfo = readPackage();
+
+/** This CLI's own version, shown by `--version`. */
+export const CREATE_VERSION = packageInfo.version ?? "0.0.0";
+
+/**
+ * Version of the `@dashild/*` packages generated apps install.
+ *
+ * It is separate from the CLI version so a scaffolder fix can ship without
+ * republishing the whole stack.
+ */
+export const DASHILD_VERSION =
+  packageInfo.dashildPackages ?? CREATE_VERSION;
 
 function write(path: string, content: string): void {
   mkdirSync(dirname(path), { recursive: true });

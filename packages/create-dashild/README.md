@@ -85,3 +85,7 @@ pnpm --filter create-dashild build
 pnpm --filter create-dashild test
 node packages/create-dashild/dist/index.js mi-app --dry-run
 ```
+
+`package.json` `dashildPackages` fija la versión de `@dashild/*` que instalan
+las apps generadas. Permite publicar un arreglo del scaffolder sin
+republicar el resto del stack.

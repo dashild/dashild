@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-alpha.5 — 2026-11-25
+
+- `create-dashild` instala dependencias con el Node que ejecuta el CLI y con
+  `npm_config_target`, para que `better-sqlite3` reciba el binario correcto
+  también con pnpm (que no incluye `node-gyp`). Las apps generadas siguen
+  fijando el stack `0.1.0-alpha.4`.
+- `create-dashild` solo anuncia los pasos que realmente ejecuta.
+
 ## 0.1.0-alpha.4 — 2026-11-25
 
 - Reemplaza a `0.1.0-alpha.3`: su publicación quedó incompleta (falta el
