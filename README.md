@@ -18,7 +18,7 @@ Ese archivo describe la tabla, el formulario, los filtros y las acciones. No hay
 páginas que generar ni archivos que sincronizar. La seguridad (autorización y
 aislamiento de datos) no vive ahí: la aplica el servidor.
 
-**Estado: alpha.** Versión `0.1.0-alpha.1`, todavía no estable. La API puede
+**Estado: alpha.** Versión `0.1.0-alpha.2`, todavía no estable. La API puede
 cambiar entre versiones `alpha`.
 
 ## Instalación
@@ -31,9 +31,12 @@ pnpm add -D @dashild/cli@alpha
 Después:
 
 ```bash
-pnpm dashild init
+pnpm dashild init --auth better-auth
 pnpm dashild make:resource User
 ```
+
+Si la app ya tiene autenticación propia, usa `dashild init --auth none` y conecta
+el adaptador de `src/dashild/panel.ts`.
 
 La guía completa, requisitos de Prisma 7, Tailwind y autenticación está en
 [`docs/install.md`](docs/install.md).

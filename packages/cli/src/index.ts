@@ -107,6 +107,7 @@ program
   .option("--cwd <dir>", "project root", process.cwd())
   .option("--metadata <path>", "path to dashild-metadata.json")
   .option("--path <route>", "mount route (default: /admin)")
+  .option("--auth <provider>", "auth integration: none or better-auth", "none")
   .option("--yes", "write the files")
   .option("--force", "overwrite the generated files")
   .option("--dry-run", "print the plan without writing")
@@ -115,6 +116,7 @@ program
       cwd: string;
       metadata?: string;
       path?: string;
+      auth?: string;
       yes?: boolean;
       force?: boolean;
       dryRun?: boolean;
@@ -125,6 +127,7 @@ program
           cwd: resolve(options.cwd),
           metadata: options.metadata,
           path: options.path,
+          auth: options.auth,
           locale: activeLocale,
           force: options.force,
         });
@@ -147,8 +150,12 @@ program
         if (plan.scriptAdded) {
           console.log(cliMessage(activeLocale, "init.script"));
         }
+        const doneKey =
+          plan.authProvider === "better-auth"
+            ? "init.done.better-auth"
+            : "init.done";
         console.log(
-          `\n${cliMessage(activeLocale, "init.done", {
+          `\n${cliMessage(activeLocale, doneKey, {
             panel: relative(plan.cwd, resolve(plan.cwd, "src/dashild/panel.ts")),
           })}`,
         );

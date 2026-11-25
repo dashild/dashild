@@ -18,6 +18,7 @@ function project(options: { next?: boolean } = {}): string {
   mkdirSync(join(directory, "src/app"), { recursive: true });
   mkdirSync(join(directory, "src/lib"), { recursive: true });
   mkdirSync(join(directory, "src/generated/dashild"), { recursive: true });
+  mkdirSync(join(directory, "prisma"), { recursive: true });
 
   const dependencies =
     options.next === false
@@ -51,6 +52,16 @@ function project(options: { next?: boolean } = {}): string {
   writeFileSync(
     join(directory, "src/generated/dashild/dashild-metadata.json"),
     JSON.stringify({ formatVersion: 1, models: [], enums: [] }),
+    "utf8",
+  );
+  writeFileSync(
+    join(directory, "prisma/schema.prisma"),
+    'datasource db {\n  provider = "postgresql"\n}\n\nmodel Customer {\n  id String @id\n}\n',
+    "utf8",
+  );
+  writeFileSync(
+    join(directory, ".env.example"),
+    'DATABASE_URL="postgresql://localhost/app"\n',
     "utf8",
   );
 
@@ -180,6 +191,131 @@ test("init: the plan is printable", () => {
     const text = formatInitPlan(planInit({ cwd: directory }));
     assert.match(text, /Panel: \/admin/);
     assert.match(text, /src\/dashild\/panel\.ts/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: better-auth plans the auth files, schema and env", () => {
+  const directory = project();
+
+  try {
+    const plan = planInit({ cwd: directory, auth: "better-auth" });
+
+    assert.equal(plan.authProvider, "better-auth");
+    const paths = plan.files.map((file) => file.path);
+    assert.ok(paths.some((path) => path.endsWith("src/lib/auth.ts")));
+    assert.ok(paths.some((path) => path.endsWith("src/lib/auth-client.ts")));
+    assert.ok(paths.some((path) => path.endsWith("src/lib/session.ts")));
+    assert.ok(
+      paths.some((path) => path.endsWith("src/lib/auth-actions.ts")),
+    );
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/app/api/auth/[...all]/route.ts"),
+      ),
+    );
+    assert.ok(paths.some((path) => path.endsWith("src/app/login/page.tsx")));
+    assert.ok(paths.some((path) => path.endsWith("src/app/signup/page.tsx")));
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/components/dashild/login-form.tsx"),
+      ),
+    );
+
+    const panel = plan.files.find((file) =>
+      file.path.endsWith("src/dashild/panel.ts"),
+    );
+    assert.ok(panel);
+    assert.match(panel.content, /getCurrentUser/);
+    assert.match(panel.content, /signOut/);
+
+    assert.ok(
+      plan.appends.some(
+        (append) =>
+          append.path.endsWith("prisma/schema.prisma") &&
+          append.content.includes("model User") &&
+          append.content.includes("model Session"),
+      ),
+    );
+    assert.ok(
+      plan.appends.some(
+        (append) =>
+          append.path.endsWith(".env.example") &&
+          append.content.includes("BETTER_AUTH_SECRET") &&
+          append.content.includes("BETTER_AUTH_URL"),
+      ),
+    );
+
+    const packageJson = JSON.parse(plan.packageJson) as {
+      dependencies: Record<string, string>;
+    };
+    assert.equal(packageJson.dependencies["better-auth"], "^1.7.27");
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: better-auth applies files and appends without losing content", () => {
+  const directory = project();
+
+  try {
+    applyInit(planInit({ cwd: directory, auth: "better-auth" }));
+
+    const schema = readFileSync(
+      join(directory, "prisma/schema.prisma"),
+      "utf8",
+    );
+    assert.match(schema, /model Customer/);
+    assert.match(schema, /model User/);
+    assert.match(schema, /model Account/);
+
+    const env = readFileSync(join(directory, ".env.example"), "utf8");
+    assert.match(env, /DATABASE_URL/);
+    assert.match(env, /BETTER_AUTH_SECRET/);
+    assert.match(env, /BETTER_AUTH_URL/);
+
+    assert.ok(
+      existsSync(join(directory, "src/app/api/auth/[...all]/route.ts")),
+    );
+    assert.ok(existsSync(join(directory, "src/app/login/page.tsx")));
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: existing auth models are a warning, not a duplicate", () => {
+  const directory = project();
+
+  try {
+    writeFileSync(
+      join(directory, "prisma/schema.prisma"),
+      'datasource db {\n  provider = "postgresql"\n}\n\nmodel User {\n  id String @id\n}\n',
+      "utf8",
+    );
+
+    const plan = planInit({ cwd: directory, auth: "better-auth" });
+    assert.ok(
+      plan.warnings.some((warning) => warning.includes("existing auth models")),
+    );
+    assert.ok(
+      !plan.appends.some((append) =>
+        append.path.endsWith("prisma/schema.prisma"),
+      ),
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: rejects an unknown auth provider", () => {
+  const directory = project();
+
+  try {
+    assert.throws(
+      () => planInit({ cwd: directory, auth: "nextauth" }),
+      /Unknown auth provider/,
+    );
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

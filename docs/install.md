@@ -1,6 +1,6 @@
 # Instalación de Dashild (alpha)
 
-Versión de esta guía: `0.1.0-alpha.1`.
+Versión de esta guía: `0.1.0-alpha.2`.
 
 Dashild es un panel administrativo para Next.js + Prisma. Un recurso es un
 archivo de datos; no hay páginas que generar ni archivos que sincronizar.
@@ -79,14 +79,23 @@ solo está verificada con PostgreSQL.
 
 ## 3. Montar el panel
 
+Para una app nueva, o una que aún no tiene autenticación, usa Better Auth:
+
 ```bash
-pnpm dashild init
+pnpm dashild init --auth better-auth
 ```
 
 El comando muestra el plan y no escribe nada hasta que añadas `--yes`:
 
 ```bash
-pnpm dashild init --yes
+pnpm dashild init --auth better-auth --yes
+```
+
+Si la app ya tiene su propia autenticación, usa el modo por defecto y conecta el
+adaptador a mano:
+
+```bash
+pnpm dashild init
 ```
 
 Escribe:
@@ -101,8 +110,38 @@ src/dashild/server.ts
 src/app/<ruta>/[[...dashild]]/page.tsx
 ```
 
-No toca `middleware.ts`/`proxy.ts`, el layout raíz, `next.config`, `.env` ni tus
-archivos de autenticación.
+Con `--auth better-auth` añade además:
+
+```text
+lib/auth.ts
+lib/auth-client.ts
+lib/session.ts
+lib/auth-actions.ts
+app/api/auth/[...all]/route.ts
+app/login/page.tsx
+app/signup/page.tsx
+components/dashild/login-form.tsx
+components/dashild/signup-form.tsx
+```
+
+y, si el schema no tiene ya modelos de autenticación, añade `User`, `Session`,
+`Account` y `Verification` a `prisma/schema.prisma`. También añade
+`BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` a `.env.example` y la dependencia
+`better-auth` a `package.json`.
+
+No toca `middleware.ts`/`proxy.ts`, el layout raíz, `next.config` ni `.env`.
+Después de `--auth better-auth` ejecuta otra vez:
+
+```bash
+pnpm prisma generate
+pnpm prisma db push
+```
+
+y configura `BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` en tu `.env`:
+
+```bash
+openssl rand -base64 32
+```
 
 Si ya existe `app/admin/page.tsx`, `init` elige `/panel`, `/admin-panel` o
 `/dashild`. Usa `--path /otra-ruta` para forzarla y `--dry-run` para revisar el
@@ -110,7 +149,11 @@ plan.
 
 ## 4. Completar la autenticación
 
-`init` deja un adaptador vacío en `src/dashild/panel.ts`:
+Con `--auth better-auth`, `src/dashild/panel.ts` ya queda conectado a la sesión
+real y `/login` y `/signup` funcionan. No tienes que hacer nada más que
+configurar el secreto y la URL.
+
+Con `--auth none`, `init` deja un adaptador vacío:
 
 ```ts
 async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -129,6 +172,10 @@ export const panel = definePanel({
 Devuelve el usuario de **tu** autenticación. Dashild no impone Better Auth ni
 toca tus cookies. `CurrentUser` necesita al menos `id`; `email`, `name`,
 `organizationId` y `roles` son opcionales.
+
+Si el schema ya tenía un modelo `User` o alguno de los modelos de sesión,
+`init --auth better-auth` **no lo modifica**: avisa y deja la adaptación en tus
+manos. Es la vía para no romper una autenticación existente.
 
 ## 5. Tailwind
 
@@ -188,6 +235,8 @@ El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
 ## Limitaciones conocidas de la alpha
 
 - `create-dashild` todavía no está publicado; usa `@dashild/cli` manualmente.
+- `init --auth better-auth` añade modelos de autenticación si el schema está
+  vacío; si ya existen, solo avisa y no los duplica.
 - `make:resource` no registra el recurso ni la política automáticamente.
 - El ámbito aún se aplica en el runtime, no en una extensión `$extends` de
   Prisma.

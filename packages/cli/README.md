@@ -34,8 +34,9 @@ Rutas de metadatos que busca por defecto: `src/generated/dashild/`, `generated/d
 ## `init`
 
 ```bash
-pnpm dashild init
-pnpm dashild init --yes
+pnpm dashild init --auth better-auth
+pnpm dashild init --auth better-auth --yes
+pnpm dashild init --auth none --yes
 pnpm dashild init --dry-run
 ```
 
@@ -51,8 +52,27 @@ src/dashild/server.ts         server actions (save/delete/action)
 src/app/<ruta>/[[...dashild]]/page.tsx
 ```
 
+Con `--auth better-auth` añade además:
+
+```text
+lib/auth.ts
+lib/auth-client.ts
+lib/session.ts
+lib/auth-actions.ts
+app/api/auth/[...all]/route.ts
+app/login/page.tsx
+app/signup/page.tsx
+components/dashild/login-form.tsx
+components/dashild/signup-form.tsx
+```
+
+Añade `better-auth` a `package.json` y los modelos `User`, `Session`, `Account`
+y `Verification` a `prisma/schema.prisma` si no existen. También añade
+`BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` a `.env.example`.
+
 Añade el script `dashild` a `package.json` si falta. **No toca** `middleware.ts`/`proxy.ts`, el layout raíz, `next.config`, `.env` ni los archivos de autenticación.
 
+- `--auth <none|better-auth>` elige la integración. Por defecto `none` para no tocar una autenticación existente.
 - `--path <ruta>` elige la ruta de montaje. Si `/admin` ya tiene una `page.tsx`, propone `/panel`, `/admin-panel` o `/dashild`.
 - `--yes` escribe; sin él, solo muestra el plan. `--dry-run` nunca escribe.
 - `--force` sobrescribe archivos existentes. Sin `--force`, se niega para no pisar trabajo manual.

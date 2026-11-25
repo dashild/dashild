@@ -35,8 +35,18 @@ const en = {
   "init.script": "Added the dashild script to package.json",
   "init.done":
     "Done. Complete the auth adapter in {panel} and add your resources.",
+  "init.done.better-auth":
+    "Done. Better Auth is wired in {panel}. Set BETTER_AUTH_SECRET and add your resources.",
   "init.metadata":
     "dashild-metadata.json is required. Run `prisma generate` first or pass --metadata <path>.",
+  "init.auth.invalid":
+    'Unknown auth provider "{provider}". Use "none" or "better-auth".',
+  "init.auth.models":
+    "Found existing auth models ({models}) in {path}; not modifying the schema. Adapt them to Better Auth manually.",
+  "init.auth.schemaMissing":
+    "Could not find schema.prisma; Better Auth models were not added.",
+  "init.auth.secret":
+    "BETTER_AUTH_SECRET is empty. Generate one with `openssl rand -base64 32`.",
 } as const;
 
 type MessageKey = keyof typeof en;
@@ -69,8 +79,18 @@ const es: Record<MessageKey, string> = {
   "init.script": "Script dashild añadido a package.json",
   "init.done":
     "Hecho. Completa el adaptador de autenticación en {panel} y añade tus recursos.",
+  "init.done.better-auth":
+    "Hecho. Better Auth está conectado en {panel}. Configura BETTER_AUTH_SECRET y añade tus recursos.",
   "init.metadata":
     "dashild-metadata.json es obligatorio. Ejecuta `prisma generate` antes o pasa --metadata <path>.",
+  "init.auth.invalid":
+    'Proveedor de auth desconocido: "{provider}". Usa "none" o "better-auth".',
+  "init.auth.models":
+    "Ya existen modelos de auth ({models}) en {path}; no modifico el schema. Adáptalos a Better Auth a mano.",
+  "init.auth.schemaMissing":
+    "No encuentro schema.prisma; no se añadieron los modelos de Better Auth.",
+  "init.auth.secret":
+    "BETTER_AUTH_SECRET está vacío. Genera uno con `openssl rand -base64 32`.",
 };
 
 export function resolveCliLocale(value: string | undefined): Locale {
