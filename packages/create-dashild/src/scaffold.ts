@@ -198,7 +198,8 @@ function globalsCss(): string {
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: var(--font-sans);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -332,6 +333,9 @@ function nextConfig(provider: DatabaseProvider): string {
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ${JSON.stringify(external)},
+  // Next 16 only allows localhost for dev assets and HMR; opening 127.0.0.1
+  // otherwise leaves the page without hydration.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   // create-next-app wires Tailwind v4 through this Turbopack loader. Keep it:
   // without it @theme and package CSS imports fail to resolve.
   turbopack: {

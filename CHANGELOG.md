@@ -6,6 +6,10 @@
   `npm_config_target`, para que `better-sqlite3` reciba el binario correcto
   también con pnpm (que no incluye `node-gyp`). Las apps generadas siguen
   fijando el stack `0.1.0-alpha.4`.
+- Usa una pila de fuentes del sistema en `--font-sans`; la variable
+  autoreferenciada dejaba la app en Times New Roman.
+- `next.config.ts` incluye `allowedDevOrigins` para que `127.0.0.1` también
+  hidrate en desarrollo.
 - `create-dashild` solo anuncia los pasos que realmente ejecuta.
 
 ## 0.1.0-alpha.4 — 2026-11-25
