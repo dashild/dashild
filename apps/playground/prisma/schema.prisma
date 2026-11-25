@@ -56,9 +56,16 @@ model User {
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
   posts    Post[]
+  labels   Label[]
   sessions Session[]
   accounts Account[]
 
+}
+
+model Label {
+  id    String @id @default(cuid())
+  name  String @unique
+  users User[]
 }
 
 model Post {

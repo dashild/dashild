@@ -19,6 +19,7 @@ import { cliMessage, resolveCliLocale } from "./messages.js";
 import { findMetadata, readMetadata } from "./metadata.js";
 import { resourceExportName, resourceFileName } from "./naming.js";
 import { registerResource } from "./register.js";
+import { formatUiRegistration, uiAdd, UI_TEMPLATES } from "./ui-add.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -251,9 +252,51 @@ program
   );
 
 program
-  .command("ui:add <fields...>")
-  .description("Copy field components into the project")
-  .action(() => pending("ui:add", "phase 2"));
+  .command("ui:add <components...>")
+  .description("Copy a cell or field template into the project")
+  .option("--cwd <dir>", "project root", process.cwd())
+  .option("--dir <path>", "components folder", "components/dashild")
+  .option("--force", "overwrite an existing file")
+  .option("--dry-run", "show the files without writing")
+  .action(
+    (
+      components: string[],
+      options: {
+        cwd: string;
+        dir: string;
+        force?: boolean;
+        dryRun?: boolean;
+      },
+    ) => {
+      const result = uiAdd({
+        cwd: resolve(options.cwd),
+        dir: options.dir,
+        names: components,
+        force: options.force,
+        dryRun: options.dryRun,
+      });
+
+      for (const path of result.created) {
+        console.log(`${options.dryRun ? "Would create" : "Created"} ${path}`);
+      }
+      for (const path of result.skipped) {
+        console.log(`${path} already exists; use --force to overwrite.`);
+      }
+      for (const name of result.unknown) {
+        console.log(
+          `Unknown component "${name}". Available: ${Object.keys(
+            UI_TEMPLATES,
+          ).join(", ")}.`,
+        );
+      }
+
+      for (const name of components) {
+        if (result.created.length > 0 || result.skipped.length > 0) {
+          console.log(formatUiRegistration(name));
+        }
+      }
+    },
+  );
 
 program
   .command("eject")

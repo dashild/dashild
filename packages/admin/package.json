@@ -30,6 +30,7 @@
   "dependencies": {
     "@dashild/core": "workspace:*",
     "@hookform/resolvers": "^7.0.8",
+    "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.78.0",

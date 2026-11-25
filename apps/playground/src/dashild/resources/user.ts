@@ -81,6 +81,7 @@ export const userResource = defineResource({
         rules: { required: true },
       },
       { field: "role", type: "select", label: "Rol", default: "USER" },
+      { field: "avatar", type: "bytes", label: "Avatar" },
       {
         field: "organization",
         type: "relation",
@@ -88,6 +89,14 @@ export const userResource = defineResource({
         relation: "organization",
         display: "name",
         rules: { required: true },
+      },
+      {
+        field: "labels",
+        type: "relation",
+        label: "Etiquetas",
+        relation: "labels",
+        display: "name",
+        multiple: true,
       },
       { field: "balance", type: "number", label: "Saldo" },
       { field: "isActive", type: "boolean", label: "Activo", default: true },

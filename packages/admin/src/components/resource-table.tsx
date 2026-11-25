@@ -1,11 +1,5 @@
 import Link from "next/link";
-import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
-  Plus,
-  SearchX,
-} from "lucide-react";
+import { Plus, SearchX } from "lucide-react";
 
 import {
   resolveTableActions,
@@ -24,19 +18,10 @@ import {
   EmptyTitle,
 } from "../ui/empty.js";
 import { Input } from "../ui/input.js";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table.js";
 import type { DeleteAction, RunAction } from "../types.js";
 
 import { ActionButton } from "./action-button.js";
-import { CellValue } from "./cell-value.js";
-import { RowActions } from "./row-actions.js";
+import { DataTable } from "./data-table.js";
 
 interface ResourceTableProps {
   resource: ResourceDefinition;
@@ -212,82 +197,16 @@ export function ResourceTable({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="overflow-hidden rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {resource.table.columns.map((column) => (
-                  <TableHead key={column.field}>
-                    {column.sortable ? (
-                      <Link
-                        href={href({
-                          sort: column.field,
-                          dir:
-                            column.field === params.sort &&
-                            params.direction === "asc"
-                              ? "desc"
-                              : "asc",
-                          page: 1,
-                        })}
-                        className="inline-flex items-center gap-1 hover:text-foreground"
-                      >
-                        {column.label ?? column.field}
-                        {column.field === params.sort ? (
-                          params.direction === "asc" ? (
-                            <ArrowUp className="size-3" />
-                          ) : (
-                            <ArrowDown className="size-3" />
-                          )
-                        ) : (
-                          <ArrowUpDown className="size-3 opacity-50" />
-                        )}
-                      </Link>
-                    ) : (
-                      (column.label ?? column.field)
-                    )}
-                  </TableHead>
-                ))}
-                {rowActions.length > 0 ? (
-                  <TableHead className="w-12 text-right">
-                    <span className="sr-only">
-                      {translate(locale, "shell.actions")}
-                    </span>
-                  </TableHead>
-                ) : null}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={String(row.id)}>
-                  {resource.table.columns.map((column) => (
-                    <TableCell key={column.field}>
-                      <CellValue
-                        value={row[column.field]}
-                        row={row}
-                        column={column}
-                        locale={locale}
-                      />
-                    </TableCell>
-                  ))}
-                  {rowActions.length > 0 ? (
-                    <TableCell className="text-right">
-                      <RowActions
-                        slug={resource.navigation.slug}
-                        id={String(row.id)}
-                        actions={rowActions}
-                        viewHref={`${basePath}/${String(row.id)}`}
-                        editHref={`${basePath}/${String(row.id)}/edit`}
-                        deleteAction={deleteAction}
-                        runAction={runAction}
-                        locale={locale}
-                              />
-                    </TableCell>
-                  ) : null}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <DataTable
+          resource={resource}
+          rows={rows}
+          params={params}
+          basePath={basePath}
+          locale={locale}
+          actions={rowActions}
+          deleteAction={deleteAction}
+          runAction={runAction}
+        />
       )}
 
       <div className="flex items-center justify-between">

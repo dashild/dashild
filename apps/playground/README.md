@@ -120,6 +120,8 @@ table: {
 
 `pnpm --filter playground db:scope-smoke` prueba la extensión `withDashildScope` con consultas directas de Prisma: Ana no ve ni modifica filas de Bruno. Es la segunda barrera para código que no pasa por el runtime.
 
+`pnpm --filter playground db:bytes-smoke` verifica la escritura de `Bytes` (base64 ↔ `Uint8Array`). `db:m2m-smoke` verifica el multiselect de etiquetas (m2m).
+
 ### Selector de organización
 
 El team switcher de `sidebar-07` es el selector de organización. La cookie `dashild_organization` se valida en servidor en cada petición:

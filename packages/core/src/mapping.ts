@@ -54,7 +54,8 @@ export type FieldType =
   | "datetime"
   | "select"
   | "relation"
-  | "json";
+  | "json"
+  | "bytes";
 
 /** Operation that determines schema presence. */
 export type Operation = "create" | "update";
@@ -156,6 +157,29 @@ function toDate(value: unknown): Date | null {
 
 const BASE64_ALPHABET =
   "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+function fromBase64(value: string): Uint8Array {
+  const clean = value.replace(/^data:[^,]*,/, "").replace(/\s/g, "");
+  const bytes: number[] = [];
+
+  for (let index = 0; index < clean.length; index += 4) {
+    const a = BASE64_ALPHABET.indexOf(clean[index] ?? "");
+    const b = BASE64_ALPHABET.indexOf(clean[index + 1] ?? "");
+    const c = BASE64_ALPHABET.indexOf(clean[index + 2] ?? "");
+    const d = BASE64_ALPHABET.indexOf(clean[index + 3] ?? "");
+    if (a < 0 || b < 0) continue;
+
+    bytes.push(((a << 2) | (b >> 4)) & 255);
+    if (clean[index + 2] !== "=" && c >= 0) {
+      bytes.push(((b << 4) | (c >> 2)) & 255);
+    }
+    if (clean[index + 3] !== "=" && d >= 0) {
+      bytes.push(((c << 6) | d) & 255);
+    }
+  }
+
+  return new Uint8Array(bytes);
+}
 
 function toBase64(bytes: Uint8Array): string {
   let output = "";
@@ -292,26 +316,21 @@ export const SCALAR_MAPPINGS: Readonly<Record<ScalarKind, ScalarMapping>> = {
   },
 
   /**
-   * `Bytes` no se edita en v1 (Architecture §10). Se sigue convirtiendo a
-   * base64 so a model that has it does not break serialization, but it
-   * appears in neither table nor form.
+   * `Bytes` travels as base64. The form uploads a file, converts it to base64
+   * in the browser, and `toDb` turns it back into bytes for Prisma.
    */
   Bytes: {
-    field: "text",
+    field: "bytes",
     format: "text",
     column: false,
-    editable: false,
-    warning:
-      "Bytes is not supported in v1: shown as base64 and not editable.",
-    zod: () => z.never(),
+    editable: true,
+    zod: () => z.string(),
     dto: (value) => {
       if (value === null || value === undefined) return null;
       if (value instanceof Uint8Array) return toBase64(value);
       return null;
     },
-    toDb: () => {
-      throw new Error("Dashild: Bytes fields cannot be written in v1.");
-    },
+    toDb: (value) => (value == null ? null : fromBase64(String(value))),
   },
 };
 
@@ -426,19 +445,19 @@ function resolveEnum(
 }
 
 function resolveRelation(field: FieldMetadata): ResolvedFieldMapping {
-  // One-to-many / many-to-many: relation manager in v2.
+  // One-to-many / many-to-many: the form sends an array of related ids and
+  // Prisma receives a nested connect/set.
   if (field.isList) {
     return {
       field: "relation",
       format: "text",
-      zod: z.never(),
-      dto: () => null,
-      toDb: () => {
-        throw new Error(`Dashild: relation ${field.name} is a list.`);
-      },
+      zod: z
+        .array(z.union([z.string(), z.number().int()]))
+        .transform((values) => values.map((value) => String(value))),
+      dto: (value) => value ?? null,
+      toDb: (value) => value,
       column: false,
-      editable: false,
-      warning: `List relation (${field.name}) is not editable in v1.`,
+      editable: true,
     };
   }
 

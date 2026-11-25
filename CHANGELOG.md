@@ -10,6 +10,10 @@
   usa el cliente extendido y expone `runtime.client(user)`.
 - `registerCell`/`registerField` con `RegistryProvider`: celdas y campos propios
   en cliente, referenciados desde el recurso con `cell` y `component`.
+- `ui:add` copia plantillas de celda/campo.
+- Tabla con TanStack Table (paginación, ordenación y filtros siguen en servidor).
+- Escritura de `Bytes` mediante base64 y selector de archivo.
+- Relaciones m2m con multiselect; o2m requiere un gestor de hijos específico.
 
 ## 0.1.0-alpha.2 — 2026-11-25
 

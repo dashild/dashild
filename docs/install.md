@@ -275,6 +275,10 @@ El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
   Prisma. Las relaciones incluidas dentro de una consulta no son consultas
   separadas; para cargas personalizadas usa `runtime.client(user)` o el cliente
   extendido.
+- Relaciones m2m: multiselect en el formulario. o2m requiere un gestor de hijos
+  específico porque la FK puede ser obligatoria y no se puede desconectar con
+  un `set` genérico.
+- `Bytes`: se edita con un selector de archivo y viaja como base64.
 - El sistema de acciones y el mapa de iconos están documentados en los README
   de los paquetes, pero la documentación pública todavía es mínima.
 - Las APIs pueden cambiar entre versiones `alpha`.

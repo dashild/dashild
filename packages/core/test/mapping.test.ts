@@ -187,14 +187,18 @@ test("Relación m2o: id string o número, normalizado a string", () => {
   assert.equal(mapping.zod.parse(7), "7");
 });
 
-test("Relación o2m: no editable en v1", () => {
+test("Relación o2m/m2m: lista de ids editable", () => {
   const mapping = resolveFieldMapping(
     field({ name: "posts", type: "Post", kind: "object", isList: true }),
     context,
   );
   assert.equal(mapping.column, false);
-  assert.equal(mapping.editable, false);
-  assert.match(mapping.warning ?? "", /posts/);
+  assert.equal(mapping.editable, true);
+  assert.equal(mapping.field, "relation");
+  assert.deepEqual(
+    mapping.zod.parse(["post-1", "post-2"]),
+    ["post-1", "post-2"],
+  );
 });
 
 test("@id no se edita pero se muestra", () => {
@@ -221,12 +225,16 @@ test("Lista escalar: fuera del formulario y de la tabla, con aviso", () => {
   assert.match(mapping.warning ?? "", /tags/);
 });
 
-test("Bytes: no editable, base64, sin romper la serialización", () => {
+test("Bytes: base64, editable y convertido a Uint8Array", () => {
   const mapping = resolveFieldMapping(field({ type: "Bytes" }), context);
   assert.equal(mapping.column, false);
-  assert.equal(mapping.editable, false);
+  assert.equal(mapping.editable, true);
+  assert.equal(mapping.field, "bytes");
   assert.equal(mapping.dto(new Uint8Array([1, 2, 3])), "AQID");
-  assert.throws(() => mapping.toDb("AQID"));
+  assert.deepEqual(
+    Array.from(mapping.toDb("AQID") as Uint8Array),
+    [1, 2, 3],
+  );
 });
 
 test("Tipo desconocido: texto editable con aviso (generación total)", () => {

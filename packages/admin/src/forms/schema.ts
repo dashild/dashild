@@ -39,6 +39,12 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
     case "email":
       schema = z.string().email("Email no válido.");
       break;
+    case "relation":
+      schema = field.multiple ? z.array(z.string()) : z.string();
+      break;
+    case "bytes":
+      schema = z.string();
+      break;
     case "json":
       schema = z.string().refine((value) => {
         if (value.trim() === "") return true;

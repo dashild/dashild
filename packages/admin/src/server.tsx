@@ -359,7 +359,7 @@ async function ResourceFormPage<TUser extends CurrentUser>({
   let values = null;
 
   try {
-    options = await runtime.formOptions(resource, user);
+    options = await runtime.formOptions(resource, user, id);
     values = id ? await runtime.record(resource, id, user) : null;
   } catch (error) {
     if (error instanceof PolicyDeniedError) notFound();

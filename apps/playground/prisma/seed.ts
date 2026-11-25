@@ -145,11 +145,41 @@ async function seedPosts(users: Map<string, { id: string }>) {
   }
 }
 
+async function seedLabels(users: Map<string, { id: string }>) {
+  const names = ["Alpha", "Beta"];
+  const labels = [];
+  for (const name of names) {
+    labels.push(
+      await prisma.label.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      }),
+    );
+  }
+
+  const ana = users.get("ana@acme.test");
+  const carla = users.get("carla@acme.test");
+  if (ana) {
+    await prisma.user.update({
+      where: { id: ana.id },
+      data: { labels: { set: labels.map((label) => ({ id: label.id })) } },
+    });
+  }
+  if (carla) {
+    await prisma.user.update({
+      where: { id: carla.id },
+      data: { labels: { set: [{ id: labels[0]!.id }] } },
+    });
+  }
+}
+
 async function main() {
   await seedOrganizations();
   await resetDemoData();
   const users = await seedUsers();
   await seedPosts(users);
+  await seedLabels(users);
 
   const [organizations, accounts, sessions, posts] = await Promise.all([
     prisma.organization.count(),

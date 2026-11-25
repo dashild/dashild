@@ -42,6 +42,23 @@ function isRelation(field: FieldMetadata): boolean {
   return field.kind === "object";
 }
 
+/** o2m needs a child manager; m2m is a plain id list. */
+function isO2M(
+  field: FieldMetadata,
+  models: ReadonlyMap<string, ModelMetadata>,
+): boolean {
+  if (!field.isList) return false;
+  const related = models.get(field.type);
+  return Boolean(
+    related?.fields.some(
+      (entry) =>
+        entry.kind === "object" &&
+        !entry.isList &&
+        entry.relationName === field.relationName,
+    ),
+  );
+}
+
 function guessDisplay(
   models: ReadonlyMap<string, ModelMetadata>,
   relatedModel: string | undefined,
@@ -87,6 +104,7 @@ interface FormSpec {
   label: string;
   relation?: string;
   display?: string;
+  multiple?: boolean;
   required: boolean;
 }
 
@@ -119,6 +137,7 @@ function serializeFormField(field: FormSpec): string {
   ];
   if (field.relation) parts.push(`relation: ${quote(field.relation)}`);
   if (field.display) parts.push(`display: ${quote(field.display)}`);
+  if (field.multiple) parts.push("multiple: true");
   if (field.required) parts.push("rules: { required: true }");
   return `{ ${parts.join(", ")} }`;
 }
@@ -161,10 +180,7 @@ export function generateResourceFile(
   const searchable: string[] = [];
 
   for (const field of model.fields) {
-    if (isRelation(field) && field.isList) continue;
-
     const mapping = resolveFieldMapping(field, context);
-    if (!mapping.column) continue;
 
     // `id`, `@updatedAt` and relation-owned foreign keys are neither edited nor
     // listed: the panel shows the relation, not its key.
@@ -172,44 +188,47 @@ export function generateResourceFile(
 
     const label = humanize(field.name);
 
-    if (isRelation(field)) {
-      const display = guessDisplay(models, field.type);
-      columns.push({
-        field: field.name,
-        label,
-        sortable: true,
-        display,
-      });
-      filters.push({
-        field: field.name,
-        type: "relation",
-        label,
-        display,
-      });
-    } else {
-      columns.push({
-        field: field.name,
-        label,
-        sortable: field.type !== "Json",
-        ...(mapping.format !== "text" ? { format: mapping.format } : {}),
-      });
+    if (mapping.column) {
+      if (isRelation(field)) {
+        const display = guessDisplay(models, field.type);
+        columns.push({
+          field: field.name,
+          label,
+          sortable: true,
+          display,
+        });
+        filters.push({
+          field: field.name,
+          type: "relation",
+          label,
+          display,
+        });
+      } else {
+        columns.push({
+          field: field.name,
+          label,
+          sortable: field.type !== "Json",
+          ...(mapping.format !== "text" ? { format: mapping.format } : {}),
+        });
 
-      if (field.kind === "enum") {
-        filters.push({ field: field.name, type: "enum", label });
-      } else if (field.type === "Boolean") {
-        filters.push({ field: field.name, type: "boolean", label });
-      }
+        if (field.kind === "enum") {
+          filters.push({ field: field.name, type: "enum", label });
+        } else if (field.type === "Boolean") {
+          filters.push({ field: field.name, type: "boolean", label });
+        }
 
-      if (
-        field.type === "String" &&
-        field.nativeType !== "Text" &&
-        !isAuditField(field)
-      ) {
-        searchable.push(field.name);
+        if (
+          field.type === "String" &&
+          field.nativeType !== "Text" &&
+          !isAuditField(field)
+        ) {
+          searchable.push(field.name);
+        }
       }
     }
 
     if (!mapping.editable || isAuditField(field)) continue;
+    if (isRelation(field) && isO2M(field, models)) continue;
 
     formFields.push({
       field: field.name,
@@ -219,7 +238,9 @@ export function generateResourceFile(
       ...(isRelation(field)
         ? { display: guessDisplay(models, field.type) }
         : {}),
-      required: field.isRequired && !field.hasDefaultValue,
+      ...(isRelation(field) && field.isList ? { multiple: true } : {}),
+      required:
+        !field.isList && field.isRequired && !field.hasDefaultValue,
     });
   }
 

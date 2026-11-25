@@ -40,6 +40,7 @@ export async function loadResourceRecord(
 export async function loadFormOptions(
   resource: ResourceDefinition,
   user: SessionUser,
+  recordId?: string,
 ): Promise<Record<string, FormOption[]>> {
-  return runtime.formOptions(resource, user);
+  return runtime.formOptions(resource, user, recordId);
 }

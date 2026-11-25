@@ -71,6 +71,8 @@ export interface FieldDefinition {
   label?: string;
   /** Nombre registrado con `registerField`; sustituye al control por defecto. */
   component?: string;
+  /** Relación o2m/m2m: el formulario envía una lista de ids. */
+  multiple?: boolean;
   /** Prisma relation name when `type` is "relation". */
   relation?: string;
   display?: string;

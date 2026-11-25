@@ -69,6 +69,15 @@ const model: ModelMetadata = {
       kind: "object",
       isList: true,
       isRequired: true,
+      relationName: "PostToUser",
+    }),
+    field({
+      name: "labels",
+      type: "Label",
+      kind: "object",
+      isList: true,
+      isRequired: true,
+      relationName: "LabelToUser",
     }),
   ],
 };
@@ -84,7 +93,32 @@ const metadata: DashildMetadata = {
     model,
     {
       name: "Post",
-      fields: [field({ name: "id", isId: true }), field({ name: "title" })],
+      fields: [
+        field({ name: "id", isId: true }),
+        field({ name: "title" }),
+        field({ name: "authorId", isReadOnly: true }),
+        field({
+          name: "author",
+          type: "User",
+          kind: "object",
+          relationName: "PostToUser",
+          relationFromFields: ["authorId"],
+        }),
+      ],
+    },
+    {
+      name: "Label",
+      fields: [
+        field({ name: "id", isId: true }),
+        field({ name: "name" }),
+        field({
+          name: "users",
+          type: "User",
+          kind: "object",
+          isList: true,
+          relationName: "LabelToUser",
+        }),
+      ],
     },
   ],
   enums: [{ name: "Role", values: ["ADMIN", "USER"] }],
@@ -116,14 +150,27 @@ test("generates the resource with model, navigation and table", () => {
   assert.match(file, /field: "createdAt", label: "Created At", sortable: true, format: "datetime"/);
 });
 
-test("omits id, updatedAt, FK and Bytes from the table", () => {
+test("omits id, updatedAt, FK and list relations from the table", () => {
   const file = generateResourceFile(metadata, "User");
+  const table = file.slice(file.indexOf("table: {"), file.indexOf("form: {"));
 
-  assert.doesNotMatch(file, /field: "id"/);
-  assert.doesNotMatch(file, /field: "updatedAt"/);
-  assert.doesNotMatch(file, /field: "organizationId"/);
-  assert.doesNotMatch(file, /field: "avatar"/);
-  assert.doesNotMatch(file, /field: "posts"/);
+  assert.doesNotMatch(table, /field: "id"/);
+  assert.doesNotMatch(table, /field: "updatedAt"/);
+  assert.doesNotMatch(table, /field: "organizationId"/);
+  assert.doesNotMatch(table, /field: "avatar"/);
+  assert.doesNotMatch(table, /field: "posts"/);
+});
+
+test("form: includes Bytes and o2m/m2m relations", () => {
+  const file = generateResourceFile(metadata, "User");
+  const form = file.slice(file.indexOf("form: {"));
+
+  assert.match(form, /field: "avatar", type: "bytes"/);
+  assert.match(
+    form,
+    /field: "labels", type: "relation", label: "Labels", relation: "labels", display: "name", multiple: true/,
+  );
+  assert.doesNotMatch(form, /field: "posts"/);
 });
 
 test("form: types, required and audit fields excluded", () => {

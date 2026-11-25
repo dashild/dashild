@@ -15,7 +15,9 @@
     "db:smoke": "tsx scripts/smoke.ts",
     "db:write-smoke": "tsx scripts/write-smoke.ts",
     "db:security-smoke": "tsx scripts/security-smoke.ts",
-    "db:scope-smoke": "tsx scripts/scope-extension-smoke.ts"
+    "db:scope-smoke": "tsx scripts/scope-extension-smoke.ts",
+    "db:bytes-smoke": "tsx scripts/bytes-smoke.ts",
+    "db:m2m-smoke": "tsx scripts/m2m-smoke.ts"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "^1.7.27",

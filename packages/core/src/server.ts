@@ -344,6 +344,8 @@ function isRequired(
   field: FieldMetadata,
   definition: FieldDefinition,
 ): boolean {
+  // A relation list can be empty; it is never a required scalar.
+  if (field.isList || definition.multiple) return false;
   if (definition.rules?.required !== undefined) {
     return definition.rules.required;
   }
@@ -539,6 +541,20 @@ export function toPrismaData(
     if (!field || value === undefined) continue;
 
     if (field.kind === "object") {
+      if (field.isList) {
+        const ids = Array.isArray(value)
+          ? value.map((entry) => String(entry)).filter(Boolean)
+          : [];
+        if (operation === "create") {
+          if (ids.length > 0) {
+            data[name] = { connect: ids.map((id) => ({ id })) };
+          }
+        } else {
+          data[name] = { set: ids.map((id) => ({ id })) };
+        }
+        continue;
+      }
+
       if (value === null || value === "") {
         if (operation === "update") data[name] = { disconnect: true };
         continue;
@@ -947,6 +963,7 @@ export interface DashboardRuntime<TUser extends CurrentUser> {
   formOptions(
     resource: ResourceDefinition,
     user: TUser,
+    recordId?: string,
   ): Promise<Record<string, FormOption[]>>;
   save(
     input: { slug: string; id?: string; values: Record<string, unknown> },
@@ -1003,9 +1020,13 @@ function recordInclude(
   const fields = new Map(model.fields.map((field) => [field.name, field]));
   const include: Record<string, unknown> = {};
 
-  const add = (name: string, display: string | undefined) => {
+  const add = (
+    name: string,
+    display: string | undefined,
+    allowList = false,
+  ) => {
     const field = fields.get(name);
-    if (field?.kind !== "object" || field.isList) return;
+    if (field?.kind !== "object" || (field.isList && !allowList)) return;
 
     include[name] = {
       select:
@@ -1019,7 +1040,9 @@ function recordInclude(
     if (column.display) add(column.field, column.display);
   }
   for (const field of resource.form.fields) {
-    if (field.type === "relation") add(field.field, field.display ?? "name");
+    if (field.type === "relation") {
+      add(field.field, field.display ?? "name", field.multiple === true);
+    }
   }
 
   return Object.keys(include).length > 0 ? include : undefined;
@@ -1187,6 +1210,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
   async function formOptions(
     resource: ResourceDefinition,
     user: TUser,
+    recordId?: string,
   ): Promise<Record<string, FormOption[]>> {
     const client = scopedClient(user);
     const model = modelFor(options.metadata, resource.model);
@@ -1204,11 +1228,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
       );
       if (!field) continue;
 
-      if (
-        definition.type === "relation" &&
-        field.kind === "object" &&
-        !field.isList
-      ) {
+      if (definition.type === "relation" && field.kind === "object") {
         const related = modelFor(options.metadata, field.type);
         const delegate = runtimeDelegate(client, field.type);
         if (!related || !delegate) continue;
@@ -1221,7 +1241,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         const idField = related.fields.find((entry) => entry.isId)?.name ?? "id";
         const display = definition.display ?? "name";
 
-        const baseWhere =
+        let baseWhere: Record<string, unknown> =
           field.type === "Organization"
             ? { id: organizationId }
             : related.fields.some(
@@ -1229,6 +1249,23 @@ export function createDashildRuntime<TUser extends CurrentUser>(
                 )
               ? { organizationId }
               : {};
+
+        if (field.isList) {
+          const inverse = related.fields.find(
+            (entry) =>
+              entry.kind === "object" &&
+              !entry.isList &&
+              entry.relationName === field.relationName,
+          );
+          const foreignKey = inverse?.relationFromFields?.[0];
+          if (foreignKey) {
+            if (!recordId) {
+              result[definition.field] = [];
+              continue;
+            }
+            baseWhere = { ...baseWhere, [foreignKey]: recordId };
+          }
+        }
 
         const where = scopedWhere(client, baseWhere, policy.policy);
         const rows = await delegate.findMany({

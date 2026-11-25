@@ -15,7 +15,8 @@ src/dashild/resources/organization.ts
 ```
 
 - **Write-once**: si el archivo existe, no se sobrescribe. El recurso es del desarrollador.
-- Omite `id`, `@updatedAt`, las FK que escribe una relación, `Bytes`, listas y relaciones o2m/m2m.
+- Omite `id`, `@updatedAt`, las FK que escribe una relación y listas escalares.
+- Incluye `Bytes` en el formulario y relaciones m2m como multiselect. o2m requiere un gestor de hijos y no se genera todavía.
 - Genera columnas, campos de formulario, búsqueda y filtros a partir de los metadatos.
 - Los campos de auditoría (`createdAt`, `updatedAt`, `deletedAt`) aparecen en la tabla pero no en el formulario.
 - Etiquetas y slugs se derivan del modelo (`BlogPost` → `blog-post.ts`, `Blog Posts`, `blog-posts`); se editan después.
@@ -81,6 +82,20 @@ Añade el script `dashild` a `package.json` si falta. **No toca** `middleware.ts
 - `--yes` escribe; sin él, solo muestra el plan. `--dry-run` nunca escribe.
 - `--force` sobrescribe archivos existentes. Sin `--force`, se niega para no pisar trabajo manual.
 - Avisa si falta un cliente Prisma o alguna dependencia de Dashild.
+
+## `ui:add <componente>`
+
+```bash
+pnpm dashild ui:add avatar-cell
+pnpm dashild ui:add email-field
+```
+
+Copia una plantilla a `components/dashild/` (o `--dir`). Plantillas disponibles:
+
+- `avatar-cell`: celda con iniciales.
+- `email-field`: campo de email con ayuda.
+
+No modifica `registry.tsx`: imprime la llamada `registerCell`/`registerField` que debes añadir. Opciones: `--cwd`, `--dir`, `--force`, `--dry-run`.
 
 ## `doctor`
 

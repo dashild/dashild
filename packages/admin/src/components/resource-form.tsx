@@ -36,6 +36,8 @@ import type { FormOption, RunAction, SaveAction } from "../types.js";
 
 import { useRegistry } from "../registry.js";
 import { ActionButton } from "./action-button.js";
+import { BytesField } from "./bytes-field.js";
+import { RelationMultiSelect } from "./relation-multi-select.js";
 
 interface ResourceFormProps {
   slug: string;
@@ -57,6 +59,17 @@ type FormValues = Record<string, unknown>;
 function formValue(field: FieldDefinition, value: unknown): unknown {
   if (field.type === "boolean") {
     return Boolean(value ?? field.default ?? false);
+  }
+
+  if (field.type === "relation" && field.multiple) {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((entry) =>
+        entry && typeof entry === "object" && "id" in entry
+          ? String((entry as { id: unknown }).id ?? "")
+          : String(entry),
+      )
+      .filter(Boolean);
   }
 
   if (field.type === "relation") {
@@ -258,8 +271,21 @@ function renderControl(
         />
       );
 
-    case "select":
-    case "relation": {
+    case "relation":
+      if (field.multiple) {
+        return (
+          <RelationMultiSelect
+            id={id}
+            value={Array.isArray(control.value) ? control.value : []}
+            onChange={control.onChange}
+            options={options}
+            locale={locale}
+          />
+        );
+      }
+      // Single relation uses the same select control.
+      // falls through
+    case "select": {
       const none = "__none__";
       return (
         <Select
@@ -297,6 +323,17 @@ function renderControl(
           onChange={(event) => control.onChange(event.target.value)}
           onBlur={control.onBlur}
           rows={4}
+        />
+      );
+
+    case "bytes":
+      return (
+        <BytesField
+          id={id}
+          value={control.value}
+          onChange={control.onChange}
+          onBlur={control.onBlur}
+          locale={locale}
         />
       );
 

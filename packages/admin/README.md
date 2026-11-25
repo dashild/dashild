@@ -7,7 +7,8 @@ Runtime del panel: shell, tabla, formulario y primitivas shadcn. El subpath
 
 - `AdminPage` (`@dashild/admin/server`): resuelve sesión, recurso, políticas y datos, y monta el shell. La ruta de la app queda en pocas líneas.
 - `AdminShell`: sidebar, cabecera, tema, toasts y contenedor del panel.
-- `ResourceTable`, `ResourceDetail`, `ResourceForm` y sus acciones.
+- `ResourceTable`/`DataTable` (TanStack), `ResourceDetail`, `ResourceForm` y sus acciones.
+- `BytesField` y `RelationMultiSelect` para campos `bytes` y relaciones m2m.
 - `DashboardHome`, `NavMain`, `NavUser`, `SiteHeader`, `OrganizationSwitcher`.
 - `IconProvider`/`useIcons`: registro de iconos de la app.
 - `RegistryProvider`/`useRegistry`: celdas y campos propios. `ColumnDefinition.cell`
