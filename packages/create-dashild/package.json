@@ -1,0 +1,40 @@
+{
+  "name": "create-dashild",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "description": "Create a Next.js app with Dashild preconfigured",
+  "license": "MIT",
+  "bin": {
+    "create-dashild": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "author": "Daljomar Morillo",
+  "keywords": [
+    "dashild",
+    "admin",
+    "nextjs",
+    "prisma",
+    "create"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dashild/dashild.git",
+    "directory": "packages/create-dashild"
+  },
+  "homepage": "https://github.com/dashild/dashild#readme",
+  "bugs": {
+    "url": "https://github.com/dashild/dashild/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

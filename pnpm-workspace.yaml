@@ -1,0 +1,16 @@
+# Solo packages y apps viven en el workspace.
+#
+# examples/ queda FUERA a propósito: la app de ejemplo se instala desde tarballs
+# (pnpm pack) para probar exactamente lo que ve un usuario real — resolución de
+# exports, dependencias que faltan, "use client" a través de node_modules.
+# Un example dentro del workspace no prueba nada de eso.
+packages:
+  - "packages/*"
+  - "apps/*"
+
+# El CLI de Prisma necesita ejecutar su postinstall para descargar los engines.
+allowBuilds:
+  prisma: true
+  "@prisma/engines": true
+  # `tsx` (scripts de seed y smoke) trae esbuild con postinstall.
+  esbuild: true

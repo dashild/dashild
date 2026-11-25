@@ -1,0 +1,57 @@
+{
+  "name": "@dashild/prisma",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "description": "Official Prisma generator that extracts the metadata Dashild consumes",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/generator.d.ts",
+      "default": "./dist/generator.js"
+    }
+  },
+  "bin": {
+    "dashild-prisma-generator": "./dist/generator.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist",
+    "test": "pnpm build && node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@dashild/core": "workspace:*",
+    "@prisma/generator-helper": "7.10.1"
+  },
+  "main": "./dist/generator.js",
+  "devDependencies": {
+    "prisma": "7.10.1"
+  },
+  "author": "Daljomar Morillo",
+  "keywords": [
+    "dashild",
+    "prisma",
+    "generator",
+    "admin"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dashild/dashild.git",
+    "directory": "packages/prisma"
+  },
+  "homepage": "https://github.com/dashild/dashild#readme",
+  "bugs": {
+    "url": "https://github.com/dashild/dashild/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  }
+}

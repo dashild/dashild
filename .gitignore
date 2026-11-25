@@ -1,0 +1,37 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Salida de build
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Sistema
+.DS_Store
+*.log
+
+# Planificación interna: nunca se publica ni se commitea
+/internal/
+dist-test/
+
+# Artefacto del fixture de Prisma (se regenera en el test)
+packages/prisma/test/fixtures/generated/
+
+# Cliente Prisma y metadatos generados en la app de ejemplo
+apps/playground/src/generated/
+
+# Herramientas del entorno de desarrollo
+.agents/
+.claude/
+skills-lock.json
+apps/playground/AGENTS.md
+
+# Artefactos de release local
+artifacts/

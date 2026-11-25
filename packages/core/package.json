@@ -1,0 +1,56 @@
+{
+  "name": "@dashild/core",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "description": "Public declarations and isomorphic logic for Dashild",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist dist-test",
+    "test": "tsc -p tsconfig.test.json && node --test \"dist-test/test/*.test.js\"",
+    "test:only": "node --test \"dist-test/test/*.test.js\""
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
+  },
+  "author": "Daljomar Morillo",
+  "keywords": [
+    "dashild",
+    "admin",
+    "nextjs",
+    "prisma",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dashild/dashild.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/dashild/dashild#readme",
+  "bugs": {
+    "url": "https://github.com/dashild/dashild/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha"
+  }
+}

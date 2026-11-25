@@ -1,0 +1,121 @@
+// Schema de la app de ejemplo.
+//
+// Es el schema hostil del spike (spike.md §5): enum, opcionales, @db.Text,
+// @db.Uuid, Decimal, BigInt, Json, Bytes, @id autoincrement y uuid, @default,
+// @updatedAt, @unique, m2o, o2m, auto-relación y lista escalar.
+//
+// No es un schema bonito: es el que rompe generadores.
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+generator dashild {
+  provider = "dashild-prisma-generator"
+  output   = "../src/generated/dashild"
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+model Organization {
+  // Ids legibles ("org-1", "org-2") para que coincidan con la sesión simulada
+  // y con las pruebas de aislamiento. No son UUID a propósito.
+  id    String @id
+  name  String
+  users User[]
+}
+
+model User {
+  id            String  @id @default(uuid()) @db.Uuid
+  email         String  @unique
+  name          String
+  emailVerified Boolean @default(false)
+  image         String?
+  role          Role    @default(USER)
+  balance       Decimal @default(0) @db.Decimal(12, 2)
+  bigNumber     BigInt  @default(0)
+  metadata      Json?
+  avatar        Bytes?
+  bio           String? @db.Text
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Opcional: un usuario creado por Better Auth (sign-up) todavía no tiene
+  // organización. El panel lo asignará; sin organización no ve datos.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  posts    Post[]
+  sessions Session[]
+  accounts Account[]
+
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  published Boolean  @default(false)
+  tags      String[]
+
+  authorId String @db.Uuid
+  author   User   @relation(fields: [authorId], references: [id])
+
+  parentId Int?
+  parent   Post?  @relation("PostHierarchy", fields: [parentId], references: [id])
+  children Post[] @relation("PostHierarchy")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}

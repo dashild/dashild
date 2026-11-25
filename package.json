@@ -1,0 +1,27 @@
+{
+  "name": "dashild",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "type": "module",
+  "description": "The application admin layer for Next.js",
+  "license": "MIT",
+  "packageManager": "pnpm@12.21.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" build",
+    "typecheck": "pnpm -r --filter \"./packages/*\" typecheck",
+    "clean": "pnpm -r --filter \"./packages/*\" clean",
+    "dev": "pnpm -r --parallel --filter \"./packages/*\" dev",
+    "test": "pnpm -r --if-present --filter \"./packages/*\" test",
+    "pack:all": "rm -rf artifacts && mkdir -p artifacts && pnpm --filter @dashild/core pack --pack-destination artifacts && pnpm --filter @dashild/prisma pack --pack-destination artifacts && pnpm --filter @dashild/admin pack --pack-destination artifacts && pnpm --filter @dashild/cli pack --pack-destination artifacts && pnpm --filter create-dashild pack --pack-destination artifacts",
+    "release:alpha": "pnpm clean && pnpm build && pnpm --filter @dashild/core publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/prisma publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/admin publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/cli publish --tag alpha --access public --no-git-checks"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "@dashild/prisma": "workspace:*",
+    "prisma": "7.10.1"
+  }
+}
