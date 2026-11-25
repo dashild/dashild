@@ -18,7 +18,7 @@ Ese archivo describe la tabla, el formulario, los filtros y las acciones. No hay
 páginas que generar ni archivos que sincronizar. La seguridad (autorización y
 aislamiento de datos) no vive ahí: la aplica el servidor.
 
-**Estado: alpha.** Versión `0.1.0-alpha.0`, todavía no estable. La API puede
+**Estado: alpha.** Versión `0.1.0-alpha.1`, todavía no estable. La API puede
 cambiar entre versiones `alpha`.
 
 ## Instalación
@@ -49,7 +49,7 @@ packages/
   create-dashild/  `pnpm create dashild` (aún no publicado)
 
 apps/
-  playground/      app de desarrollo del runtime (no se publica)
+  playground/      app de desarrollo y demo; no se publica en npm
 
 examples/
   existing-next-app/   FUERA del workspace: instalación real desde tarballs

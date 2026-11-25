@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-alpha.1 — 2026-11-25
+
+- El generador de Prisma informa de su versión real (`pkg.version`) en lugar de `0.0.0`.
+
 ## 0.1.0-alpha.0 — 2026-11-25
 
 Primera alpha pública.

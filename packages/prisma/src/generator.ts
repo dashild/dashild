@@ -37,9 +37,11 @@ import { extractMetadata } from "./extract.js";
  * Prisma 7.
  */
 type GeneratorHelperModule = typeof import("@prisma/generator-helper");
-const { generatorHandler } = createRequire(import.meta.url)(
+const nodeRequire = createRequire(import.meta.url);
+const { generatorHandler } = nodeRequire(
   "@prisma/generator-helper",
 ) as GeneratorHelperModule;
+const pkg = nodeRequire("../package.json") as { version: string };
 
 const OUTPUT_FILE = "dashild-metadata.json";
 
@@ -48,7 +50,7 @@ generatorHandler({
     return {
       prettyName: "Dashild",
       defaultOutput: "./dashild",
-      version: "0.0.0",
+      version: pkg.version,
     };
   },
 

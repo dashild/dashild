@@ -1,6 +1,6 @@
 # playground
 
-App Next.js 16 que **simula una aplicación que ya existía**. No se publica.
+App Next.js 16 que **simula una aplicación que ya existía**. Es la demo y el entorno de desarrollo del panel; no se publica en npm.
 
 La regla es simple: todo lo que ves aquí lo tenía la app antes de Dashild. Si una pieza existe solo para que Dashild funcione, está en el sitio equivocado.
 
