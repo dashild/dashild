@@ -1,7 +1,9 @@
 # Changelog
 
-## 0.1.0-alpha.3 — 2026-11-25
+## 0.1.0-alpha.4 — 2026-11-25
 
+- Reemplaza a `0.1.0-alpha.3`: su publicación quedó incompleta (falta el
+  tarball de `@dashild/core`).
 - Nuevo `create-dashild` (`npm create dashild`): scaffold interactivo o por
   flags sobre `create-next-app`, starters `basic`/`demo`, Better Auth y
   PostgreSQL, MySQL o SQLite, con migración y seed opcionales.

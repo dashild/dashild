@@ -1,6 +1,6 @@
 {
   "name": "create-dashild",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "type": "module",
   "description": "Create a Next.js app with Dashild preconfigured",
   "license": "MIT",

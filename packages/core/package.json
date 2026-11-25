@@ -1,6 +1,6 @@
 {
   "name": "@dashild/core",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.4",
   "type": "module",
   "description": "Public declarations and isomorphic logic for Dashild",
   "license": "MIT",

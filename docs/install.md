@@ -1,6 +1,6 @@
 # Instalación de Dashild (alpha)
 
-Versión de esta guía: `0.1.0-alpha.3`.
+Versión de esta guía: `0.1.0-alpha.4`.
 
 Dashild es un panel administrativo para Next.js + Prisma. Un recurso es un
 archivo de datos; no hay páginas que generar ni archivos que sincronizar.
