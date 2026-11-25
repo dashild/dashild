@@ -120,7 +120,9 @@ table: {
 
 `pnpm --filter playground db:scope-smoke` prueba la extensión `withDashildScope` con consultas directas de Prisma: Ana no ve ni modifica filas de Bruno. Es la segunda barrera para código que no pasa por el runtime.
 
-`pnpm --filter playground db:bytes-smoke` verifica la escritura de `Bytes` (base64 ↔ `Uint8Array`). `db:m2m-smoke` verifica el multiselect de etiquetas (m2m).
+`pnpm --filter playground db:bytes-smoke` verifica la escritura de `Bytes` (base64 ↔ `Uint8Array`). `db:relations-smoke` verifica el relation manager: lista hijos o2m/m2m, bloquea asociar/desasociar en o2m con FK obligatoria y attach/detach en m2m.
+
+El detalle de un usuario muestra los relation managers de `posts` y `labels`, con crear/editar/eliminar y las acciones permitidas por la política.
 
 ### Selector de organización
 

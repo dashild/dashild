@@ -43,5 +43,23 @@ export const policies = definePolicies<SessionUser>({
         delete: (ctx) => isAdmin(ctx),
       },
     },
+  
+    Post: {
+      scope: () => ({}),
+      can: {
+        create: () => true,
+        update: () => true,
+        delete: () => true,
+      },
+    },
+
+    Label: {
+      scope: () => ({}),
+      can: {
+        create: () => true,
+        update: () => true,
+        delete: () => true,
+      },
+    },
   },
 });

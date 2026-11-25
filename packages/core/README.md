@@ -59,6 +59,8 @@ Subpath con la superficie de servidor. Nunca se importa desde un componente clie
 - `withDashildScope({ resources, policies, user })`: extensión de Prisma que
   aplica el `where` de la política a consultas directas.
 - `runtime.client(user)`: cliente Prisma ya extendido para código propio.
+- `runtime.relationManagers(...)` y `runtime.relationAction(...)`: relation manager
+  o2m/m2m (listar, asociar, desasociar, attach, detach, delete).
 - `canPerform`, `resolvePolicy`, `withScope` y la conversión a DTO.
 
 Mantenerlo como subpath (y no como paquete aparte) evita multiplicar nombres de paquete: el bundle no arrastra Prisma porque el cliente no importa `@dashild/core/server`.

@@ -8,6 +8,8 @@ import {
 } from "@/lib/theme";
 import { organizationResource } from "./resources/organization";
 import { userResource } from "./resources/user";
+import { postResource } from "./resources/post";
+import { labelResource } from "./resources/label";
 
 /**
  * Panel administrativo de la app de ejemplo.
@@ -36,7 +38,7 @@ export const panel = definePanel({
 
   maxContentWidth: "xl",
 
-  resources: [userResource, organizationResource],
+  resources: [userResource, organizationResource, postResource, labelResource],
 
   auth: {
     getCurrentUser,

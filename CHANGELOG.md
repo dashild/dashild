@@ -13,7 +13,8 @@
 - `ui:add` copia plantillas de celda/campo.
 - Tabla con TanStack Table (paginación, ordenación y filtros siguen en servidor).
 - Escritura de `Bytes` mediante base64 y selector de archivo.
-- Relaciones m2m con multiselect; o2m requiere un gestor de hijos específico.
+- Relation manager o2m/m2m en el detalle: crear/editar/eliminar,
+  asociar/desasociar (solo si la FK es opcional) y attach/detach.
 
 ## 0.1.0-alpha.2 — 2026-11-25
 

@@ -20,6 +20,7 @@ export {
 } from "./components/icon-map.js";
 export { NavMain, type NavGroup, type NavResource } from "./components/nav-main.js";
 export { PanelTheme } from "./components/panel-theme.js";
+export { RelationManager } from "./components/relation-manager.js";
 export { ResourceDetail } from "./components/resource-detail.js";
 export { ResourceForm } from "./components/resource-form.js";
 export {

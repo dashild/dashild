@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 import { translate, type Locale, type ResourceDefinition } from "@dashild/core";
+import type { RelationManagerData } from "@dashild/core/server";
 
 import { Button } from "../ui/button.js";
 import {
@@ -12,6 +13,8 @@ import {
 } from "../ui/card.js";
 
 import { CellValue } from "./cell-value.js";
+import { RelationManager } from "./relation-manager.js";
+import type { RelationAction } from "../types.js";
 
 interface ResourceDetailProps {
   resource: ResourceDefinition;
@@ -19,6 +22,8 @@ interface ResourceDetailProps {
   path: string;
   locale?: Locale;
   canUpdate?: boolean;
+  relations?: RelationManagerData[];
+  relationAction?: RelationAction;
 }
 
 export function ResourceDetail({
@@ -27,6 +32,8 @@ export function ResourceDetail({
   path,
   locale,
   canUpdate = true,
+  relations = [],
+  relationAction,
 }: ResourceDetailProps) {
   const basePath = `${path}/${resource.navigation.slug}`;
 
@@ -83,6 +90,17 @@ export function ResourceDetail({
           </dl>
         </CardContent>
       </Card>
+
+      {relationAction && relations.length > 0 ? (
+        <RelationManager
+          data={relations}
+          parentSlug={resource.navigation.slug}
+          parentId={String(row.id)}
+          basePath={path}
+          locale={locale}
+          runAction={relationAction}
+        />
+      ) : null}
     </div>
   );
 }

@@ -146,7 +146,7 @@ async function seedPosts(users: Map<string, { id: string }>) {
 }
 
 async function seedLabels(users: Map<string, { id: string }>) {
-  const names = ["Alpha", "Beta"];
+  const names = ["Alpha", "Beta", "Gamma"];
   const labels = [];
   for (const name of names) {
     labels.push(
@@ -163,7 +163,13 @@ async function seedLabels(users: Map<string, { id: string }>) {
   if (ana) {
     await prisma.user.update({
       where: { id: ana.id },
-      data: { labels: { set: labels.map((label) => ({ id: label.id })) } },
+      data: {
+        labels: {
+          set: labels
+            .filter((label) => label.name !== "Gamma")
+            .map((label) => ({ id: label.id })),
+        },
+      },
     });
   }
   if (carla) {

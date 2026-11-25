@@ -911,6 +911,27 @@ export interface FormOption {
   label: string;
 }
 
+export interface RelationManagerData {
+  field: string;
+  label: string;
+  kind: "o2m" | "m2m";
+  childSlug: string;
+  columns: ColumnDefinition[];
+  rows: Record<string, unknown>[];
+  canAssociate: boolean;
+  canDissociate: boolean;
+  canDelete: boolean;
+  candidates: FormOption[];
+}
+
+export interface RelationActionInput {
+  parentSlug: string;
+  parentId: string;
+  relation: string;
+  operation: "associate" | "dissociate" | "attach" | "detach" | "delete";
+  childId: string;
+}
+
 export class PolicyDeniedError extends Error {
   constructor(public readonly resource: string) {
     super(`Access denied by policy for ${resource}.`);
@@ -977,6 +998,15 @@ export interface DashboardRuntime<TUser extends CurrentUser> {
     input: RuntimeActionInput,
     user: TUser,
   ): Promise<RuntimeActionResult>;
+  relationManagers(
+    parent: ResourceDefinition,
+    id: string,
+    user: TUser,
+  ): Promise<RelationManagerData[]>;
+  relationAction(
+    input: RelationActionInput,
+    user: TUser,
+  ): Promise<RuntimeSaveResult>;
   /** Prisma client extended with this user's policy scope. */
   client(user: TUser): unknown;
 }
@@ -1296,6 +1326,281 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     return result;
   }
 
+  function relationDisplay(resource: ResourceDefinition): string {
+    const preferred = ["name", "title", "label", "email"];
+    const column = resource.table.columns.find((entry) =>
+      preferred.includes(entry.field),
+    );
+    return column?.field ?? resource.table.columns[0]?.field ?? "id";
+  }
+
+  function relationContext(
+    parent: ResourceDefinition,
+    relation: string,
+  ) {
+    const parentModel = modelFor(options.metadata, parent.model);
+    const field = parentModel?.fields.find(
+      (entry) =>
+        entry.name === relation && entry.kind === "object" && entry.isList,
+    );
+    if (!parentModel || !field) return null;
+
+    const child = options.resources.find(
+      (entry) => entry.model === field.type,
+    );
+    const childModel = modelFor(options.metadata, field.type);
+    if (!child || !childModel) return null;
+
+    const inverse = childModel.fields.find(
+      (entry) =>
+        entry.kind === "object" &&
+        !entry.isList &&
+        entry.relationName === field.relationName,
+    );
+    const childInverse = childModel.fields.find(
+      (entry) =>
+        entry.kind === "object" &&
+        entry.isList &&
+        entry.relationName === field.relationName,
+    );
+    const kind = inverse ? "o2m" : "m2m";
+    const parentIdField = parentModel.fields.find((entry) => entry.isId)?.name;
+    const childIdField = childModel.fields.find((entry) => entry.isId);
+    const foreignKey = inverse?.relationFromFields?.[0];
+
+    if (!parentIdField || !childIdField) return null;
+    if (kind === "o2m" && !foreignKey) return null;
+    if (kind === "m2m" && !childInverse) return null;
+
+    return {
+      parentModel,
+      field,
+      child,
+      childModel,
+      inverse,
+      childInverse,
+      kind: kind as "o2m" | "m2m",
+      parentIdField,
+      childIdField,
+      foreignKey,
+    };
+  }
+
+  async function relationManagers(
+    parent: ResourceDefinition,
+    id: string,
+    user: TUser,
+  ): Promise<RelationManagerData[]> {
+    const parentPolicy = await resolvePolicy(
+      parent,
+      options.policies,
+      user,
+    );
+    if (!parentPolicy.ok) throw new PolicyDeniedError(parent.model);
+
+    const result: RelationManagerData[] = [];
+    const parentModel = modelFor(options.metadata, parent.model);
+    const listFields =
+      parentModel?.fields.filter(
+        (entry) => entry.kind === "object" && entry.isList,
+      ) ?? [];
+
+    for (const field of listFields) {
+      const context = relationContext(parent, field.name);
+      if (!context) continue;
+
+      const childPolicy = await resolvePolicy(
+        context.child,
+        options.policies,
+        user,
+      );
+      if (!childPolicy.ok) continue;
+      if (!(await canPerform(childPolicy.policy, "list"))) continue;
+
+      const client = scopedClient(user);
+      const delegate = runtimeDelegate(client, context.child.model);
+      if (!delegate) continue;
+
+      const relationWhere =
+        context.kind === "o2m"
+          ? { [context.foreignKey!]: id }
+          : {
+              [context.childInverse!.name]: {
+                some: { [context.parentIdField]: id },
+              },
+            };
+      const where = scopedWhere(
+        client,
+        relationWhere,
+        childPolicy.policy,
+      );
+      const include = recordInclude(context.child, context.childModel);
+
+      const rows = await delegate.findMany({
+        where,
+        take: 100,
+        ...(include ? { include } : {}),
+      });
+
+      const childSlug = context.child.navigation.slug;
+      const display = relationDisplay(context.child);
+      const candidates: FormOption[] = [];
+
+      const canAssociate =
+        (await canPerform(parentPolicy.policy, "update")) &&
+        (context.kind === "m2m" ||
+          (Boolean(context.inverse && !context.inverse.isRequired) &&
+            (await canPerform(childPolicy.policy, "update"))));
+      const canDissociate =
+        (await canPerform(parentPolicy.policy, "update")) &&
+        (context.kind === "m2m" ||
+          (context.inverse ? !context.inverse.isRequired : false));
+      const canDelete = await canPerform(childPolicy.policy, "delete");
+
+      if (canAssociate) {
+        const candidateWhere =
+          context.kind === "o2m"
+            ? { [context.foreignKey!]: null }
+            : {
+                [context.childInverse!.name]: {
+                  none: { [context.parentIdField]: id },
+                },
+              };
+        const candidateRows = await delegate.findMany({
+          where: scopedWhere(client, candidateWhere, childPolicy.policy),
+          select: {
+            [context.childIdField.name]: true,
+            [display]: true,
+          },
+          orderBy: { [display]: "asc" },
+          take: 200,
+        });
+        candidates.push(
+          ...candidateRows.map((row) => ({
+            value: String(row[context.childIdField.name] ?? ""),
+            label: String(row[display] ?? row[context.childIdField.name] ?? ""),
+          })),
+        );
+      }
+
+      result.push({
+        field: field.name,
+        label: context.child.navigation.label,
+        kind: context.kind,
+        childSlug,
+        columns: context.child.table.columns,
+        rows: rows.map((row) =>
+          toDTO(
+            row,
+            context.childModel,
+            context.child,
+            listContext(options.metadata, locale),
+          ),
+        ),
+        canAssociate,
+        canDissociate,
+        canDelete,
+        candidates,
+      });
+    }
+
+    return result;
+  }
+
+  async function relationAction(
+    input: RelationActionInput,
+    user: TUser,
+  ): Promise<RuntimeSaveResult> {
+    const parent = options.resources.find(
+      (entry) => entry.navigation.slug === input.parentSlug,
+    );
+    if (!parent) {
+      return { ok: false, message: translate(locale, "error.resourceNotFound") };
+    }
+
+    const context = relationContext(parent, input.relation);
+    if (!context) {
+      return { ok: false, message: translate(locale, "error.resourceNotFound") };
+    }
+
+    if (input.operation === "delete") {
+      return remove(
+        { slug: context.child.navigation.slug, id: input.childId },
+        user,
+      );
+    }
+
+    const parentPolicy = await resolvePolicy(parent, options.policies, user);
+    if (!parentPolicy.ok) return denied();
+
+    const childPolicy = await resolvePolicy(
+      context.child,
+      options.policies,
+      user,
+    );
+    if (!childPolicy.ok) return denied();
+
+    const parentUpdate = await canPerform(parentPolicy.policy, "update");
+    const childUpdate = await canPerform(childPolicy.policy, "update");
+    if (!parentUpdate) return denied();
+
+    const parentClient = scopedClient(user);
+    const childClient = scopedClient(user);
+    const childDelegate = runtimeDelegate(childClient, context.child.model);
+    const parentDelegate = runtimeDelegate(parentClient, parent.model);
+    if (!childDelegate || !parentDelegate) return denied();
+
+    const childWhere = scopedWhere(
+      childClient,
+      idFilter(context.childIdField, input.childId),
+      childPolicy.policy,
+    );
+    const parentWhere = scopedWhere(
+      parentClient,
+      idFilter(
+        context.parentModel.fields.find((entry) => entry.isId)!,
+        input.parentId,
+      ),
+      parentPolicy.policy,
+    );
+
+    try {
+      if (context.kind === "m2m") {
+        const relation = input.operation === "attach" || input.operation === "associate"
+          ? { connect: { id: coerceRecordId(context.childIdField, input.childId) } }
+          : { disconnect: { id: coerceRecordId(context.childIdField, input.childId) } };
+        await parentDelegate.update({
+          where: parentWhere,
+          data: { [context.field.name]: relation },
+        });
+      } else {
+        if (!childUpdate) return denied();
+        if (
+          (input.operation === "dissociate" || input.operation === "detach") &&
+          context.inverse?.isRequired
+        ) {
+          return {
+            ok: false,
+            message: translate(locale, "error.write"),
+          };
+        }
+        await childDelegate.update({
+          where: childWhere,
+          data: {
+            [context.foreignKey!]:
+              input.operation === "associate" || input.operation === "attach"
+                ? coerceRecordId(context.parentModel.fields.find((entry) => entry.isId)!, input.parentId)
+                : null,
+          },
+        });
+      }
+    } catch (error) {
+      return { ok: false, ...formatPrismaError(error, locale) };
+    }
+
+    return { ok: true };
+  }
+
   async function save(
     input: { slug: string; id?: string; values: Record<string, unknown> },
     user: TUser,
@@ -1439,6 +1744,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     save,
     remove,
     runAction,
+    relationManagers,
+    relationAction,
     client: scopedClient,
   };
 }

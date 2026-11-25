@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { translate } from "@dashild/core";
 import type {
+  RelationActionInput,
   RuntimeActionInput,
   RuntimeActionResult,
   RuntimeSaveResult,
@@ -67,4 +68,22 @@ export async function runResourceAction(
   }
 
   return runtime.runAction(input, user);
+}
+
+export async function runRelationAction(
+  input: RelationActionInput,
+): Promise<SaveResult> {
+  const user = await panel.auth.getCurrentUser();
+  if (!user) {
+    return { ok: false, message: translate(panel.locale, "error.session") };
+  }
+
+  const result = await runtime.relationAction(input, user);
+  if (result.ok) {
+    revalidatePath(
+      `${panel.path}/${input.parentSlug}/${input.parentId}`,
+    );
+    revalidatePath(`${panel.path}/${input.parentSlug}`);
+  }
+  return result;
 }

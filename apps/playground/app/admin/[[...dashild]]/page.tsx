@@ -10,6 +10,7 @@ import { policies } from "@/src/dashild/policies";
 import { runtime } from "@/src/dashild/runtime";
 import {
   deleteResource,
+  runRelationAction,
   runResourceAction,
   saveResource,
 } from "@/src/dashild/server/write";
@@ -48,6 +49,7 @@ export default async function AdminRoute({
         saveAction={saveResource}
         deleteAction={deleteResource}
         runAction={runResourceAction}
+        relationAction={runRelationAction}
         IconProvider={AppIconProvider}
         params={params}
         searchParams={searchParams}

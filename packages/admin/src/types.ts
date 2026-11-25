@@ -42,3 +42,7 @@ export interface SaveInput {
 export type SaveAction = (input: SaveInput) => Promise<SaveResult>;
 export type DeleteAction = (input: { slug: string; id: string }) => Promise<SaveResult>;
 export type RunAction = (input: RunActionInput) => Promise<RunActionResult>;
+
+export type RelationAction = (
+  input: import("@dashild/core/server").RelationActionInput,
+) => Promise<SaveResult>;

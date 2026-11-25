@@ -29,6 +29,7 @@ import type { NavGroup } from "./components/nav-main.js";
 import type { ThemeMode } from "./theme.js";
 import type {
   DeleteAction,
+  RelationAction,
   RunAction,
   SaveAction,
 } from "./types.js";
@@ -42,6 +43,7 @@ export interface AdminPageProps<TUser extends CurrentUser> {
   saveAction: SaveAction;
   deleteAction: DeleteAction;
   runAction: RunAction;
+  relationAction?: RelationAction;
   /** A client component that mounts the app's icon registry. */
   IconProvider: ComponentType<{ children: ReactNode }>;
   params: Promise<{ dashild?: string[] }>;
@@ -70,6 +72,7 @@ export async function AdminPage<TUser extends CurrentUser>({
   saveAction,
   deleteAction,
   runAction,
+  relationAction,
   IconProvider,
   params,
   searchParams,
@@ -188,6 +191,7 @@ export async function AdminPage<TUser extends CurrentUser>({
             locale={locale}
             user={user}
             policies={policies}
+            {...(relationAction ? { relationAction } : {})}
             basePath={panel.path}
           />
         ) : (
@@ -409,6 +413,7 @@ async function ResourceViewPage<TUser extends CurrentUser>({
   locale,
   user,
   policies,
+  relationAction,
   basePath,
 }: {
   runtime: DashboardRuntime<TUser>;
@@ -417,6 +422,7 @@ async function ResourceViewPage<TUser extends CurrentUser>({
   locale: Locale;
   user: TUser;
   policies: PoliciesDefinition<TUser>;
+  relationAction?: RelationAction;
   basePath: string;
 }) {
   let row;
@@ -435,6 +441,16 @@ async function ResourceViewPage<TUser extends CurrentUser>({
     locale,
     user,
   );
+  let relations: Awaited<
+    ReturnType<DashboardRuntime<TUser>["relationManagers"]>
+  > = [];
+  if (relationAction) {
+    try {
+      relations = await runtime.relationManagers(resource, id, user);
+    } catch (error) {
+      if (!(error instanceof PolicyDeniedError)) throw error;
+    }
+  }
 
   return (
     <ResourceDetail
@@ -443,6 +459,8 @@ async function ResourceViewPage<TUser extends CurrentUser>({
       row={row}
       locale={locale}
       canUpdate={capabilities.canUpdate}
+      relations={relations}
+      relationAction={relationAction}
     />
   );
 }
