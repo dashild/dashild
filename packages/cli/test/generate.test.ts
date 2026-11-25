@@ -102,6 +102,7 @@ test("generates the resource with model, navigation and table", () => {
   const file = generateResourceFile(metadata, "User");
 
   assert.match(file, /model: "User"/);
+  assert.match(file, /policy: \{ scope: "default" \}/);
   assert.match(file, /label: "Users"/);
   assert.match(file, /slug: "users"/);
   assert.match(file, /pageSize: 25/);

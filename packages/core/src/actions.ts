@@ -136,6 +136,8 @@ export interface ActionContext<TUser extends CurrentUser = CurrentUser> {
   /** Active organization and roles resolved by policies. */
   organizationId?: string | null;
   roles?: string[];
+  /** Prisma client extended with the active policy scope, when available. */
+  db?: unknown;
 }
 
 export interface ActionResult {

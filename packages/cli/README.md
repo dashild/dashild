@@ -19,6 +19,8 @@ src/dashild/resources/organization.ts
 - Genera columnas, campos de formulario, búsqueda y filtros a partir de los metadatos.
 - Los campos de auditoría (`createdAt`, `updatedAt`, `deletedAt`) aparecen en la tabla pero no en el formulario.
 - Etiquetas y slugs se derivan del modelo (`BlogPost` → `blog-post.ts`, `Blog Posts`, `blog-posts`); se editan después.
+- Por defecto añade el recurso a `panel.resources` y una entrada **fail-closed** en `policies.ts` (`scope: () => null`). Edita esa entrada para definir el ámbito y los permisos.
+- `--no-register` deja `panel.ts` y `policies.ts` intactos.
 
 Opciones:
 
@@ -27,6 +29,7 @@ Opciones:
 | `--cwd <dir>` | Raíz del proyecto (por defecto el directorio actual) |
 | `--metadata <path>` | Ruta explícita a `dashild-metadata.json` |
 | `--dir <path>` | Carpeta de recursos (por defecto `src/dashild/resources`) |
+| `--no-register` | No añade el recurso a `panel.ts` ni a `policies.ts` |
 | `--dry-run` | Imprime el archivo sin escribirlo |
 
 Rutas de metadatos que busca por defecto: `src/generated/dashild/`, `generated/dashild/` y `prisma/generated/dashild/`.
@@ -92,6 +95,9 @@ Parsea `src/dashild/resources/*.ts` (no los importa: `panel.ts` arrastra Next) y
 - relaciones y su `display`,
 - campos de solo lectura en el formulario,
 - `policy` presente y con `scope`,
+- entrada del modelo en `policies.ts`,
+- handlers de acciones personalizadas en `actions/index.ts`,
+- predicados `requires` de acciones en `policies.ts`,
 - slugs duplicados.
 
 Indica archivo y línea, sugiere el arreglo y sale con código 1 si hay errores. `--json` es para CI.

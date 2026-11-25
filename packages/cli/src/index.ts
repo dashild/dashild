@@ -7,7 +7,7 @@
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import type { Locale } from "@dashild/core";
 import { Command } from "commander";
@@ -17,7 +17,8 @@ import { generateResourceFile } from "./generate.js";
 import { applyInit, formatInitPlan, planInit } from "./init.js";
 import { cliMessage, resolveCliLocale } from "./messages.js";
 import { findMetadata, readMetadata } from "./metadata.js";
-import { resourceFileName } from "./naming.js";
+import { resourceExportName, resourceFileName } from "./naming.js";
+import { registerResource } from "./register.js";
 
 const pkg = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
@@ -28,6 +29,7 @@ interface MakeResourceOptions {
   metadata?: string;
   dir: string;
   dryRun?: boolean;
+  register?: boolean;
 }
 
 const program = new Command();
@@ -51,6 +53,10 @@ program
   .option("--cwd <dir>", "project root", process.cwd())
   .option("--metadata <path>", "path to dashild-metadata.json")
   .option("--dir <path>", "resources folder", "src/dashild/resources")
+  .option(
+    "--no-register",
+    "do not add the resource to panel.ts and policies.ts",
+  )
   .option("--dry-run", "print the file without writing it")
   .action((model: string, options: MakeResourceOptions) => {
     try {
@@ -62,6 +68,26 @@ program
       const directory = resolve(cwd, options.dir);
       const target = resolve(directory, resourceFileName(model));
 
+      const registerExisting = () => {
+        const result = registerResource({
+          panelPath: resolve(dirname(directory), "panel.ts"),
+          policiesPath: resolve(dirname(directory), "policies.ts"),
+          resourceFile: target,
+          exportName: resourceExportName(model),
+          model,
+        });
+
+        if (result.panelUpdated || result.policiesUpdated) {
+          console.log(
+            cliMessage(activeLocale, "resource.registered", { model }),
+          );
+        }
+
+        for (const warning of result.warnings) {
+          console.log(`dashild: ${warning}`);
+        }
+      };
+
       // Write-once: the resource belongs to the developer. Never regenerate.
       if (existsSync(target)) {
         console.log(
@@ -69,6 +95,9 @@ program
             path: relative(cwd, target),
           }),
         );
+        if (options.register !== false && options.dryRun !== true) {
+          registerExisting();
+        }
         return;
       }
 
@@ -86,6 +115,15 @@ program
           path: relative(cwd, target),
         }),
       );
+
+      if (options.register === false) {
+        console.log(
+          cliMessage(activeLocale, "resource.registerSkipped"),
+        );
+        return;
+      }
+
+      registerExisting();
     } catch (error) {
       console.error(
         `dashild: ${error instanceof Error ? error.message : String(error)}`,
@@ -174,12 +212,16 @@ program
   .option("--cwd <dir>", "project root", process.cwd())
   .option("--metadata <path>", "path to dashild-metadata.json")
   .option("--dir <path>", "resources folder", "src/dashild/resources")
+  .option("--policies <path>", "path to policies.ts")
+  .option("--actions <path>", "path to actions/index.ts")
   .option("--json", "print a machine-readable report")
   .action(
     (options: {
       cwd: string;
       metadata?: string;
       dir: string;
+      policies?: string;
+      actions?: string;
       json?: boolean;
     }) => {
       try {
@@ -187,6 +229,8 @@ program
           cwd: resolve(options.cwd),
           metadata: options.metadata,
           dir: options.dir,
+          policies: options.policies,
+          actions: options.actions,
           locale: locale(),
         });
 

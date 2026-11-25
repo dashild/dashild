@@ -136,6 +136,19 @@ test("doctor: duplicate slugs are reported in both files", () => {
 
     const resources = join(directory, "src/dashild/resources");
     mkdirSync(resources, { recursive: true });
+    mkdirSync(join(directory, "src/dashild/actions"), { recursive: true });
+    writeFileSync(
+      join(directory, "src/dashild/policies.ts"),
+      `import { definePolicies } from "@dashild/core";
+export const policies = definePolicies({
+  resources: {
+    User: { scope: () => ({}) },
+    Organization: { scope: () => ({}) },
+  },
+});
+`,
+      "utf8",
+    );
     writeFileSync(join(resources, "user.ts"), valid, "utf8");
     const ghost = valid
       .replace('model: "User"', 'model: "Organization"')
@@ -155,6 +168,160 @@ test("doctor: duplicate slugs are reported in both files", () => {
       ).length,
       2,
     );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("doctor: checks policies and action handlers", () => {
+  const directory = mkdtempSync(join(tmpdir(), "dashild-doctor-policy-"));
+
+  try {
+    mkdirSync(join(directory, "src/generated/dashild"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/resources"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/actions"), { recursive: true });
+
+    writeFileSync(
+      join(directory, "src/generated/dashild/dashild-metadata.json"),
+      JSON.stringify(metadata),
+      "utf8",
+    );
+
+    writeFileSync(
+      join(directory, "src/dashild/resources/user.ts"),
+      `import { defineResource } from "@dashild/core";
+
+export const userResource = defineResource({
+  model: "User",
+  navigation: { label: "Users", slug: "users" },
+  policy: { scope: "organization" },
+  table: {
+    columns: [{ field: "name" }],
+    actions: [{ name: "export", requires: "export" }],
+  },
+  form: { fields: [{ field: "name", type: "text" }] },
+});
+`,
+      "utf8",
+    );
+
+    writeFileSync(
+      join(directory, "src/dashild/policies.ts"),
+      `import { definePolicies } from "@dashild/core";
+
+export const policies = definePolicies({
+  resources: {
+    User: { scope: () => ({}) },
+  },
+});
+`,
+      "utf8",
+    );
+
+    writeFileSync(
+      join(directory, "src/dashild/actions/index.ts"),
+      `export const resourceActions = { User: {} };\n`,
+      "utf8",
+    );
+
+    const first = runDoctor({
+      cwd: directory,
+      dir: "src/dashild/resources",
+    });
+
+    assert.ok(
+      first.resources[0]?.issues.some((issue) =>
+        issue.message.includes('Action "export" has no handler'),
+      ),
+    );
+    assert.ok(
+      first.resources[0]?.issues.some((issue) =>
+        issue.message.includes('requires policy "export"'),
+      ),
+    );
+
+    writeFileSync(
+      join(directory, "src/dashild/actions/index.ts"),
+      `export const resourceActions = {\n  User: { export: async () => ({ ok: true }) },\n} satisfies Record<string, Record<string, unknown>>;\n`,
+      "utf8",
+    );
+    writeFileSync(
+      join(directory, "src/dashild/policies.ts"),
+      `import { definePolicies } from "@dashild/core";
+
+export const policies = definePolicies({
+  resources: {
+    User: {
+      scope: () => ({}),
+      can: { export: () => true },
+    },
+  },
+});
+`,
+      "utf8",
+    );
+
+    const second = runDoctor({
+      cwd: directory,
+      dir: "src/dashild/resources",
+    });
+
+    assert.equal(second.errors, 0);
+    assert.equal(second.resources[0]?.issues.length, 0);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("doctor: a missing policy entry is an error when policies.ts exists", () => {
+  const directory = mkdtempSync(join(tmpdir(), "dashild-doctor-entry-"));
+
+  try {
+    mkdirSync(join(directory, "src/generated/dashild"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/resources"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/actions"), { recursive: true });
+
+    writeFileSync(
+      join(directory, "src/generated/dashild/dashild-metadata.json"),
+      JSON.stringify(metadata),
+      "utf8",
+    );
+    writeFileSync(
+      join(directory, "src/dashild/resources/user.ts"),
+      `import { defineResource } from "@dashild/core";
+export const userResource = defineResource({
+  model: "User",
+  navigation: { label: "Users", slug: "users" },
+  policy: { scope: "organization" },
+  table: { columns: [{ field: "name" }] },
+  form: { fields: [{ field: "name", type: "text" }] },
+});
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(directory, "src/dashild/policies.ts"),
+      `import { definePolicies } from "@dashild/core";
+export const policies = definePolicies({
+  resources: {
+    Organization: { scope: () => ({}) },
+  },
+});
+`,
+      "utf8",
+    );
+
+    const report = runDoctor({
+      cwd: directory,
+      dir: "src/dashild/resources",
+    });
+
+    assert.ok(
+      report.resources[0]?.issues.some((issue) =>
+        issue.message.includes('No policy entry for model "User"'),
+      ),
+    );
+    assert.equal(report.errors, 1);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

@@ -35,7 +35,14 @@ Viven en core y no en `@dashild/prisma` porque los necesita el runtime del servi
 
 ## `./server`
 
-Subpath con la superficie de servidor: `dashildAction`, extensión de Prisma y conversión a DTO. Nunca se importa desde un componente cliente.
+Subpath con la superficie de servidor. Nunca se importa desde un componente cliente:
+
+- `createDashildRuntime({ prisma, metadata, resources, policies, actions })`:
+  listado, detalle, opciones, escritura y acciones.
+- `withDashildScope({ resources, policies, user })`: extensión de Prisma que
+  aplica el `where` de la política a consultas directas.
+- `runtime.client(user)`: cliente Prisma ya extendido para código propio.
+- `canPerform`, `resolvePolicy`, `withScope` y la conversión a DTO.
 
 Mantenerlo como subpath (y no como paquete aparte) evita multiplicar nombres de paquete: el bundle no arrastra Prisma porque el cliente no importa `@dashild/core/server`.
 

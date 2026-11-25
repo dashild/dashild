@@ -761,6 +761,126 @@ export function withScope(
 }
 
 // ---------------------------------------------------------------------------
+// Scoped Prisma extension
+// ---------------------------------------------------------------------------
+
+export interface DashildScopeOptions<TUser extends CurrentUser> {
+  resources: ResourceDefinition[];
+  policies: PoliciesDefinition<TUser>;
+  user: TUser;
+}
+
+interface ScopeOperationParams {
+  model: string;
+  operation: string;
+  args: Record<string, unknown>;
+  query: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+export interface DashildScopeExtension {
+  name: string;
+  query: {
+    $allModels: {
+      $allOperations: (params: ScopeOperationParams) => Promise<unknown>;
+    };
+  };
+}
+
+const UNIQUE_SCOPE_OPERATIONS = new Set([
+  "findUnique",
+  "findUniqueOrThrow",
+  "update",
+  "delete",
+  "upsert",
+]);
+
+const SCOPED_OPERATIONS = new Set([
+  "findMany",
+  "findFirst",
+  "findUnique",
+  "findFirstOrThrow",
+  "findUniqueOrThrow",
+  "count",
+  "aggregate",
+  "groupBy",
+  "update",
+  "updateMany",
+  "delete",
+  "deleteMany",
+  "upsert",
+]);
+
+/**
+ * Prisma client extension that applies the resource policy's `where` to every
+ * top-level read, update and delete.
+ *
+ * The runtime still resolves the policy and checks `can.*`; this extension is
+ * the second line of defence for app code that queries Prisma directly. Use it
+ * per request:
+ *
+ * ```ts
+ * const db = prisma.$extends(withDashildScope({ resources, policies, user }));
+ * ```
+ *
+ * Models without a Dashild resource pass through unchanged. A resource with a
+ * missing policy fails closed. Relation includes are not separate queries, so
+ * top-level scoping is the guarantee; custom relation loaders must use `db`.
+ */
+export function withDashildScope<TUser extends CurrentUser>(
+  options: DashildScopeOptions<TUser>,
+): DashildScopeExtension {
+  const resources = new Map(
+    options.resources.map((resource) => [resource.model, resource]),
+  );
+  const cache = new Map<string, Promise<ResolvedPolicy<TUser> | null>>();
+
+  function policyFor(model: string) {
+    const resource = resources.get(model);
+    if (!resource) return Promise.resolve(null);
+
+    const cached = cache.get(model);
+    if (cached) return cached;
+
+    const pending = resolvePolicy(
+      resource,
+      options.policies,
+      options.user,
+    ).then((result) => {
+      if (!result.ok) throw new PolicyDeniedError(model);
+      return result.policy;
+    });
+
+    cache.set(model, pending);
+    return pending;
+  }
+
+  return {
+    name: "dashild-scope",
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }) {
+          const policy = await policyFor(model);
+          if (!policy) return query(args);
+          if (!SCOPED_OPERATIONS.has(operation)) return query(args);
+
+          const current = (args ?? {}) as Record<string, unknown>;
+          const where =
+            (current.where as Record<string, unknown> | undefined) ?? {};
+          const scoped = UNIQUE_SCOPE_OPERATIONS.has(operation)
+            ? { ...where, ...policy.where }
+            : withScope(where, policy.where);
+
+          return query({
+            ...current,
+            where: scoped,
+          });
+        },
+      },
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Runtime factory
 // ---------------------------------------------------------------------------
 
@@ -840,6 +960,8 @@ export interface DashboardRuntime<TUser extends CurrentUser> {
     input: RuntimeActionInput,
     user: TUser,
   ): Promise<RuntimeActionResult>;
+  /** Prisma client extended with this user's policy scope. */
+  client(user: TUser): unknown;
 }
 
 interface RuntimeDelegate {
@@ -919,7 +1041,32 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     return { ok: false, message: translate(locale, "error.denied") };
   }
 
-  function resolve(slug: string) {
+  function scopedClient(user: TUser): unknown {
+    const client = options.prisma as {
+      $extends?: (extension: unknown) => unknown;
+    };
+    if (!client.$extends) return options.prisma;
+
+    return client.$extends(
+      withDashildScope({
+        resources: options.resources,
+        policies: options.policies,
+        user,
+      }),
+    );
+  }
+
+  function scopedWhere(
+    client: unknown,
+    where: Record<string, unknown>,
+    policy: ResolvedPolicy<TUser>,
+  ): Record<string, unknown> {
+    return client === options.prisma
+      ? withScope(where, policy.where)
+      : where;
+  }
+
+  function resolve(slug: string, client: unknown = options.prisma) {
     const resource = options.resources.find(
       (entry) => entry.navigation.slug === slug,
     );
@@ -928,7 +1075,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     const model = modelFor(options.metadata, resource.model);
     if (!model) return null;
 
-    const delegate = runtimeDelegate(options.prisma, resource.model);
+    const delegate = runtimeDelegate(client, resource.model);
     if (!delegate) return null;
 
     const idField = model.fields.find((field) => field.isId);
@@ -949,8 +1096,9 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     raw: RawListParams,
     user: TUser,
   ): Promise<ResourceListResult> {
+    const client = scopedClient(user);
     const model = modelFor(options.metadata, resource.model);
-    const delegate = runtimeDelegate(options.prisma, resource.model);
+    const delegate = runtimeDelegate(client, resource.model);
 
     if (!model || !delegate) {
       throw new Error(
@@ -965,7 +1113,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
 
     const params = normalizeListParams(resource, raw);
     const query = buildListQuery(resource, model, params);
-    const where = withScope(query.where, policy.policy.where);
+    const where = scopedWhere(client, query.where, policy.policy);
 
     const [rows, total] = await Promise.all([
       delegate.findMany({ ...query, where }),
@@ -986,8 +1134,9 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     id: string,
     user: TUser,
   ): Promise<Record<string, unknown> | null> {
+    const client = scopedClient(user);
     const model = modelFor(options.metadata, resource.model);
-    const delegate = runtimeDelegate(options.prisma, resource.model);
+    const delegate = runtimeDelegate(client, resource.model);
     const idField = model?.fields.find((field) => field.isId);
 
     if (!model || !delegate || !idField) {
@@ -1002,9 +1151,10 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     }
 
     const include = recordInclude(resource, model);
-    const where = withScope(
+    const where = scopedWhere(
+      client,
       idFilter(idField, id),
-      policy.policy.where,
+      policy.policy,
     );
 
     let row: Record<string, unknown> | null;
@@ -1038,6 +1188,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     resource: ResourceDefinition,
     user: TUser,
   ): Promise<Record<string, FormOption[]>> {
+    const client = scopedClient(user);
     const model = modelFor(options.metadata, resource.model);
     if (!model) return {};
 
@@ -1059,7 +1210,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         !field.isList
       ) {
         const related = modelFor(options.metadata, field.type);
-        const delegate = runtimeDelegate(options.prisma, field.type);
+        const delegate = runtimeDelegate(client, field.type);
         if (!related || !delegate) continue;
 
         if (!organizationId) {
@@ -1070,7 +1221,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         const idField = related.fields.find((entry) => entry.isId)?.name ?? "id";
         const display = definition.display ?? "name";
 
-        const where =
+        const baseWhere =
           field.type === "Organization"
             ? { id: organizationId }
             : related.fields.some(
@@ -1079,6 +1230,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
               ? { organizationId }
               : {};
 
+        const where = scopedWhere(client, baseWhere, policy.policy);
         const rows = await delegate.findMany({
           where,
           select: { [idField]: true, [display]: true },
@@ -1111,7 +1263,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     input: { slug: string; id?: string; values: Record<string, unknown> },
     user: TUser,
   ): Promise<RuntimeSaveResult> {
-    const context = resolve(input.slug);
+    const client = scopedClient(user);
+    const context = resolve(input.slug, client);
     if (!context) {
       return { ok: false, message: translate(locale, "error.resourceNotFound") };
     }
@@ -1141,9 +1294,10 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         await delegate.create({ data: parsed.data });
       } else {
         await delegate.update({
-          where: withScope(
+          where: scopedWhere(
+            client,
             idFilter(idField, input.id as string),
-            resolved.policy.where,
+            resolved.policy,
           ),
           data: parsed.data,
         });
@@ -1159,7 +1313,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     input: { slug: string; id: string },
     user: TUser,
   ): Promise<RuntimeSaveResult> {
-    const context = resolve(input.slug);
+    const client = scopedClient(user);
+    const context = resolve(input.slug, client);
     if (!context) {
       return { ok: false, message: translate(locale, "error.resourceNotFound") };
     }
@@ -1172,9 +1327,10 @@ export function createDashildRuntime<TUser extends CurrentUser>(
 
     try {
       await delegate.delete({
-        where: withScope(
+        where: scopedWhere(
+          client,
           idFilter(idField, input.id),
-          resolved.policy.where,
+          resolved.policy,
         ),
       });
     } catch (error) {
@@ -1188,7 +1344,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     input: RuntimeActionInput,
     user: TUser,
   ): Promise<RuntimeActionResult> {
-    const context = resolve(input.slug);
+    const client = scopedClient(user);
+    const context = resolve(input.slug, client);
     if (!context) {
       return { ok: false, message: translate(locale, "error.resourceNotFound") };
     }
@@ -1231,11 +1388,20 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         data: input.data ?? action.data,
         organizationId: resolved.policy.context.organizationId,
         roles: resolved.policy.context.roles,
+        db: client,
       });
     } catch {
       return { ok: false, message: translate(locale, "error.actionFailed") };
     }
   }
 
-  return { list, record, formOptions, save, remove, runAction };
+  return {
+    list,
+    record,
+    formOptions,
+    save,
+    remove,
+    runAction,
+    client: scopedClient,
+  };
 }

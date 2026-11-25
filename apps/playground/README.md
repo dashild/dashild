@@ -114,6 +114,8 @@ table: {
 
 `pnpm --filter playground db:security-smoke` verifica A/B con Ana (org-1 admin), Bruno (org-2) y Carla (org-1): listados, detalle, organizaciones, opciones del formulario, permisos y fallo cerrado.
 
+`pnpm --filter playground db:scope-smoke` prueba la extensión `withDashildScope` con consultas directas de Prisma: Ana no ve ni modifica filas de Bruno. Es la segunda barrera para código que no pasa por el runtime.
+
 ### Selector de organización
 
 El team switcher de `sidebar-07` es el selector de organización. La cookie `dashild_organization` se valida en servidor en cada petición:

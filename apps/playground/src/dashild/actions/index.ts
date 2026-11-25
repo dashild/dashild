@@ -22,6 +22,9 @@ import type { ActionHandler } from "@dashild/core";
  *
  * Los nombres integrados (`create`, `view`, `edit`, `delete`, `save`, `cancel`)
  * no van aquí: los resuelve el shell.
+ *
+ * El handler recibe `db`, el cliente Prisma extendido con el ámbito de la
+ * política activa. Úsalo en lugar de importar `prisma` directamente.
  */
 export const resourceActions: Record<
   string,

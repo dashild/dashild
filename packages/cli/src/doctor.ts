@@ -7,7 +7,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import { parse } from "@babel/parser";
 import type {
@@ -17,10 +17,11 @@ import type {
   PrivateName,
   Program,
 } from "@babel/types";
-import type {
-  DashildMetadata,
-  FieldMetadata,
-  Locale,
+import {
+  isBuiltInAction,
+  type DashildMetadata,
+  type FieldMetadata,
+  type Locale,
 } from "@dashild/core";
 
 import { findMetadata, readMetadata } from "./metadata.js";
@@ -33,11 +34,18 @@ export interface DoctorIssue {
   suggestion?: string;
 }
 
+export interface ResourceAction {
+  name: string;
+  line?: number;
+  requires?: string;
+}
+
 export interface ResourceReport {
   file: string;
   model?: string;
   slug?: string;
   slugLine?: number;
+  actions: ResourceAction[];
   issues: DoctorIssue[];
 }
 
@@ -71,14 +79,30 @@ function objectProperty(
   return undefined;
 }
 
+function unwrapExpression(
+  value: Expression | undefined,
+): Expression | undefined {
+  if (
+    value?.type === "TSAsExpression" ||
+    value?.type === "TSSatisfiesExpression" ||
+    value?.type === "TSNonNullExpression"
+  ) {
+    return unwrapExpression(value.expression);
+  }
+  return value;
+}
+
 function asObject(value: Expression | undefined): ObjectExpression | undefined {
-  return value?.type === "ObjectExpression" ? value : undefined;
+  const expression = unwrapExpression(value);
+  return expression?.type === "ObjectExpression" ? expression : undefined;
 }
 
 function asArray(value: Expression | undefined): Expression[] {
-  if (value?.type !== "ArrayExpression") return [];
-  return value.elements.filter(
-    (element): element is Expression => element !== null && element.type !== "SpreadElement",
+  const expression = unwrapExpression(value);
+  if (expression?.type !== "ArrayExpression") return [];
+  return expression.elements.filter(
+    (element): element is Expression =>
+      element !== null && element.type !== "SpreadElement",
   );
 }
 
@@ -188,6 +212,7 @@ export function analyzeResourceSource(
     const line = (error as { loc?: { line?: number } }).loc?.line;
     return {
       file,
+      actions: [],
       issues: [
         {
           severity: "error",
@@ -205,6 +230,7 @@ export function analyzeResourceSource(
   if (!call) {
     return {
       file,
+      actions: [],
       issues: [
         {
           severity: "error",
@@ -220,6 +246,7 @@ export function analyzeResourceSource(
   if (!definition) {
     return {
       file,
+      actions: [],
       issues: [
         {
           severity: "error",
@@ -291,6 +318,8 @@ export function analyzeResourceSource(
       );
     }
   }
+
+  const actions: ResourceAction[] = [];
 
   if (model) {
     const fields = new Map(model.fields.map((field) => [field.name, field]));
@@ -481,6 +510,24 @@ export function analyzeResourceSource(
         );
       }
     }
+
+    for (const container of [table, form]) {
+      for (const action of arrayObjects(
+        container ? objectProperty(container, "actions") : undefined,
+      )) {
+        const nameNode = objectProperty(action, "name");
+        const name = stringValue(nameNode);
+        if (!name || isBuiltInAction(name)) continue;
+
+        actions.push({
+          name,
+          line: lineOf(nameNode) ?? lineOf(action),
+          ...(stringField(action, "requires")
+            ? { requires: stringField(action, "requires") }
+            : {}),
+        });
+      }
+    }
   }
 
   issues.sort((left, right) => (left.line ?? 0) - (right.line ?? 0));
@@ -490,6 +537,7 @@ export function analyzeResourceSource(
     ...(modelName ? { model: modelName } : {}),
     ...(slug ? { slug } : {}),
     ...(lineOf(slugNode) ? { slugLine: lineOf(slugNode) } : {}),
+    actions,
     issues,
   };
 }
@@ -528,10 +576,170 @@ function duplicateSlugIssues(resources: ResourceReport[]): void {
   }
 }
 
+interface PoliciesInfo {
+  exists: boolean;
+  models: Set<string>;
+  can: Map<string, Set<string> | null>;
+}
+
+interface ActionsInfo {
+  exists: boolean;
+  handlers: Map<string, Set<string>>;
+  unknown: Set<string>;
+}
+
+function findCallNamed(program: Program, name: string): CallExpression | undefined {
+  for (const node of program.body) {
+    if (node.type === "VariableDeclaration") {
+      for (const declaration of node.declarations) {
+        const init = declaration.init;
+        if (
+          init?.type === "CallExpression" &&
+          init.callee.type === "Identifier" &&
+          init.callee.name === name
+        ) {
+          return init;
+        }
+      }
+      continue;
+    }
+
+    if (node.type === "ExportNamedDeclaration") {
+      const declaration = node.declaration;
+      if (declaration?.type !== "VariableDeclaration") continue;
+      for (const declarator of declaration.declarations) {
+        const init = declarator.init;
+        if (
+          init?.type === "CallExpression" &&
+          init.callee.type === "Identifier" &&
+          init.callee.name === name
+        ) {
+          return init;
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function readPolicies(path: string): PoliciesInfo {
+  const info: PoliciesInfo = {
+    exists: existsSync(path),
+    models: new Set(),
+    can: new Map(),
+  };
+  if (!info.exists) return info;
+
+  const program = parse(readFileSync(path, "utf8"), {
+    sourceType: "module",
+    plugins: ["typescript"],
+  }).program;
+  const call = findCallNamed(program, "definePolicies");
+  const definition = call
+    ? asObject(call.arguments[0] as Expression | undefined)
+    : undefined;
+  const resources = definition
+    ? asObject(objectProperty(definition, "resources"))
+    : undefined;
+  if (!resources) return info;
+
+  for (const property of resources.properties) {
+    if (property.type !== "ObjectProperty") continue;
+    const model = keyName(property.key as Expression);
+    if (!model) continue;
+
+    info.models.add(model);
+    const value = asObject(property.value as Expression);
+    if (!value) {
+      info.can.set(model, null);
+      continue;
+    }
+
+    const can = asObject(objectProperty(value, "can"));
+    info.can.set(
+      model,
+      new Set(
+        can
+          ? can.properties
+              .filter((entry) => entry.type === "ObjectProperty")
+              .map((entry) => keyName(entry.key as Expression))
+              .filter((name): name is string => Boolean(name))
+          : [],
+      ),
+    );
+  }
+
+  return info;
+}
+
+function readActions(path: string): ActionsInfo {
+  const info: ActionsInfo = {
+    exists: existsSync(path),
+    handlers: new Map(),
+    unknown: new Set(),
+  };
+  if (!info.exists) return info;
+
+  const program = parse(readFileSync(path, "utf8"), {
+    sourceType: "module",
+    plugins: ["typescript"],
+  }).program;
+
+  let object: ObjectExpression | undefined;
+  for (const node of program.body) {
+    const declaration =
+      node.type === "VariableDeclaration"
+        ? node
+        : node.type === "ExportNamedDeclaration" &&
+            node.declaration?.type === "VariableDeclaration"
+          ? node.declaration
+          : undefined;
+    if (!declaration) continue;
+
+    for (const declarator of declaration.declarations) {
+      if (
+        declarator.id.type === "Identifier" &&
+        declarator.id.name === "resourceActions"
+      ) {
+        object = asObject(declarator.init as Expression | undefined);
+      }
+    }
+  }
+
+  if (!object) return info;
+
+  for (const property of object.properties) {
+    if (property.type !== "ObjectProperty") continue;
+    const model = keyName(property.key as Expression);
+    if (!model) continue;
+
+    const value = asObject(property.value as Expression);
+    if (!value) {
+      info.unknown.add(model);
+      continue;
+    }
+
+    info.handlers.set(
+      model,
+      new Set(
+        value.properties
+          .filter((entry) => entry.type === "ObjectProperty")
+          .map((entry) => keyName(entry.key as Expression))
+          .filter((name): name is string => Boolean(name)),
+      ),
+    );
+  }
+
+  return info;
+}
+
 export function runDoctor(options: {
   cwd: string;
   metadata?: string;
   dir: string;
+  policies?: string;
+  actions?: string;
   locale?: Locale;
 }): DoctorReport {
   const metadataPath = findMetadata(
@@ -557,6 +765,79 @@ export function runDoctor(options: {
       metadata,
     ),
   );
+
+  const policiesPath = options.policies
+    ? resolve(options.cwd, options.policies)
+    : join(dirname(directory), "policies.ts");
+  const actionsPath = options.actions
+    ? resolve(options.cwd, options.actions)
+    : join(dirname(directory), "actions/index.ts");
+  const policies = readPolicies(policiesPath);
+  const actions = readActions(actionsPath);
+  const policiesFile = relative(options.cwd, policiesPath);
+  const actionsFile = relative(options.cwd, actionsPath);
+
+  for (const resource of resources) {
+    if (!resource.model) continue;
+
+    if (!policies.exists) {
+      resource.issues.push({
+        severity: "error",
+        file: policiesFile,
+        message:
+          "policies.ts not found; the runtime will deny this resource.",
+        suggestion:
+          "Add an entry for the model in src/dashild/policies.ts.",
+      });
+    } else if (!policies.models.has(resource.model)) {
+      resource.issues.push({
+        severity: "error",
+        file: policiesFile,
+        message: `No policy entry for model "${resource.model}".`,
+        suggestion:
+          "Add the model to policies.ts with its scope and permissions.",
+      });
+    }
+
+    for (const action of resource.actions) {
+      if (!actions.exists) {
+        resource.issues.push({
+          severity: "warning",
+          file: actionsFile,
+          message: `Action "${action.name}" has no handler file.`,
+          suggestion:
+            "Create src/dashild/actions/index.ts or remove the action.",
+        });
+        continue;
+      }
+
+      if (
+        !actions.unknown.has(resource.model) &&
+        !actions.handlers.get(resource.model)?.has(action.name)
+      ) {
+        resource.issues.push({
+          severity: "error",
+          file: actionsFile,
+          message: `Action "${action.name}" has no handler for ${resource.model}.`,
+          suggestion:
+            "Register the handler in resourceActions or remove the action.",
+        });
+      }
+
+      if (action.requires) {
+        const can = policies.can.get(resource.model);
+        if (policies.exists && can && !can.has(action.requires)) {
+          resource.issues.push({
+            severity: "error",
+            file: policiesFile,
+            message: `Action "${action.name}" requires policy "${action.requires}", but ${resource.model} does not declare it.`,
+            suggestion:
+              "Add the predicate under the model's can object in policies.ts.",
+          });
+        }
+      }
+    }
+  }
 
   duplicateSlugIssues(resources);
   for (const resource of resources) {

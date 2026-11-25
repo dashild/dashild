@@ -10,6 +10,9 @@ import type { Locale } from "@dashild/core";
 const en = {
   "resource.created": "Created {path}",
   "resource.exists": "{path} already exists; not overwritten.",
+  "resource.registered": "Registered {model} in panel.ts and policies.ts.",
+  "resource.registerSkipped":
+    "Skipped panel/policy registration (--no-register).",
   "metadata.notFound":
     "Cannot find dashild-metadata.json. Tried: {paths}. Run `prisma generate` or pass --metadata <path>.",
   "metadata.read": "Could not read {path}: {error}.",
@@ -54,6 +57,9 @@ type MessageKey = keyof typeof en;
 const es: Record<MessageKey, string> = {
   "resource.created": "Creado {path}",
   "resource.exists": "{path} ya existe; no se sobrescribe.",
+  "resource.registered": "{model} registrado en panel.ts y policies.ts.",
+  "resource.registerSkipped":
+    "Registro en panel/policies omitido (--no-register).",
   "metadata.notFound":
     "No encuentro dashild-metadata.json. Rutas probadas: {paths}. Ejecuta `prisma generate` o pasa --metadata <path>.",
   "metadata.read": "No se pudo leer {path}: {error}.",

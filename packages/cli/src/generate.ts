@@ -273,6 +273,10 @@ export function generateResourceFile(
 export const ${resourceExportName(model.name)} = defineResource({
   model: ${quote(model.name)},
 
+  // The policy entry is keyed by model in policies.ts. This name is only
+  // documentation; change it if your app uses another convention.
+  policy: { scope: "default" },
+
   navigation: {
     label: ${quote(resourceLabel(model.name))},
     slug: ${quote(resourceSlug(model.name))},

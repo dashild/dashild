@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- `make:resource` registra el recurso en `panel.ts` y una política fail-closed
+  en `policies.ts`; `--no-register` lo desactiva.
+- `doctor` comprueba la entrada del modelo en `policies.ts`, los handlers de
+  acciones y los predicados `requires`.
+- `withDashildScope` aplica el ámbito a consultas directas de Prisma; el runtime
+  usa el cliente extendido y expone `runtime.client(user)`.
+
 ## 0.1.0-alpha.2 — 2026-11-25
 
 - `dashild init --auth better-auth` genera login, signup, API handler, sesión y adaptador del panel.

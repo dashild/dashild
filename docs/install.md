@@ -199,30 +199,31 @@ pnpm dashild make:resource Customer
 pnpm dashild doctor
 ```
 
-`make:resource` escribe un archivo y **no lo vuelve a tocar**. En la alpha:
+`make:resource` escribe un archivo y **no lo vuelve a tocar**. Además:
 
-1. Añade la entrada a `panel.resources` en `src/dashild/panel.ts`.
-2. Añade `policy` al recurso:
+- añade el import y el recurso a `panel.resources`;
+- añade una entrada en `src/dashild/policies.ts` con `scope: () => null`;
+- el recurso nace con `policy: { scope: "default" }`.
 
-   ```ts
-   policy: { scope: "all" },
-   ```
+La entrada de política es **fail-closed**: el recurso devuelve 404 hasta que
+definas el ámbito y los permisos. Edita `policies.ts`:
 
-3. Añade la entrada correspondiente en `src/dashild/policies.ts`:
+```ts
+Customer: {
+  scope: () => ({}),
+  can: {
+    create: () => true,
+    update: () => true,
+    delete: () => true,
+  },
+},
+```
 
-   ```ts
-   Customer: {
-     scope: () => ({}),
-     can: {
-       create: () => true,
-       update: () => true,
-       delete: () => true,
-     },
-   },
-   ```
+Sin `policy` y sin entrada en `policies.ts`, el runtime **falla cerrado**. Es
+intencionado.
 
-Sin `policy` y sin entrada en `policies.ts`, el recurso **falla cerrado** y el
-panel devuelve 404. Es intencionado.
+Si no quieres que `make:resource` toque `panel.ts`/`policies.ts`, usa
+`--no-register`.
 
 ## 7. Arrancar
 
@@ -237,9 +238,10 @@ El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
 - `create-dashild` todavía no está publicado; usa `@dashild/cli` manualmente.
 - `init --auth better-auth` añade modelos de autenticación si el schema está
   vacío; si ya existen, solo avisa y no los duplica.
-- `make:resource` no registra el recurso ni la política automáticamente.
-- El ámbito aún se aplica en el runtime, no en una extensión `$extends` de
-  Prisma.
+- El ámbito se aplica en el runtime y en la extensión `withDashildScope` de
+  Prisma. Las relaciones incluidas dentro de una consulta no son consultas
+  separadas; para cargas personalizadas usa `runtime.client(user)` o el cliente
+  extendido.
 - El sistema de acciones y el mapa de iconos están documentados en los README
   de los paquetes, pero la documentación pública todavía es mínima.
 - Las APIs pueden cambiar entre versiones `alpha`.

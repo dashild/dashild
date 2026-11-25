@@ -701,7 +701,9 @@ function actionsFile(): string {
  * Custom action handlers, keyed by Prisma model and action name.
  *
  * The action itself is declared in the resource (table.actions/form.actions);
- * the handler lives here because it runs on the server.
+ * the handler lives here because it runs on the server. Use the \`db\` passed in
+ * the context instead of importing Prisma directly: it already carries the
+ * active policy scope.
  */
 export const resourceActions: Record<
   string,
