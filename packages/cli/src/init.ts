@@ -1178,6 +1178,7 @@ function serverFile(): string {
   return `"use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { translate } from "@dashild/core";
@@ -1197,6 +1198,32 @@ import { runtime } from "./runtime";
  * The client sends a slug, an id and values; it never sends a where, a policy
  * or an organization scope. The runtime resolves and enforces all of them.
  */
+
+const THEME_COOKIE = "dashild_theme";
+
+export async function toggleTheme(formData: FormData): Promise<void> {
+  const store = await cookies();
+  const current = store.get(THEME_COOKIE)?.value;
+  const next =
+    current === "dark" ? "system" : current === "system" ? "light" : "dark";
+
+  store.set(THEME_COOKIE, next, {
+    httpOnly: false,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  const target = formData.get("next");
+  const safeTarget =
+    typeof target === "string" &&
+    target.startsWith("/") &&
+    !target.startsWith("//")
+      ? target
+      : panel.path;
+
+  redirect(safeTarget);
+}
 
 export async function saveResource(input: {
   slug: string;
@@ -1291,7 +1318,10 @@ function routeFile(
   iconsModule: string,
   registryModule: string,
 ): string {
-  return `import { AdminPage } from "@dashild/admin/server";
+  return `import { cookies } from "next/headers";
+
+import { DEFAULT_THEME_MODE, type ThemeMode } from "@dashild/admin";
+import { AdminPage } from "@dashild/admin/server";
 
 import { AppIconProvider } from ${quote(importPath(routePath, iconsModule))};
 import { AppRegistryProvider } from ${quote(importPath(routePath, registryModule))};
@@ -1303,6 +1333,7 @@ import {
   runRelationAction,
   runResourceAction,
   saveResource,
+  toggleTheme,
 } from ${quote(importPath(routePath, serverModule))};
 
 /**
@@ -1316,6 +1347,8 @@ export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
+const THEME_COOKIE = "dashild_theme";
+
 export default async function DashildPage({
   params,
   searchParams,
@@ -1323,6 +1356,13 @@ export default async function DashildPage({
   params: Promise<{ dashild?: string[] }>;
   searchParams: Promise<SearchParams>;
 }) {
+  const store = await cookies();
+  const cookieTheme = store.get(THEME_COOKIE)?.value;
+  const theme: ThemeMode =
+    cookieTheme === "light" || cookieTheme === "dark" || cookieTheme === "system"
+      ? cookieTheme
+      : panel.theme?.defaultMode ?? DEFAULT_THEME_MODE;
+
   return (
     <AppRegistryProvider>
       <AdminPage
@@ -1336,8 +1376,9 @@ export default async function DashildPage({
         IconProvider={AppIconProvider}
         params={params}
         searchParams={searchParams}
-        theme={panel.theme?.defaultMode ?? "light"}
+        theme={theme}
         themeToggle={panel.theme?.toggle ?? false}
+        themeAction={toggleTheme}
       />
     </AppRegistryProvider>
   );

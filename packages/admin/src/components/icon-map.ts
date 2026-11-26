@@ -68,7 +68,7 @@ export function resolveIcon(
   if (process.env.NODE_ENV !== "production" && !warned.has(name)) {
     warned.add(name);
     console.warn(
-      `[dashild] icon "${name}" is not in the map; using the generic icon. Add it to src/dashild/icons.ts.`,
+      `[dashild] icon "${name}" is not in the map; using the generic icon. Add it to src/dashild/icons.tsx.`,
     );
   }
 

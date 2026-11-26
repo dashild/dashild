@@ -11,9 +11,13 @@ are no pages to generate or files to keep in sync.
 - Node.js 22 or newer.
 - Next.js 15 or 16 with the App Router.
 - Prisma 7.10 or newer and a client generated with the `prisma-client` provider.
-- PostgreSQL, MySQL/MariaDB, or SQLite (PostgreSQL and SQLite are tested
-  end-to-end; MySQL/MariaDB is supported by the adapter).
+- PostgreSQL, MySQL, or SQLite. PostgreSQL, SQLite, and MySQL 8.4 run
+  end-to-end in CI; MariaDB uses the same adapter as MySQL but is not in the CI
+  matrix.
 - Tailwind CSS v4 and shadcn/ui for the shell.
+
+These are documented ranges, not runtime checks: the CLI does not verify the
+Next.js or Prisma version of your project.
 
 ## Create a new app
 
@@ -21,8 +25,9 @@ are no pages to generate or files to keep in sync.
 pnpm create dashild@latest my-app
 ```
 
-The scaffolder reuses `create-next-app` and asks for the starter, auth, database,
-and whether to install, migrate, and seed. It also works with flags:
+The scaffolder runs `create-next-app` non-interactively (`--yes --empty`) and
+then asks its own questions: starter, auth, database, and whether to install,
+migrate, and seed. It also works with flags:
 
 ```bash
 npx create-dashild@latest my-app \
@@ -41,13 +46,20 @@ npx create-dashild@latest my-app \
 | `--database-url` | Connection string |
 | `--direct-url` | Non-pooled URL for migrations |
 | `--pm` | `pnpm`, `npm`, `yarn`, `bun` |
+| `--name` | Project name when you omit the positional argument |
+| `--dir` | Target directory (defaults to the project name) |
 | `--path` | Panel route (defaults to `/admin`) |
+| `--locale` | `en` or `es`, for prompts and generated labels |
 | `--no-install` | Skip dependency installation |
 | `--no-git` | Skip `git init` |
 | `--no-migrate` | Do not apply the schema |
 | `--no-seed` | Do not load starter data |
+| `-y`, `--yes` | Accept the defaults without prompting |
 | `--dry-run` | Print the plan without writing |
 | `--list-templates` | List bundled starters |
+
+`--dry-run` still resolves a `github:` starter, which means downloading and
+caching it in `~/.cache/dashild/templates`.
 
 If the database is unreachable, the app is still created and the migration and
 seed commands are printed as pending steps. See
@@ -74,8 +86,8 @@ generator dashild {
 }
 ```
 
-`dashild` writes `dashild-metadata.json`, the contract used by the CLI, the
-runtime, and the panel.
+The `dashild` generator writes `dashild-metadata.json`, the contract used by the
+CLI, the runtime, and the panel. The CLI and the panel only read it.
 
 Prisma 7 reads the connection from `prisma.config.ts`:
 
@@ -122,14 +134,19 @@ DATABASE_URL="postgresql://user:password@host:5432/database"
 DATABASE_URL="mysql://user:password@host:3306/database"
 ```
 
-For SQLite, the Prisma CLI and the adapter both resolve the path from the
-project root. The scaffolder installs `better-sqlite3` with the Node that runs
-the app (pinning `PATH` and `npm_config_target`) because pnpm does not ship
+For SQLite, the generated `prisma.config.ts` and the adapter resolve the path
+from the project root, and the scaffolder verifies the file exists after
+migrating. The scaffolder installs `better-sqlite3` with the Node that runs the
+app (pinning `PATH` and `npm_config_target`) because pnpm does not ship
 `node-gyp`.
 
 ## Mount the panel
 
+`dashild init` reads `dashild-metadata.json`, so generate the Prisma client and
+the metadata first:
+
 ```bash
+pnpm prisma generate
 pnpm dashild init --auth better-auth
 ```
 
@@ -138,6 +155,9 @@ The command prints the plan and writes nothing until you add `--yes`:
 ```bash
 pnpm dashild init --auth better-auth --yes
 ```
+
+If the metadata is not in one of the standard paths, pass it explicitly with
+`--metadata prisma/generated/dashild/dashild-metadata.json`.
 
 It writes:
 
@@ -153,17 +173,23 @@ src/app/<route>/[[...dashild]]/page.tsx
 ```
 
 With `--auth better-auth` it also writes login, signup, session, password
-reset, and API route files. See [Authentication](/guides/authentication/).
+reset, and API route files, and appends the Better Auth models to the schema.
+See [Authentication](/guides/authentication/).
 
-Then regenerate Prisma and apply the schema:
+Then regenerate if `init` changed the schema, and apply it:
 
 ```bash
 pnpm prisma generate
 pnpm prisma db push
 ```
 
+`init` appends missing keys to `.env.example`; it never writes `.env`.
+
 If `app/admin/page.tsx` already exists, `init` proposes `/panel`,
 `/admin-panel`, or `/dashild`. Use `--path /other-route` to force one.
+`--force` overwrites the generated files (including the auth ones) but does not
+bypass a route conflict caused by an explicit `--path`; pick another route
+instead.
 
 ## Tailwind
 

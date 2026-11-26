@@ -27,7 +27,7 @@ export const customerResource = defineResource({
       {
         field: "status",
         format: "badge",
-        tone: { ACTIVE: "green", LEAD: "amber" },
+        tone: { ACTIVE: "green", LEAD: "danger" },
       },
     ],
     filters: [{ field: "status", type: "enum" }],
@@ -51,10 +51,10 @@ command never overwrites your edits.
 
 `label` is the sidebar label, `slug` is the URL segment under the panel route,
 and `group` groups resources in the sidebar. `icon` is resolved by the shell
-(`users`, `building`, `file-text`, `settings`, `database`, `folder`, `chart`,
-`package`, `shopping-cart`, `tag`, `calendar`, `mail`, `briefcase`,
-`credit-card`, `truck`, `layers`), and the app can add its own in
-`src/dashild/icons.tsx`.
+(`users`, `user`, `building`, `organization`, `file-text`, `settings`,
+`database`, `folder`, `chart`, `layout-dashboard`, `package`, `shopping-cart`,
+`tag`, `calendar`, `mail`, `briefcase`, `credit-card`, `truck`, `layers`), and
+the app can add its own in `src/dashild/icons.tsx`.
 
 ## Table
 
@@ -66,11 +66,15 @@ and `group` groups resources in the sidebar. `icon` is resolved by the shell
 - `pageSize`: optional page size.
 - `actions`: header or row actions (see below).
 
-`format` covers dates, numbers, currency, booleans, JSON, and `badge`; `tone`
-maps badge values to a color. For `Decimal` money, use
-`format: "currency", currency: "EUR"`. Scalar lists render and edit as a JSON
-array. `cell` points to a component registered with `registerCell` (see
-[Customization](/guides/customization/)).
+`tone` accepts `accent`, `green`, `muted`, or `danger`; any other value renders
+the default outline badge.
+
+`format` accepts `badge`, `number`, `currency`, `date`, `datetime`, `json`, or
+`text`. Booleans and enums use `badge` by default. `number` and `currency`
+format with the panel locale; for `Decimal` money use
+`format: "currency", currency: "EUR"`. Scalar lists (`String[]`, `Int[]`...)
+render and edit as a JSON array. `cell` points to a component registered with
+`registerCell` (see [Customization](/guides/customization/)).
 
 For relations, set `field` to the relation name and `display` to the related
 field:
@@ -78,6 +82,13 @@ field:
 ```ts
 { field: "organization", display: "name" }
 ```
+
+### Filters
+
+Filters are not rendered as controls in the shell yet. The list page reads them
+from the query string and applies them on the server, so you can link to a
+filtered table (`?status=ACTIVE`) or build your own controls. `relation` filters
+support many-to-one relations only; `enum` and `text` compare exact values.
 
 ## Form
 
@@ -96,20 +107,23 @@ form: {
 }
 ```
 
-`Bytes` fields render a file picker and are sent as base64. `createdAt`,
-`updatedAt`, and `deletedAt` are shown in the table but omitted from the form by
-`make:resource`.
+`Bytes` fields render a file picker and are sent as base64. `createdAt` and
+`deletedAt` are shown in the table; `updatedAt`, `id`, and relation-owned
+foreign keys are omitted from the table and the form. `make:resource` also
+leaves audit fields (`createdAt`, `updatedAt`, `deletedAt`) out of the form.
 
 ## Relations
 
 - **o2m** (one-to-many): the parent detail page shows a `RelationManager` for
-  the children. Create, edit, and delete work out of the box; if the foreign key
-  is optional, rows can also be detached.
-- **m2m** (many-to-many): the detail page allows attach and detach, and the form
-  can use `type: "relation"` with `multiple: true`.
+  the children. Create and edit are available; delete only when the child
+  resource allows it, and detach only when the foreign key is optional.
+- **m2m** (many-to-many): the detail page allows attach and detach when the
+  child resource permits it, and the form can use `type: "relation"` with
+  `multiple: true`.
 
-The child model needs its own resource in `panel.resources`. If the foreign key
-is required, the manager does not offer detach.
+The child model needs its own resource in `panel.resources`, and the manager
+needs `relationAction` wired in the route (the scaffold does it). Without rows
+or without that action, the manager is not rendered.
 
 ## Actions
 
@@ -131,15 +145,21 @@ export const resourceActions: Record<
 > = {
   Customer: {
     export: async ({ db, organizationId }) => {
-      // `db` is Prisma extended with the active policy scope.
+      // `db` is the scoped Prisma client, typed as `unknown` in core.
+      const client = db as typeof prisma;
       return { ok: true, message: "Export started" };
     },
   },
 };
 ```
 
+Declaring `table.actions` **replaces** the built-in create, view, edit, and
+delete actions; include them yourself if you still want them. Form actions
+behave the same way.
+
 An action can declare `requires` (checked against policies), `confirm`,
 `variant`, `placement` (`header` or `row`), and `href` for link actions.
+`variant` styles the button and the confirmation, not the row dropdown item.
 
 ## Doctor
 
@@ -149,5 +169,8 @@ pnpm dashild doctor
 
 It parses resources with Babel (without importing Next) and checks models,
 columns, filters, form fields, relations, `policy`, the `policies.ts` entry,
-action handlers, `requires` predicates, and duplicate slugs. It reports the file
-and line and exits with code 1 on errors.
+action handlers, `requires` predicates, and duplicate slugs. It always reports
+the file; the line is included when the issue comes from a resource node. Some
+findings are warnings and do not affect the exit code. It exits with code 1 on
+errors, and also when no resource is found. It does not validate presentation
+details such as `navigation.label`, `format`, `tone`, or `placement`.

@@ -707,28 +707,54 @@ function readActions(path: string): ActionsInfo {
     }
   }
 
-  if (!object) return info;
+  if (object) {
+    for (const property of object.properties) {
+      if (property.type !== "ObjectProperty") continue;
+      const model = keyName(property.key as Expression);
+      if (!model) continue;
 
-  for (const property of object.properties) {
-    if (property.type !== "ObjectProperty") continue;
-    const model = keyName(property.key as Expression);
-    if (!model) continue;
+      const value = asObject(property.value as Expression);
+      if (!value) {
+        info.unknown.add(model);
+        continue;
+      }
 
-    const value = asObject(property.value as Expression);
-    if (!value) {
-      info.unknown.add(model);
+      info.handlers.set(
+        model,
+        new Set(
+          value.properties
+            .filter((entry) => entry.type === "ObjectProperty")
+            .map((entry) => keyName(entry.key as Expression))
+            .filter((name): name is string => Boolean(name)),
+        ),
+      );
+    }
+  }
+
+  // `dashild make:action` appends `resourceActions.Customer = { export }`
+  // assignments after the registry literal; both shapes are valid.
+  for (const node of program.body) {
+    if (node.type !== "ExpressionStatement") continue;
+    const expression = node.expression;
+    if (expression.type !== "AssignmentExpression") continue;
+    if (expression.left.type !== "MemberExpression") continue;
+
+    const { object: owner, property } = expression.left;
+    if (owner.type !== "Identifier" || owner.name !== "resourceActions") {
       continue;
     }
 
-    info.handlers.set(
-      model,
-      new Set(
-        value.properties
-          .filter((entry) => entry.type === "ObjectProperty")
-          .map((entry) => keyName(entry.key as Expression))
-          .filter((name): name is string => Boolean(name)),
-      ),
-    );
+    const model = keyName(property as Expression);
+    const value = asObject(expression.right);
+    if (!model || !value) continue;
+
+    const handlers = info.handlers.get(model) ?? new Set<string>();
+    for (const entry of value.properties) {
+      if (entry.type !== "ObjectProperty") continue;
+      const name = keyName(entry.key as Expression);
+      if (name) handlers.add(name);
+    }
+    info.handlers.set(model, handlers);
   }
 
   return info;

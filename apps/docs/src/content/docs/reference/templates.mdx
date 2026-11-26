@@ -5,8 +5,8 @@ description: Bundled starters and the template.json format.
 
 `create-dashild` ships two starters:
 
-- `basic`: the panel and auth, with no resources. The dashboard shows the empty
-  state.
+- `basic`: no extra files. The dashboard shows the empty state; with the
+  default `--auth better-auth` you also get the login, signup, and reset pages.
 - `demo`: users, posts, and labels, with permissive demo policies and a seed
   (`ana@acme.test` / `dashild123`).
 
@@ -14,14 +14,17 @@ description: Bundled starters and the template.json format.
 pnpm create dashild@latest my-app --template demo
 ```
 
-A starter can also be local or come from GitHub:
+A starter can also be a local folder or come from GitHub:
 
 ```bash
 npx create-dashild@latest my-app --template ./starters/crm
+npx create-dashild@latest my-app --template local:../starters/crm
 npx create-dashild@latest my-app --template github:acme/dashild-crm#main
 ```
 
-npm templates are not supported in v1.
+npm templates are not supported in the current alpha. The `--template` value
+is a local path (`./...`, an absolute path, or `local:<path>`) or a
+`github:` spec.
 
 ## Format
 
@@ -34,7 +37,8 @@ A template is a folder with `template.json` and project files:
   "dashild": ">=0.1.0-alpha.8",
   "prisma": { "provider": ["postgresql"] },
   "requires": { "auth": ["better-auth"] },
-  "extend": { "User": ["role Role @default(USER)"] }
+  "extend": { "User": ["role Role @default(USER)"] },
+  "env": ["STRIPE_SECRET"]
 }
 ```
 
@@ -43,30 +47,43 @@ A template is a folder with `template.json` and project files:
 | `name`, `version` | Identity recorded in `dashild.json`. |
 | `dashild` | Supported Dashild semver range. |
 | `prisma.provider` | Allowed database providers. |
-| `requires.auth` | Required auth integration. |
+| `requires.auth` | Required auth integration (array). |
 | `extend` | Extra Prisma fields for an existing model. |
 | `dependencies`, `devDependencies` | Extra app dependencies. |
-| `env` | Extra env keys. |
+| `env` | Env keys appended to `.env.example` when missing. |
 
 ## Files
 
-- `prisma/models.prisma` is appended to the schema inside a marker block, so
-  applying the template twice does not duplicate models.
+- `prisma/models.prisma` is appended to the schema inside a marker block. If
+  the same template is applied again, the command fails with “already applied”
+  instead of duplicating models. The marker detects the reapplication; it does
+  not make it idempotent.
 - `extend` adds fields to models that already exist (for example `User`).
+  Fields that are already present are skipped silently.
+- A model or enum whose name already exists in the schema is a hard error.
 - `src/dashild/resources/*.ts` are copied and registered in `panel.ts`.
 - `src/dashild/policies.ts` replaces the default policies.
-- `prisma/seed.ts` runs when the seed step is enabled.
+- `prisma/seed.ts` runs only when the install and migration steps succeeded;
+  with `--seed` but no migration it stays pending.
+- `env` keys are appended to `.env.example` with an empty value; values are
+  yours to fill in.
 
 Templates run after the Better Auth models are created, so a template can extend
-`User` safely. Applying the same template twice, or adding a model that already
-exists, fails instead of silently overwriting.
+`User` safely.
 
 ## Package pinning
 
-`create-dashild` records the installed stack in `dashild.json` and pins
-`@dashild/*` to a known version. The scaffolder can move ahead of the stack for
-its own fixes; the generated app keeps the published packages it was tested
-with.
+`dashild.json` records the chosen template, auth, database, route, and creation
+date. It does not store the installed package versions.
 
-`create-dashild` is published as `latest` and `alpha`. The docs use
+`create-dashild` pins `@dashild/*` in the generated `package.json` to the stack
+version it ships with (the `dashildPackages` field of its own manifest). The
+scaffolder can move ahead of the stack for its own fixes; the generated app
+keeps the published packages it was tested with.
+
+A template's `dependencies` are merged after that pinning, so a template can
+override `@dashild/*` and break the guarantee. Do not declare `@dashild/*`
+packages in a template.
+
+`create-dashild` is published with both `latest` and `alpha`; the docs use
 `pnpm create dashild@latest`.

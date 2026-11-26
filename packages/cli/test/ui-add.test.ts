@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { uiAdd } from "../src/ui-add.js";
+import { formatUiRegistration, uiAdd } from "../src/ui-add.js";
 
 test("ui:add copies a template and skips an existing file", () => {
   const directory = mkdtempSync(join(tmpdir(), "dashild-ui-"));
@@ -51,4 +51,16 @@ test("ui:add reports unknown components", () => {
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+test("ui:add names the component in the registration hint", () => {
+  assert.equal(
+    formatUiRegistration("avatar-cell"),
+    'Register it in src/dashild/registry.tsx with registerCell("avatar", AvatarCell).',
+  );
+  assert.equal(
+    formatUiRegistration("email-field"),
+    'Register it in src/dashild/registry.tsx with registerField("email", EmailField).',
+  );
+  assert.equal(formatUiRegistration("nope"), "");
 });

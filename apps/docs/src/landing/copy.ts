@@ -120,7 +120,7 @@ const en: LandingCopy = {
     lines: [
       "Scaffolding Next.js + Dashild",
       "Panel ready at /admin",
-      "Database migrated and seeded",
+      "Database ready",
     ],
   },
   code: {
@@ -262,7 +262,7 @@ const es: LandingCopy = {
     lines: [
       "Creando Next.js + Dashild",
       "Panel listo en /admin",
-      "Base migrada y sembrada",
+      "Base de datos lista",
     ],
   },
   code: {

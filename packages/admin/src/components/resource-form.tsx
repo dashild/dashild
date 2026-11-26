@@ -150,7 +150,10 @@ export function ResourceForm({
   allowedActions,
 }: ResourceFormProps) {
   const registry = useRegistry();
-  const schema = useMemo(() => buildFormSchema(resource), [resource]);
+  const schema = useMemo(
+    () => buildFormSchema(resource, locale),
+    [locale, resource],
+  );
 
   const defaultValues = useMemo(() => {
     const result: FormValues = {};

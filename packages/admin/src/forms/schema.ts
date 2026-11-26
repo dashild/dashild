@@ -1,6 +1,27 @@
 import { z } from "zod";
 
-import type { FieldDefinition, ResourceDefinition } from "@dashild/core";
+import type { FieldDefinition, Locale, ResourceDefinition } from "@dashild/core";
+
+const MESSAGES = {
+  en: {
+    number: "Invalid number.",
+    email: "Invalid email.",
+    json: "Invalid JSON.",
+    min: (count: number) => `At least ${count} characters.`,
+    max: (count: number) => `At most ${count} characters.`,
+    pattern: "Invalid format.",
+    required: "This field is required.",
+  },
+  es: {
+    number: "Número no válido.",
+    email: "Email no válido.",
+    json: "JSON no válido.",
+    min: (count: number) => `Mínimo ${count} caracteres.`,
+    max: (count: number) => `Máximo ${count} caracteres.`,
+    pattern: "Formato no válido.",
+    required: "Este campo es obligatorio.",
+  },
+} as const;
 
 /**
  * Esquema de cliente.
@@ -11,17 +32,22 @@ import type { FieldDefinition, ResourceDefinition } from "@dashild/core";
  */
 export function buildFormSchema(
   resource: ResourceDefinition,
+  locale: Locale = "en",
 ): z.ZodObject<Record<string, z.ZodTypeAny>> {
   const shape: Record<string, z.ZodTypeAny> = {};
 
   for (const field of resource.form.fields) {
-    shape[field.field] = buildFieldSchema(field);
+    shape[field.field] = buildFieldSchema(field, locale);
   }
 
   return z.object(shape);
 }
 
-function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
+function buildFieldSchema(
+  field: FieldDefinition,
+  locale: Locale,
+): z.ZodTypeAny {
+  const messages = MESSAGES[locale];
   let schema: z.ZodTypeAny;
 
   switch (field.type) {
@@ -30,14 +56,14 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
         .string()
         .refine(
           (value) => value === "" || !Number.isNaN(Number(value)),
-          "Número no válido.",
+          messages.number,
         );
       break;
     case "boolean":
       schema = z.boolean();
       break;
     case "email":
-      schema = z.string().email("Email no válido.");
+      schema = z.string().email(messages.email);
       break;
     case "relation":
       schema = field.multiple ? z.array(z.string()) : z.string();
@@ -54,7 +80,7 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
         } catch {
           return false;
         }
-      }, "JSON no válido.");
+      }, messages.json);
       break;
     default:
       schema = z.string();
@@ -66,13 +92,13 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
       if (field.rules.min !== undefined) {
         stringSchema = stringSchema.min(
           field.rules.min,
-          `Mínimo ${field.rules.min} caracteres.`,
+          messages.min(field.rules.min),
         );
       }
       if (field.rules.max !== undefined) {
         stringSchema = stringSchema.max(
           field.rules.max,
-          `Máximo ${field.rules.max} caracteres.`,
+          messages.max(field.rules.max),
         );
       }
       schema = stringSchema;
@@ -80,15 +106,12 @@ function buildFieldSchema(field: FieldDefinition): z.ZodTypeAny {
   }
 
   if (field.rules?.pattern && schema instanceof z.ZodString) {
-    schema = schema.regex(
-      new RegExp(field.rules.pattern),
-      "Formato no válido.",
-    );
+    schema = schema.regex(new RegExp(field.rules.pattern), messages.pattern);
   }
 
   if (field.rules?.required) {
     if (schema instanceof z.ZodString) {
-      return schema.min(1, "Este campo es obligatorio.");
+      return schema.min(1, messages.required);
     }
     return schema;
   }

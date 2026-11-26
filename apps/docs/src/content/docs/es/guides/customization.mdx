@@ -1,6 +1,6 @@
 ---
 title: Personalización
-description: Reemplaza celdas y campos, pon tu marca al panel y retira el pegamento generado.
+description: Sustituye celdas y campos, ajusta el tema del panel y expulsa el glue generado.
 ---
 
 El shell vive en `@dashild/admin`; la app es dueña de la configuración del
@@ -10,11 +10,12 @@ panel, la autenticación y los componentes propios.
 
 ```ts
 // src/dashild/panel.ts
+import { definePanel } from "@dashild/core";
+
 export const panel = definePanel({
   title: "Acme",
   path: "/admin",
-  locale: "es",
-  brand: { name: "Acme", logo: "/logo.svg" },
+  locale: "en",
   theme: { defaultMode: "dark", toggle: true, primary: "zinc" },
   sidebar: { collapsible: "icon" },
   maxContentWidth: "xl",
@@ -24,14 +25,49 @@ export const panel = definePanel({
 ```
 
 `primary` acepta una paleta de shadcn/Tailwind (`zinc`, `slate`, `blue`,
-`emerald`, etc.). `theme.defaultMode` acepta `light`, `dark` o `system`; `system`
-sigue `prefers-color-scheme` y reacciona a los cambios. `locale` cambia las
-etiquetas y los mensajes de validación integrados. `domain` es metadata opcional para URLs absolutas; Next enruta por
-host, así que Dashild no lo usa para enrutar peticiones.
+`emerald`, etc.). `locale` cambia las etiquetas integradas, los mensajes de
+validación del servidor y los mensajes del formulario en el navegador.
+`theme.defaultMode` acepta `light`, `dark` o `system`; `system` sigue
+`prefers-color-scheme` y reacciona a los cambios.
+
+`definePanel` también acepta `brand` y `domain`, pero el shell actual no
+renderiza `brand` ni consume `domain`: Next enruta por host, así que `domain` es
+metadata declarada y nada más.
+
+### Conmutador de tema
+
+`theme.toggle: true` muestra el conmutador solo si la ruta pasa también una
+server action `themeAction`. La ruta que genera `dashild init` ya la cablea: lee
+la cookie `dashild_theme` para el modo inicial y pasa `toggleTheme`, que alterna
+`light` → `dark` → `system` y escribe la cookie.
+
+En una instalación manual sin ese cableado, el conmutador se oculta. Añade una
+acción como la generada y pásala a `AdminPage`:
+
+```tsx
+// src/app/admin/[[...dashild]]/page.tsx
+const store = await cookies();
+const cookieTheme = store.get("dashild_theme")?.value;
+const theme: ThemeMode =
+  cookieTheme === "light" || cookieTheme === "dark" || cookieTheme === "system"
+    ? cookieTheme
+    : panel.theme?.defaultMode ?? DEFAULT_THEME_MODE;
+
+<AdminPage
+  // ...
+  theme={theme}
+  themeToggle={panel.theme?.toggle ?? false}
+  themeAction={toggleTheme}
+/>;
+```
+
+`DEFAULT_THEME_MODE` es `dark`. Con `system`, el servidor no puede conocer la
+preferencia del usuario, así que la clase `dark` se aplica en el cliente tras
+hidratar.
 
 ## Celdas y campos
 
-Las celdas y los campos son componentes React registrados en cliente:
+Las celdas y los campos son componentes React registrados en el cliente:
 
 ```tsx
 // src/dashild/registry.tsx
@@ -43,7 +79,7 @@ import {
   registeredCells,
   registeredFields,
 } from "@dashild/core";
-import { RegistryProvider } from "@dashild/admin";
+import { RegistryProvider, type Registry } from "@dashild/admin";
 
 import { AvatarCell } from "../../components/dashild/avatar-cell";
 import { EmailField } from "../../components/dashild/email-field";
@@ -57,15 +93,22 @@ export function AppRegistryProvider({
   children: React.ReactNode;
 }) {
   return (
-    <RegistryProvider cells={registeredCells()} fields={registeredFields()}>
+    <RegistryProvider
+      cells={registeredCells() as Registry["cells"]}
+      fields={registeredFields() as Registry["fields"]}
+    >
       {children}
     </RegistryProvider>
   );
 }
 ```
 
-Envuelve `AdminPage` con `AppRegistryProvider` (la ruta generada ya lo hace) y
-referencia los componentes desde el recurso:
+Los casts son necesarios: `registeredCells()` devuelve el tipo laxo que guarda
+`@dashild/core` para no depender de los tipos de React.
+
+`dashild init` genera este fichero con las llamadas de registro comentadas;
+edítalo para añadir las tuyas. Envuelve `AdminPage` con `AppRegistryProvider`
+(la ruta generada lo hace) y referencia los componentes desde un recurso:
 
 ```ts
 table: { columns: [{ field: "name", cell: "avatar" }] }
@@ -76,8 +119,10 @@ Las props de los renderers son `CellRendererProps` y `FieldRendererProps` de
 `@dashild/admin`.
 
 `dashild ui:add avatar-cell email-field` copia ambas plantillas a
-`components/dashild/` e imprime las llamadas de registro. Opciones: `--dir`,
-`--force`, `--dry-run`.
+`components/dashild/` e imprime la llamada de registro exacta, por ejemplo
+`registerCell("avatar", AvatarCell)`. Opciones: `--dir`, `--force`,
+`--dry-run`, `--cwd`. Los nombres desconocidos se avisan y no cambian el código
+de salida.
 
 ## Tailwind
 
@@ -88,24 +133,32 @@ Tailwind debe escanear el build del paquete:
 ```
 
 Las variables de tema vienen de shadcn. Define una pila de fuentes real en
-`--font-sans`; el `globals.css` generado ya lo hace.
+`--font-sans`; el `globals.css` generado lo hace por ti.
 
 ## Iconos
 
-`src/dashild/icons.tsx` monta un `IconProvider` con los iconos del shell y los
-extra que usen tus recursos. Un nombre desconocido cae en el icono genérico en
-desarrollo.
+El shell ya resuelve 19 nombres: `users`, `user`, `building`, `organization`,
+`file-text`, `settings`, `database`, `folder`, `chart`, `layout-dashboard`,
+`package`, `shopping-cart`, `tag`, `calendar`, `mail`, `briefcase`,
+`credit-card`, `truck` y `layers`.
+
+`src/dashild/icons.tsx` monta un `IconProvider` que añade **tus** iconos extra;
+no sustituye el conjunto integrado. Para un icono de recurso desconocido el
+shell cae siempre en un icono genérico de tabla, y avisa solo en desarrollo. Los
+iconos de acción no tienen fallback: un nombre desconocido no renderiza icono.
 
 ## Eject
 
-Si quieres retirar el pegamento del panel:
+Si quieres quitar el glue del panel:
 
 ```bash
 pnpm dashild eject --dry-run
 pnpm dashild eject --yes
 ```
 
-Elimina `panel.ts`, `policies.ts`, `actions/index.ts`, `icons.tsx`, `runtime.ts`,
-`server.ts`, `registry.tsx`, la ruta de montaje y el script `dashild`. Conserva
-recursos, archivos de auth, el schema de Prisma y las dependencias, y los lista
-para que decidas qué borrar. Sin `--yes` solo muestra el plan.
+Elimina `panel.ts`, `policies.ts`, `actions/index.ts`, `icons.tsx`,
+`runtime.ts`, `server.ts`, `registry.tsx`, la ruta de montaje y el script
+`dashild`. Conserva los recursos, los ficheros de auth, el generador de Prisma y
+las dependencias, y lista los que puede detectar. Algunos ficheros de auth
+(`email.ts`, las páginas y formularios de contraseña) se conservan pero no se
+listan. Sin `--yes` solo imprime el plan.

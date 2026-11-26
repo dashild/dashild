@@ -548,6 +548,33 @@ export function applyTemplate(input: ApplyTemplateInput): ApplyTemplateResult {
     "utf8",
   );
 
+  if (template.manifest.env?.length) {
+    const envExample = resolve(projectDir, ".env.example");
+    if (existsSync(envExample)) {
+      const current = readFileSync(envExample, "utf8");
+      const missing = template.manifest.env.filter(
+        (key) => !new RegExp(`^${key}=`, "m").test(current),
+      );
+      if (missing.length > 0) {
+        writeFileSync(
+          envExample,
+          `${current.trimEnd()}\n${missing.map((key) => `${key}=`).join("\n")}\n`,
+          "utf8",
+        );
+        warnings.push(
+          t(locale, "templateEnv", {
+            file: ".env.example",
+            keys: missing.join(", "),
+          }),
+        );
+      }
+    } else {
+      warnings.push(
+        t(locale, "templateEnvMissing", { keys: template.manifest.env.join(", ") }),
+      );
+    }
+  }
+
   return {
     written,
     warnings,

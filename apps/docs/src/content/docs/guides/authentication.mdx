@@ -43,24 +43,36 @@ src/components/dashild/forgot-password-form.tsx
 src/components/dashild/reset-password-form.tsx
 ```
 
-It also adds the Better Auth models to `prisma/schema.prisma` when they are
-missing and adds `better-auth` to `package.json`.
+The folders are conditional: if the app already has `lib/` and `components/` at
+the root instead of under `src/`, the files go there. The `app` directory
+follows the same rule.
+
+It also adds `better-auth` to `package.json`.
+
+### Prisma models
+
+If the schema has none of `User`, `Session`, `Account`, or `Verification`,
+`init` appends all four. If it finds **any** of them, it adds none and warns;
+adapt the existing models yourself. The check is all-or-nothing.
 
 ## Environment
 
-The scaffolder writes `.env` and a committed `.env.example` with every key and
-its comments:
+`create-dashild` writes `.env` and a committed `.env.example`. `dashild init`
+only appends missing keys to `.env.example`; it never writes `.env`.
 
-| Variable | Required | Purpose |
+| Variable | Where | Purpose |
 | --- | --- | --- |
-| `DATABASE_URL` | yes | App and Prisma connection. |
-| `DIRECT_URL` | no | Non-pooled URL for migrations. |
-| `BETTER_AUTH_SECRET` | with Better Auth | Session signing. Generate with `openssl rand -base64 32`. |
-| `BETTER_AUTH_URL` | with Better Auth | Public origin; must match the browser URL. |
-| `ALLOW_SIGNUP` | no (`true`) | `false` closes public sign-up. |
-| `REQUIRE_EMAIL_VERIFICATION` | no (`false`) | `true` requires the verification link. |
-| `RESEND_API_KEY` | no | If set, `sendEmail` sends through Resend. |
-| `EMAIL_FROM` | no | Resend sender. |
+| `DATABASE_URL` | `.env` and `.env.example` | App and Prisma connection. |
+| `DIRECT_URL` | `.env` when given; commented placeholder in `.env.example` | Non-pooled URL for migrations. |
+| `BETTER_AUTH_SECRET` | With Better Auth | Session signing. Generate with `openssl rand -base64 32`. |
+| `BETTER_AUTH_URL` | With Better Auth | Public origin; must match the browser URL. |
+| `ALLOW_SIGNUP` | With Better Auth | `false` closes public sign-up. |
+| `REQUIRE_EMAIL_VERIFICATION` | With Better Auth | `true` requires the verification link. |
+| `RESEND_API_KEY` | `.env.example` only, commented (Better Auth) | If set, `sendEmail` sends through Resend. |
+| `EMAIL_FROM` | `.env.example` only, commented (Better Auth) | Resend sender. |
+
+The email keys are never written to `.env`: uncomment them there (or add them
+to your deployment environment) when you configure a provider.
 
 `BETTER_AUTH_URL` must match the origin you open in the browser. A mismatch
 makes sign-in fail with an origin error.
@@ -87,7 +99,7 @@ await fetch("https://api.resend.com/emails", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM ?? "Dashild <onboarding@resend.dev>",
     to,
     subject,
     text,
@@ -126,6 +138,5 @@ async function getCurrentUser(): Promise<CurrentUser | null> {
 optional. Returning `organizationId` and `roles` is enough for
 [policies](/guides/policies/).
 
-If the schema already has a `User` model or session models,
-`init --auth better-auth` does not modify them; it warns and leaves the
-adaptation to you.
+If the schema already has any Better Auth model, `init --auth better-auth` does
+not modify the schema; it warns and leaves the adaptation to you.

@@ -326,3 +326,75 @@ export const policies = definePolicies({
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("doctor: make:action assignments count as handlers", () => {
+  const directory = mkdtempSync(join(tmpdir(), "dashild-doctor-assign-"));
+
+  try {
+    mkdirSync(join(directory, "src/generated/dashild"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/resources"), { recursive: true });
+    mkdirSync(join(directory, "src/dashild/actions"), { recursive: true });
+
+    writeFileSync(
+      join(directory, "src/generated/dashild/dashild-metadata.json"),
+      JSON.stringify(metadata),
+      "utf8",
+    );
+    writeFileSync(
+      join(directory, "src/dashild/resources/user.ts"),
+      `import { defineResource } from "@dashild/core";
+export const userResource = defineResource({
+  model: "User",
+  navigation: { label: "Users", slug: "users" },
+  policy: { scope: "organization" },
+  table: {
+    columns: [{ field: "name" }],
+    actions: [{ name: "export" }],
+  },
+  form: { fields: [{ field: "name", type: "text" }] },
+});
+`,
+      "utf8",
+    );
+    writeFileSync(
+      join(directory, "src/dashild/policies.ts"),
+      `import { definePolicies } from "@dashild/core";
+export const policies = definePolicies({
+  resources: {
+    User: { scope: () => ({}) },
+  },
+});
+`,
+      "utf8",
+    );
+    // Exactly what `dashild make:action User export` appends.
+    writeFileSync(
+      join(directory, "src/dashild/actions/index.ts"),
+      `import type { ActionHandler } from "@dashild/core";
+
+export const resourceActions: Record<string, Record<string, ActionHandler>> =
+  {};
+
+resourceActions.User = {
+  ...resourceActions.User,
+  export: async (_context) => ({ ok: true }),
+};
+`,
+      "utf8",
+    );
+
+    const report = runDoctor({
+      cwd: directory,
+      dir: "src/dashild/resources",
+    });
+
+    assert.equal(report.errors, 0);
+    assert.ok(
+      !report.resources[0]?.issues.some((issue) =>
+        issue.message.includes('Action "export" has no handler'),
+      ),
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

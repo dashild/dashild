@@ -9,35 +9,63 @@ the permissions, and the roles.
 
 ## Fail closed
 
-If a resource has no `policy`, or `policies.ts` has no entry for its model, the
-runtime denies the resource. If `scope` returns `null`, the whole resource is
-denied.
+The runtime denies a resource when:
+
+- the resource has no `policy`, or
+- `policies.ts` has no entry for its model, or
+- `scope` returns `null`.
+
+Two more rules matter in practice:
+
+- An entry without `scope` is treated as an empty filter, so it allows
+  everything. Always declare `scope`.
+- `scope` must return a `where` object or `null`. Returning `undefined` (for
+  example, a forgotten `return`) is not a denial and is easy to miss.
 
 ```ts
 import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
 
 export const policies = definePolicies<CurrentUser>({
-  Customer: {
-    scope: (ctx) => ({ organizationId: ctx.organizationId }),
-    can: {
-      create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
-      update: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
-      delete: (ctx) => hasRole(ctx, "ADMIN"),
+  resources: {
+    Customer: {
+      scope: (ctx) => ({ organizationId: ctx.organizationId }),
+      can: {
+        create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+        update: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+        delete: (ctx) => hasRole(ctx, "ADMIN"),
+      },
     },
   },
 });
 ```
 
-`scope` is a Prisma `where` fragment applied to every read and write, including
-relations and direct queries through the scoped client.
+`definePolicies` requires the `resources` container: the model map alone is not
+a valid definition, and `doctor` looks for that property when it checks
+`policies.ts`.
+
+## What the scope covers
+
+`scope` is applied to top-level Prisma operations: reads (`findMany`,
+`findFirst`, `findUnique`, `count`, `aggregate`, `groupBy`), writes
+(`update`, `updateMany`, `upsert`), and deletes. It is also applied to relation
+managers in the panel.
+
+It does **not** cover:
+
+- `create` / `createMany` — an insert cannot be constrained by a read filter,
+  which is why creating a scoped row requires an explicit `can.create`.
+- Rows loaded through an `include`: Prisma resolves them in the same query, so
+  they are not filtered by the related model's policy. Query the related model
+  directly (or through `runtime.client(user)`) when that matters.
 
 ## Organization and roles
 
-`PolicyContext` carries `user`, `organizationId`, and `roles`. They are resolved
-in this order:
-
-1. `organizationOf` / `rolesOf` from `policies.ts`, when defined.
-2. `user.organizationId` / `user.roles`, when the adapter already provides them.
+`PolicyContext` carries `user`, `organizationId`, and `roles`. The values come
+from `organizationOf` / `rolesOf` when those functions are defined in
+`policies.ts`; otherwise they come from `user.organizationId` /
+`user.roles`. It is one or the other, not a fallback chain: if
+`organizationOf` returns `null`, the context has `null`, even when
+`user.organizationId` is set.
 
 Returning them from `getCurrentUser` is enough for most apps:
 
@@ -58,6 +86,14 @@ async function getCurrentUser() {
 Use `hasRole(ctx, "ADMIN", "SALES")` for readable predicates. A scoped resource
 cannot create unless `can.create` is explicit, because the runtime cannot infer
 which organization the new row belongs to.
+
+## Defaults
+
+- `list`, `view`, `update`, and `delete` are allowed when there is no predicate
+  for them.
+- `create` is denied when the scope is not empty and there is no `can.create`.
+- A declared action with `requires` is denied unless the policy has a predicate
+  with that name.
 
 ## Actions
 
@@ -81,13 +117,23 @@ The UI hides actions whose `requires` is false, and the server also denies them.
 ## Scoped Prisma client
 
 `withDashildScope` returns a Prisma extension with the active scope applied;
-the runtime mounts it with `prisma.$extends`. For custom server code, prefer
-`runtime.client(user)`:
+the runtime mounts it with `prisma.$extends`. It lives in the server entry
+point:
 
 ```ts
-const client = runtime.client(user);
+import { withDashildScope } from "@dashild/core/server";
+```
+
+For custom server code, prefer `runtime.client(user)`:
+
+```ts
+const client = runtime.client(user) as typeof prisma;
 const customers = await client.customer.findMany();
 ```
+
+`runtime.client` is typed as `unknown` so `@dashild/core` does not depend on
+your generated Prisma client; cast it once, as above. If your client does not
+support `$extends`, the runtime returns the plain Prisma client.
 
 For a direct extension:
 
@@ -101,6 +147,7 @@ The resource file never contains the `where`; that is the point.
 
 ## Rules
 
-- `policies.ts` is server-only and is never imported from a client component.
+- `policies.ts` is server-only by convention: nothing enforces it at build
+  time, so never import it from a client component.
 - The client cannot influence the policy: server actions resolve it themselves.
 - Roles are strings; the app decides their names and how they are assigned.

@@ -1,6 +1,6 @@
 ---
 title: Autenticación
-description: Better Auth viene scaffolded, o conecta tu propia sesión con dos funciones.
+description: Better Auth se genera con el scaffold, o conecta tu propia sesión con dos funciones.
 ---
 
 Dashild no incluye una librería de autenticación. El panel necesita dos cosas de
@@ -16,8 +16,9 @@ export const panel = definePanel({
 });
 ```
 
-`getCurrentUser` se ejecuta en servidor y devuelve el usuario firmado o `null`.
-`signOut` es opcional; si existe, el menú de usuario muestra la acción de salir.
+`getCurrentUser` se ejecuta en el servidor y devuelve el usuario con sesión o
+`null`. `signOut` es opcional; cuando existe, el menú de usuario muestra la
+acción de cerrar sesión.
 
 ## Better Auth
 
@@ -44,37 +45,50 @@ src/components/dashild/forgot-password-form.tsx
 src/components/dashild/reset-password-form.tsx
 ```
 
-También añade los modelos de Better Auth a `prisma/schema.prisma` si faltan y
-`better-auth` a `package.json`.
+Las carpetas son condicionales: si la app ya tiene `lib/` y `components/` en la
+raíz en vez de bajo `src/`, los ficheros van allí. El directorio `app` sigue la
+misma regla.
+
+También añade `better-auth` a `package.json`.
+
+### Modelos de Prisma
+
+Si el esquema no tiene ninguno de `User`, `Session`, `Account` o `Verification`,
+`init` añade los cuatro. Si encuentra **cualquiera** de ellos, no añade ninguno y
+avisa; adapta los modelos existentes tú mismo. La comprobación es todo o nada.
 
 ## Entorno
 
-El scaffolder escribe `.env` y un `.env.example` versionado con todas las claves
-y sus comentarios:
+`create-dashild` escribe `.env` y un `.env.example` versionado. `dashild init`
+solo añade claves que falten a `.env.example`; nunca escribe `.env`.
 
-| Variable | Obligatoria | Para qué |
+| Variable | Dónde | Para qué |
 | --- | --- | --- |
-| `DATABASE_URL` | sí | Conexión de la app y de Prisma. |
-| `DIRECT_URL` | no | URL sin pooler para migraciones. |
-| `BETTER_AUTH_SECRET` | con Better Auth | Firma de sesiones. Genera con `openssl rand -base64 32`. |
-| `BETTER_AUTH_URL` | con Better Auth | Origen público; debe coincidir con el navegador. |
-| `ALLOW_SIGNUP` | no (`true`) | `false` cierra el alta pública. |
-| `REQUIRE_EMAIL_VERIFICATION` | no (`false`) | `true` exige el enlace de verificación. |
-| `RESEND_API_KEY` | no | Si está, `sendEmail` envía por Resend. |
-| `EMAIL_FROM` | no | Remitente de Resend. |
+| `DATABASE_URL` | `.env` y `.env.example` | Conexión de la app y de Prisma. |
+| `DIRECT_URL` | `.env` si se facilita; placeholder comentado en `.env.example` | URL sin pooler para migraciones. |
+| `BETTER_AUTH_SECRET` | Con Better Auth | Firma de sesión. Genérala con `openssl rand -base64 32`. |
+| `BETTER_AUTH_URL` | Con Better Auth | Origen público; debe coincidir con la URL del navegador. |
+| `ALLOW_SIGNUP` | Con Better Auth | `false` cierra el registro público. |
+| `REQUIRE_EMAIL_VERIFICATION` | Con Better Auth | `true` exige el enlace de verificación. |
+| `RESEND_API_KEY` | Solo en `.env.example`, comentada (Better Auth) | Si existe, `sendEmail` envía por Resend. |
+| `EMAIL_FROM` | Solo en `.env.example`, comentada (Better Auth) | Remitente de Resend. |
 
-`BETTER_AUTH_URL` debe coincidir con el origen que abres en el navegador. Si no,
-el login falla con un error de origen.
+Las claves de email nunca se escriben en `.env`: descoméntalas allí (o añádelas
+al entorno de despliegue) cuando configures un proveedor.
 
-## Alta, verificación y reset
+`BETTER_AUTH_URL` debe coincidir con el origen que abres en el navegador. Un
+desajuste hace que el login falle con un error de origen.
 
-- `ALLOW_SIGNUP=false` desactiva el API de signup y la página muestra
+## Registro, verificación y reset
+
+- `ALLOW_SIGNUP=false` desactiva la API de registro y la página de signup muestra
   “Sign-up disabled”. Crea usuarios desde tu propio flujo de administración.
-- `REQUIRE_EMAIL_VERIFICATION=true` envía el enlace al registrarse y bloquea el
-  login hasta verificar el email.
-- `/forgot-password` solicita el enlace y `/reset-password?token=...` fija la
+- `REQUIRE_EMAIL_VERIFICATION=true` envía el enlace de verificación al
+  registrarse y bloquea el login hasta verificar el email.
+- `/forgot-password` pide un enlace de reset; `/reset-password?token=...` fija la
   nueva contraseña.
-- La configuración generada activa rate limiting (100 peticiones por minuto).
+- El rate limit está activo (100 peticiones por minuto) en la configuración
+  generada.
 
 ## Email
 
@@ -88,7 +102,7 @@ await fetch("https://api.resend.com/emails", {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM ?? "Dashild <onboarding@resend.dev>",
     to,
     subject,
     text,
@@ -96,11 +110,11 @@ await fetch("https://api.resend.com/emails", {
 });
 ```
 
-Sin clave, en desarrollo imprime el correo y en producción lanza un error, para
-que el reset y la verificación no se pierdan en silencio. Puedes cambiarlo por
-Postmark, SES o tu transporte.
+Sin clave, registra el email en desarrollo y lanza un error en producción, para
+que el reset y la verificación no pierdan correos en silencio. Sustitúyelo por
+Postmark, SES o tu propio transporte si lo prefieres.
 
-## Tu propia autenticación
+## Tu propia auth
 
 Usa el modo por defecto y rellena el adaptador:
 
@@ -123,10 +137,9 @@ async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 ```
 
-`CurrentUser` necesita `id`; `email`, `name`, `organizationId` y `roles` son
+`CurrentUser` exige `id`; `email`, `name`, `organizationId` y `roles` son
 opcionales. Devolver `organizationId` y `roles` basta para las
 [políticas](/es/guides/policies/).
 
-Si el schema ya tiene un modelo `User` o modelos de sesión,
-`init --auth better-auth` no los modifica: avisa y deja la adaptación en tus
-manos.
+Si el esquema ya tiene algún modelo de Better Auth, `init --auth better-auth` no
+modifica el esquema; avisa y deja la adaptación en tus manos.

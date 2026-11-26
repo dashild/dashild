@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+Documentation audit fixes and the code gaps behind them.
+
+- Docs (English and Spanish) corrected across all eight pages: valid
+  `definePolicies` examples, `withDashildScope` import, `prisma generate`
+  before `init`, registry casts, real scope coverage, `tone`/`format` values,
+  no filter UI, `table.actions` replacing the built-ins, template reapplication
+  and pinning semantics, conditional env keys, and complete CLI flags/exits.
+- `dashild doctor` recognizes the `resourceActions.Model = { ... }`
+  assignments that `dashild make:action` writes (no more false missing-handler
+  error).
+- `dashild init` generates a theme switch that works: the mount route reads the
+  `dashild_theme` cookie and passes `toggleTheme`, which cycles
+  light → dark → system.
+- Client form validation follows the panel `locale`.
+- `format: "number"` formats with the panel locale.
+- `ui:add` prints the concrete registration call (`registerCell("avatar",
+  AvatarCell)`) and skips unknown names.
+- A template's `env` keys are appended to `.env.example`.
+- Landing copy no longer promises migrated and seeded data.
+
 ## 0.1.0-alpha.8 — 2026-11-26
 
 - Documentation site with Astro + Starlight: English primary, Spanish mirror,

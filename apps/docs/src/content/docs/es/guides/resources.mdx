@@ -1,11 +1,11 @@
 ---
 title: Recursos
-description: Describe tabla, formulario, filtros y acciones en un único archivo de datos.
+description: Describe una tabla, un formulario, filtros y acciones en un fichero de datos.
 ---
 
-Un recurso es un archivo serializable. Describe la tabla, el formulario, los
-filtros, la navegación y las acciones de un modelo de Prisma. No hay páginas que
-generar ni archivos que sincronizar.
+Un recurso es un fichero serializable. Describe la tabla, el formulario, los
+filtros, la navegación y las acciones de un modelo Prisma. No hay páginas que
+generar ni ficheros que mantener en sincronía.
 
 ```ts
 // src/dashild/resources/customer.ts
@@ -14,9 +14,9 @@ import { defineResource } from "@dashild/core";
 export const customerResource = defineResource({
   model: "Customer",
   navigation: {
-    label: "Clientes",
+    label: "Customers",
     slug: "customers",
-    group: "Ventas",
+    group: "Sales",
     icon: "users",
   },
   table: {
@@ -27,7 +27,7 @@ export const customerResource = defineResource({
       {
         field: "status",
         format: "badge",
-        tone: { ACTIVE: "green", LEAD: "amber" },
+        tone: { ACTIVE: "green", LEAD: "danger" },
       },
     ],
     filters: [{ field: "status", type: "enum" }],
@@ -43,47 +43,60 @@ export const customerResource = defineResource({
 });
 ```
 
-`dashild make:resource Customer` genera este archivo a partir de los metadatos
-de Prisma y lo registra en `panel.ts` y `policies.ts`. El archivo es write-once:
-el comando nunca sobrescribe tus cambios.
+`dashild make:resource Customer` genera este fichero a partir de los metadatos
+de Prisma y lo registra en `panel.ts` y `policies.ts`. El fichero es write-once:
+el comando nunca sobrescribe tus ediciones.
 
 ## Navegación
 
-`label` es la etiqueta del sidebar, `slug` el segmento de URL bajo la ruta del
-panel y `group` agrupa recursos en el sidebar. `icon` lo resuelve el shell
-(`users`, `building`, `file-text`, `settings`, `database`, `folder`, `chart`,
-`package`, `shopping-cart`, `tag`, `calendar`, `mail`, `briefcase`,
-`credit-card`, `truck`, `layers`), y la app puede añadir los suyos en
-`src/dashild/icons.tsx`.
+`label` es la etiqueta de la barra lateral, `slug` es el segmento de URL bajo la
+ruta del panel y `group` agrupa recursos en la barra. `icon` lo resuelve el shell
+(`users`, `user`, `building`, `organization`, `file-text`, `settings`,
+`database`, `folder`, `chart`, `layout-dashboard`, `package`, `shopping-cart`,
+`tag`, `calendar`, `mail`, `briefcase`, `credit-card`, `truck`, `layers`), y la
+app puede añadir los suyos en `src/dashild/icons.tsx`.
 
 ## Tabla
 
-- `columns`: campo, label opcional, `sortable`, `format`, `cell`, `display` y
+- `columns`: field, label opcional, `sortable`, `format`, `cell`, `display` y
   `tone`.
 - `searchable`: campos que usa el buscador. La paginación, el orden y los
-  filtros se ejecutan en servidor.
+  filtros se ejecutan en el servidor.
 - `filters`: `boolean`, `enum`, `relation`, `text`, `number` o `date`.
 - `pageSize`: tamaño de página opcional.
 - `actions`: acciones de cabecera o de fila (ver abajo).
 
-`format` cubre fechas, números, currency, booleanos, JSON y `badge`; `tone`
-asigna color a los valores del badge. Para dinero `Decimal`, usa
-`format: "currency", currency: "EUR"`. Las listas escalares se muestran y editan
-como un array JSON. `cell` apunta a un componente registrado con
-`registerCell` (ver [Personalización](/es/guides/customization/)).
+`tone` acepta `accent`, `green`, `muted` o `danger`; cualquier otro valor
+renderiza el badge outline por defecto.
 
-Para relaciones, usa el nombre de la relación en `field` y el campo visible en
+`format` acepta `badge`, `number`, `currency`, `date`, `datetime`, `json` o
+`text`. Los booleanos y enums usan `badge` por defecto. `number` y `currency`
+formatean con el locale del panel; para dinero `Decimal` usa
+`format: "currency", currency: "EUR"`. Las listas escalares (`String[]`,
+`Int[]`...) se muestran y editan como un array JSON. `cell` apunta a un
+componente registrado con `registerCell` (ver
+[Personalización](/es/guides/customization/)).
+
+Para relaciones, pon el nombre de la relación en `field` y el campo legible en
 `display`:
 
 ```ts
 { field: "organization", display: "name" }
 ```
 
+### Filtros
+
+Todavía no hay controles de filtro en el shell. La página de listado los lee de
+la query string y los aplica en el servidor, así que puedes enlazar a una tabla
+filtrada (`?status=ACTIVE`) o construir tus propios controles. Los filtros
+`relation` solo soportan relaciones many-to-one; `enum` y `text` comparan
+valores exactos.
+
 ## Formulario
 
 Los campos usan el tipo de Prisma por defecto. `rules` añade `required`, `min`,
-`max` o un `pattern` como string; `component` apunta a un campo registrado con
-`registerField`; `default` fija el valor inicial.
+`max` o un `pattern`; `component` apunta a un campo registrado con
+`registerField`; `default` fija un valor inicial.
 
 ```ts
 form: {
@@ -96,28 +109,33 @@ form: {
 }
 ```
 
-Los campos `Bytes` muestran un selector de archivo y viajan como base64.
-`createdAt`, `updatedAt` y `deletedAt` aparecen en la tabla pero
-`make:resource` los omite del formulario.
+Los campos `Bytes` muestran un selector de fichero y se envían en base64.
+`createdAt` y `deletedAt` aparecen en la tabla; `updatedAt`, `id` y las claves
+foráneas de relación se omiten de la tabla y del formulario. `make:resource`
+tampoco incluye los campos de auditoría (`createdAt`, `updatedAt`, `deletedAt`)
+en el formulario.
 
 ## Relaciones
 
-- **o2m** (uno a muchos): el detalle del padre muestra un `RelationManager` para
-  los hijos. Crear, editar y eliminar funcionan de serie; si la FK es opcional,
-  también se puede desasociar.
-- **m2m** (muchos a muchos): el detalle permite attach y detach, y el formulario
-  puede usar `type: "relation"` con `multiple: true`.
+- **o2m** (uno a muchos): la página de detalle del padre muestra un
+  `RelationManager` con los hijos. Crear y editar están disponibles; borrar solo
+  cuando el recurso hijo lo permite, y desasociar solo si la clave foránea es
+  opcional.
+- **m2m** (muchos a muchos): el detalle permite asociar y desasociar cuando el
+  recurso hijo lo permite, y el formulario puede usar `type: "relation"` con
+  `multiple: true`.
 
-El modelo hijo necesita su propio recurso en `panel.resources`. Si la FK es
-obligatoria, el gestor no ofrece desasociar.
+El modelo hijo necesita su propio recurso en `panel.resources`, y el manager
+necesita `relationAction` cableada en la ruta (el scaffold lo hace). Sin filas o
+sin esa acción, el manager no se renderiza.
 
 ## Acciones
 
-Las acciones se declaran en el recurso y se ejecutan en servidor:
+Las acciones se declaran en el recurso y se resuelven en el servidor:
 
 ```ts
 table: {
-  actions: [{ name: "export", label: "Exportar", placement: "header" }],
+  actions: [{ name: "export", label: "Export", placement: "header" }],
 }
 ```
 
@@ -131,15 +149,22 @@ export const resourceActions: Record<
 > = {
   Customer: {
     export: async ({ db, organizationId }) => {
-      // `db` es Prisma extendido con el ámbito de la política activa.
-      return { ok: true, message: "Exportación iniciada" };
+      // `db` es el cliente Prisma scopeado, tipado como `unknown` en core.
+      const client = db as typeof prisma;
+      return { ok: true, message: "Export started" };
     },
   },
 };
 ```
 
-Una acción puede declarar `requires` (se comprueba en policies), `confirm`,
+Declarar `table.actions` **sustituye** las acciones integradas de crear, ver,
+editar y borrar; inclúyelas tú si las sigues queriendo. Las acciones de
+formulario funcionan igual.
+
+Una acción puede declarar `requires` (validado contra las políticas), `confirm`,
 `variant`, `placement` (`header` o `row`) y `href` para acciones de enlace.
+`variant` estiliza el botón y la confirmación, no el ítem del desplegable de
+fila.
 
 ## Doctor
 
@@ -148,6 +173,10 @@ pnpm dashild doctor
 ```
 
 Parsea los recursos con Babel (sin importar Next) y comprueba modelos, columnas,
-filtros, campos, relaciones, `policy`, la entrada en `policies.ts`, handlers de
-acciones, predicados `requires` y slugs duplicados. Indica archivo y línea y
-sale con código 1 si hay errores.
+filtros, campos de formulario, relaciones, `policy`, la entrada de
+`policies.ts`, handlers de acciones, predicados `requires` y slugs duplicados.
+Siempre indica el fichero; la línea se incluye cuando el problema viene de un
+nodo del recurso. Algunos hallazgos son avisos y no afectan al código de salida.
+Sale con código 1 ante errores, y también cuando no encuentra ningún recurso. No
+valida detalles de presentación como `navigation.label`, `format`, `tone` o
+`placement`.

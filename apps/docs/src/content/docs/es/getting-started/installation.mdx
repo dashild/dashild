@@ -1,19 +1,24 @@
 ---
 title: Instalación
-description: Crea una app nueva con Dashild o añade el panel a un proyecto Next.js existente.
+description: Crea una app Dashild nueva o añade el panel a un proyecto Next.js existente.
 ---
 
 Dashild es una capa de administración para Next.js + Prisma. Un recurso es un
-archivo de datos; no hay páginas que generar ni archivos que sincronizar.
+fichero de datos; no hay páginas que generar ni ficheros que mantener en
+sincronía.
 
 ## Requisitos
 
 - Node.js 22 o superior.
 - Next.js 15 o 16 con App Router.
-- Prisma 7.10 o superior y un cliente generado con el provider `prisma-client`.
-- PostgreSQL, MySQL/MariaDB o SQLite (PostgreSQL y SQLite están probados
-  end-to-end; MySQL/MariaDB está soportado por el adapter).
+- Prisma 7.10 o superior y un cliente generado con el proveedor `prisma-client`.
+- PostgreSQL, MySQL o SQLite. PostgreSQL, SQLite y MySQL 8.4 se prueban de
+  extremo a extremo en CI; MariaDB usa el mismo adaptador que MySQL pero no
+  está en la matriz.
 - Tailwind CSS v4 y shadcn/ui para el shell.
+
+Son rangos documentados, no comprobaciones en ejecución: el CLI no verifica la
+versión de Next.js ni de Prisma de tu proyecto.
 
 ## Crear una app nueva
 
@@ -21,8 +26,9 @@ archivo de datos; no hay páginas que generar ni archivos que sincronizar.
 pnpm create dashild@latest mi-app
 ```
 
-El scaffolder reutiliza `create-next-app` y pregunta starter, auth, base de
-datos y si instalar, migrar y sembrar. También acepta flags:
+El scaffolder ejecuta `create-next-app` sin preguntas (`--yes --empty`) y luego
+hace sus propias preguntas: starter, auth, base de datos y si instalar, migrar y
+sembrar. También acepta flags:
 
 ```bash
 npx create-dashild@latest mi-app \
@@ -41,17 +47,24 @@ npx create-dashild@latest mi-app \
 | `--database-url` | Cadena de conexión |
 | `--direct-url` | URL sin pooler para migraciones |
 | `--pm` | `pnpm`, `npm`, `yarn`, `bun` |
-| `--path` | Ruta del panel (por defecto `/admin`) |
-| `--no-install` | No instala dependencias |
-| `--no-git` | No ejecuta `git init` |
-| `--no-migrate` | No aplica el esquema |
-| `--no-seed` | No carga los datos del starter |
-| `--dry-run` | Imprime el plan sin escribir |
-| `--list-templates` | Lista los starters incluidos |
+| `--name` | Nombre del proyecto cuando omites el argumento posicional |
+| `--dir` | Directorio destino (por defecto, el nombre del proyecto) |
+| `--path` | Ruta del panel (por defecto, `/admin`) |
+| `--locale` | `en` o `es`, para preguntas y etiquetas generadas |
+| `--no-install` | No instalar dependencias |
+| `--no-git` | No ejecutar `git init` |
+| `--no-migrate` | No aplicar el esquema |
+| `--no-seed` | No cargar los datos del starter |
+| `-y`, `--yes` | Aceptar los valores por defecto sin preguntar |
+| `--dry-run` | Imprimir el plan sin escribir |
+| `--list-templates` | Listar los starters incluidos |
 
-Si la base de datos no está disponible, la app se crea igual y los comandos de
-migración y seed quedan como pasos pendientes. El formato de starter está en
-[Plantillas](/es/reference/templates/).
+`--dry-run` sigue resolviendo un starter `github:`, lo que implica descargarlo y
+cachearlo en `~/.cache/dashild/templates`.
+
+Si la base de datos no responde, la app se crea igualmente y los comandos de
+migración y seed se imprimen como pasos pendientes. El formato de starter está
+en [Plantillas](/es/reference/templates/).
 
 ## Instalación manual
 
@@ -74,8 +87,8 @@ generator dashild {
 }
 ```
 
-`dashild` escribe `dashild-metadata.json`, el contrato que usan la CLI, el
-runtime y el panel.
+El generador `dashild` escribe `dashild-metadata.json`, el contrato que usan el
+CLI, el runtime y el panel. El CLI y el panel solo lo leen.
 
 Prisma 7 lee la conexión de `prisma.config.ts`:
 
@@ -87,13 +100,13 @@ import { defineConfig, env } from "prisma/config";
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    // DIRECT_URL gana cuando existe: úsala para migraciones tras un pooler.
+    // DIRECT_URL gana cuando existe: úsala para migrar detrás de un pooler.
     url: process.env.DIRECT_URL || env("DATABASE_URL"),
   },
 });
 ```
 
-La app también necesita un cliente Prisma con driver adapter:
+La app también necesita un cliente Prisma con adaptador:
 
 ```ts
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -109,8 +122,8 @@ MySQL/MariaDB, `@prisma/adapter-mariadb`. El scaffolder elige el correcto.
 
 ### Base de datos
 
-Dashild no levanta una base de datos. Apunta `DATABASE_URL` a una instancia que
-ya exista:
+Dashild no arranca una base de datos. Apunta `DATABASE_URL` a una instancia en
+marcha:
 
 ```bash
 # SQLite
@@ -123,21 +136,29 @@ DATABASE_URL="postgresql://user:password@host:5432/database"
 DATABASE_URL="mysql://user:password@host:3306/database"
 ```
 
-En SQLite, el CLI de Prisma y el adapter resuelven la ruta desde la raíz del
-proyecto. El scaffolder instala `better-sqlite3` con el Node que ejecuta la app
+En SQLite, el `prisma.config.ts` generado y el adaptador resuelven la ruta desde
+la raíz del proyecto, y el scaffolder comprueba que el fichero existe después de
+migrar. El scaffolder instala `better-sqlite3` con el Node que ejecuta la app
 (fijando `PATH` y `npm_config_target`) porque pnpm no incluye `node-gyp`.
 
 ## Montar el panel
 
+`dashild init` lee `dashild-metadata.json`, así que genera antes el cliente de
+Prisma y los metadatos:
+
 ```bash
+pnpm prisma generate
 pnpm dashild init --auth better-auth
 ```
 
-El comando muestra el plan y no escribe nada hasta que añadas `--yes`:
+El comando imprime el plan y no escribe nada hasta que añades `--yes`:
 
 ```bash
 pnpm dashild init --auth better-auth --yes
 ```
+
+Si los metadatos no están en una ruta estándar, pásalos con `--metadata
+prisma/generated/dashild/dashild-metadata.json`.
 
 Escribe:
 
@@ -152,19 +173,23 @@ src/dashild/registry.tsx
 src/app/<ruta>/[[...dashild]]/page.tsx
 ```
 
-Con `--auth better-auth` añade además login, signup, sesión, reset de
-contraseña y la ruta de API. Lo detallamos en
-[Autenticación](/es/guides/authentication/).
+Con `--auth better-auth` escribe además los ficheros de login, signup, sesión,
+reset de contraseña y la ruta de API, y añade los modelos de Better Auth al
+esquema. Ver [Autenticación](/es/guides/authentication/).
 
-Después regenera Prisma y aplica el esquema:
+Después regenera si `init` cambió el esquema y aplícalo:
 
 ```bash
 pnpm prisma generate
 pnpm prisma db push
 ```
 
+`init` añade las claves que falten en `.env.example`; nunca escribe `.env`.
+
 Si ya existe `app/admin/page.tsx`, `init` propone `/panel`, `/admin-panel` o
-`/dashild`. Usa `--path /otra-ruta` para forzar una.
+`/dashild`. Usa `--path /otra-ruta` para forzar una. `--force` sobrescribe los
+ficheros generados (también los de auth), pero no evita el conflicto de ruta
+cuando pasas un `--path` explícito; elige otra ruta.
 
 ## Tailwind
 
@@ -178,8 +203,8 @@ tu CSS global (ajusta la ruta relativa):
 También necesitas las variables de tema de shadcn (`--background`,
 `--foreground`, `--primary`, `--sidebar`, etc.). El scaffolder escribe un
 `globals.css` completo; para una instalación manual, parte de
-`apps/playground/app/globals.css` del repositorio. Define una pila de
-fuentes real en `--font-sans`; una variable autoreferenciada deja la app en
+`apps/playground/app/globals.css` del repositorio. Define una pila de fuentes
+real en `--font-sans`; una variable que se referencia a sí misma deja la app en
 Times New Roman.
 
 ## Primer recurso
@@ -189,29 +214,29 @@ pnpm dashild make:resource Customer
 pnpm dashild doctor
 ```
 
-`make:resource` escribe un archivo y no lo vuelve a tocar. Además registra el
-recurso en `panel.ts` y añade una entrada fail-closed en `policies.ts`.
+`make:resource` escribe un fichero y nunca lo vuelve a tocar. También registra
+el recurso en `panel.ts` y añade una entrada fail-closed en `policies.ts`.
 
-La entrada empieza con `scope: () => null`, así que el recurso devuelve 404
-hasta que definas su ámbito y permisos. Lo explicamos en
+La entrada empieza como `scope: () => null`, así que el recurso devuelve 404
+hasta que definas su scope y permisos. Ver
 [Políticas y seguridad](/es/guides/policies/) y
 [Recursos](/es/guides/resources/).
 
-## Arrancar
+## Ejecutar
 
 ```bash
 pnpm dev
 ```
 
-El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
-En desarrollo usa `localhost`, no `127.0.0.1`: Next 16 bloquea assets e
-hidratación desde orígenes no listados. El scaffold añade
+El panel está en `http://localhost:3000/admin` (o la ruta que elegiste). En
+desarrollo usa `localhost`, no `127.0.0.1`: Next 16 bloquea assets e hidratación
+desde orígenes no listados. El scaffold añade
 `allowedDevOrigins: ["127.0.0.1", "localhost"]`; añade cualquier otro dominio
 que uses.
 
 ## Siguientes pasos
 
 - [Recursos](/es/guides/resources/): tablas, formularios, filtros y acciones.
-- [Políticas y seguridad](/es/guides/policies/): ámbito y roles.
+- [Políticas y seguridad](/es/guides/policies/): scope y roles.
 - [Autenticación](/es/guides/authentication/): Better Auth, email y resets.
 - [CLI](/es/reference/cli/): todos los comandos.

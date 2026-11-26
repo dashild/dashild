@@ -144,6 +144,13 @@ export function uiAdd(options: UiAddOptions): UiAddResult {
 export function formatUiRegistration(name: string): string {
   const template = UI_TEMPLATES[name];
   if (!template) return "";
+
   const register = template.kind === "cell" ? "registerCell" : "registerField";
-  return `Register it in src/dashild/registry.tsx with ${register}("${template.name}", <Component>).`;
+  const suffix = template.kind === "cell" ? "Cell" : "Field";
+  const component = `${template.name
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("")}${suffix}`;
+
+  return `Register it in src/dashild/registry.tsx with ${register}("${template.name}", ${component}).`;
 }

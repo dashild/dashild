@@ -1,11 +1,11 @@
 ---
 title: Solución de problemas
-description: Los fallos más habituales durante la instalación.
+description: Los problemas que aparecen más a menudo durante la configuración.
 ---
 
 ## El panel no hidrata en 127.0.0.1
 
-Next 16 solo permite `localhost` para assets y HMR en desarrollo por defecto.
+Next 16 solo permite `localhost` para assets y HMR de desarrollo por defecto.
 Abre `http://localhost:3000`, no `http://127.0.0.1:3000`, o añade el origen a
 `next.config.ts`:
 
@@ -17,7 +17,23 @@ const nextConfig: NextConfig = {
 
 La configuración generada ya incluye ambos.
 
-## `better-sqlite3` tiene la ABI equivocada
+## `dashild init` no encuentra los metadatos
+
+`init` lee `dashild-metadata.json`, que escribe el generador `dashild` de
+Prisma. Ejecuta `pnpm prisma generate` antes de `init`. Si el fichero está fuera
+de las rutas estándar, pásalo explícitamente:
+
+```bash
+pnpm dashild init --auth better-auth --metadata prisma/generated/dashild/dashild-metadata.json
+```
+
+## El conmutador de tema no aparece
+
+Necesita `theme.toggle: true` y una prop `themeAction`. La ruta que genera
+`dashild init` la pasa; una ruta escrita a mano debe hacer lo mismo. Ver
+[Personalización](/es/guides/customization/#conmutador-de-tema).
+
+## `better-sqlite3` tiene el ABI equivocado
 
 Los bindings nativos se compilan para el Node que ejecuta el script de
 instalación. Con pnpm no hay `node-gyp` incluido, así que el prebuild debe
@@ -30,10 +46,10 @@ PATH="$(dirname "$(node -p process.execPath)"):$PATH" \
   pnpm install
 ```
 
-El scaffolder ya lo hace. Si usas un version manager, asegúrate de que no
+El scaffolder lo hace por ti. Si usas un gestor de versiones, asegúrate de que no
 resuelve otro Node dentro de `node_modules`.
 
-## El login falla por origen
+## El login falla con un error de origen
 
 `BETTER_AUTH_URL` debe coincidir exactamente con el origen del navegador,
 incluido el puerto:
@@ -42,19 +58,20 @@ incluido el puerto:
 BETTER_AUTH_URL="http://localhost:3000"
 ```
 
-Si abres la app desde otro host o puerto, cambia la variable y reinicia el dev
-server.
+Si abres la app desde otro host o puerto, actualiza la variable y reinicia el
+servidor de desarrollo.
 
 ## Prisma no conecta
 
-Si usas lerd, comprueba que el servicio PostgreSQL está arrancado; el idle puede
-suspenderlo. `lerd service start postgres` lo levanta. Para una base remota,
-revisa `DATABASE_URL` y `DIRECT_URL` y si el proveedor exige SSL.
+Si usas lerd, comprueba que el servicio de base de datos está en marcha; la
+suspensión por inactividad puede pararlo. `lerd service start postgres` o
+`lerd service start mysql` lo levantan. Para una base alojada, revisa
+`DATABASE_URL` y `DIRECT_URL` y si el proveedor exige SSL.
 
-## Las fuentes parecen Times New Roman
+## Las fuentes se ven como Times New Roman
 
-`--font-sans` es autoreferenciada o está sin definir. Define una pila real en
-`globals.css`:
+`--font-sans` se referencia a sí misma o no está definida. Define una pila real
+en `globals.css`:
 
 ```css
 @theme inline {
@@ -75,13 +92,18 @@ Ajusta la ruta relativa si tu CSS está en otra carpeta.
 
 ## No se envían los emails de reset
 
-`src/lib/email.ts` imprime el correo en desarrollo y falla en producción hasta
-que configures un proveedor. Define `RESEND_API_KEY` y `EMAIL_FROM`, o sustituye
-`sendEmail` por tu transporte.
+`src/lib/email.ts` registra el email en desarrollo y lanza un error en producción
+hasta que configures un proveedor. Define `RESEND_API_KEY` y `EMAIL_FROM`
+(descomentándolas en `.env`), o sustituye `sendEmail` por tu propio transporte.
 
 ## Un recurso devuelve 404
 
 La entrada de política es fail-closed. Comprueba que el recurso declara
-`policy: { scope: ... }`, que `policies.ts` tiene una entrada para el modelo y
-que `scope` devuelve un fragmento `where` en vez de `null`. Ejecuta
-`pnpm dashild doctor` para ver archivo y línea.
+`policy: { scope: ... }`, que `policies.ts` tiene una entrada para el modelo bajo
+`resources` y que `scope` devuelve un fragmento `where` en vez de `null`.
+Ejecuta `pnpm dashild doctor` para ver el fichero y la línea exactos.
+
+## Un proyecto no tiene recursos en `doctor`
+
+`doctor` sale con código 1 cuando no encuentra recursos. Crea uno con
+`pnpm dashild make:resource <Modelo>` o apunta `--dir` a la carpeta correcta.

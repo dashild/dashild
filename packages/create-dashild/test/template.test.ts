@@ -267,3 +267,50 @@ model Post {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("a starter's env keys are appended to .env.example", async () => {
+  const root = project();
+  const starter = project();
+
+  try {
+    fixture(root);
+    write(root, ".env.example", "DATABASE_URL=\n");
+    write(
+      starter,
+      "template.json",
+      JSON.stringify({
+        name: "crm",
+        version: "1.0.0",
+        dashild: "*",
+        env: ["STRIPE_SECRET", "DATABASE_URL"],
+      }),
+    );
+    write(
+      starter,
+      "prisma/models.prisma",
+      "model Lead {\n  id String @id\n}\n",
+    );
+
+    const template = await loadTemplate(`local:${starter}`, "en");
+    const result = applyTemplate({
+      projectDir: root,
+      template,
+      auth: "better-auth",
+      database: "postgresql",
+      schemaPath: join(root, "prisma/schema.prisma"),
+      panelFile: join(root, "src/dashild/panel.ts"),
+      policiesFile: join(root, "src/dashild/policies.ts"),
+      libDir: join(root, "src/lib"),
+      packageJsonPath: join(root, "package.json"),
+      locale: "en",
+    });
+
+    const env = readFileSync(join(root, ".env.example"), "utf8");
+    assert.match(env, /^STRIPE_SECRET=$/m);
+    assert.equal(env.match(/^DATABASE_URL=/gm)?.length, 1);
+    assert.ok(result.warnings.some((warning) => warning.includes("STRIPE_SECRET")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+    rmSync(starter, { recursive: true, force: true });
+  }
+});

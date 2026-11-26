@@ -1,43 +1,73 @@
 ---
 title: Políticas y seguridad
-description: Ámbito, permisos y roles se ejecutan en servidor.
+description: El scope, los permisos y los roles se resuelven en el servidor.
 ---
 
-La seguridad no se declara en el recurso. El recurso solo dice que está sujeto a
-un ámbito (`policy: { scope: "organization" }`); el servidor resuelve el `where`,
+La seguridad no se declara en el recurso. El recurso solo dice que está
+scopeado (`policy: { scope: "organization" }`); el servidor resuelve el `where`,
 los permisos y los roles.
 
-## Fallo cerrado
+## Fail closed
 
-Si un recurso no tiene `policy`, o `policies.ts` no tiene entrada para su modelo,
-el runtime lo deniega. Si `scope` devuelve `null`, se deniega el recurso entero.
+El runtime deniega un recurso cuando:
+
+- el recurso no tiene `policy`, o
+- `policies.ts` no tiene entrada para su modelo, o
+- `scope` devuelve `null`.
+
+Hay dos reglas más que importan en la práctica:
+
+- Una entrada sin `scope` se trata como filtro vacío, así que lo permite todo.
+  Declara siempre `scope`.
+- `scope` debe devolver un objeto `where` o `null`. Devolver `undefined` (por
+  ejemplo, un `return` olvidado) no es una denegación y es fácil de pasar por
+  alto.
 
 ```ts
 import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
 
 export const policies = definePolicies<CurrentUser>({
-  Customer: {
-    scope: (ctx) => ({ organizationId: ctx.organizationId }),
-    can: {
-      create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
-      update: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
-      delete: (ctx) => hasRole(ctx, "ADMIN"),
+  resources: {
+    Customer: {
+      scope: (ctx) => ({ organizationId: ctx.organizationId }),
+      can: {
+        create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+        update: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+        delete: (ctx) => hasRole(ctx, "ADMIN"),
+      },
     },
   },
 });
 ```
 
-`scope` es un fragmento `where` de Prisma que se aplica a cada lectura y
-escritura, incluidas relaciones y consultas directas con el cliente extendido.
+`definePolicies` exige el contenedor `resources`: el mapa de modelos solo no es
+una definición válida, y `doctor` busca esa propiedad cuando revisa
+`policies.ts`.
+
+## Qué cubre el scope
+
+`scope` se aplica a operaciones Prisma de primer nivel: lecturas (`findMany`,
+`findFirst`, `findUnique`, `count`, `aggregate`, `groupBy`), escrituras
+(`update`, `updateMany`, `upsert`) y borrados. También se aplica a los relation
+managers del panel.
+
+**No** cubre:
+
+- `create` / `createMany`: un insert no se puede limitar con un filtro de
+  lectura, por eso crear una fila scopeada exige `can.create` explícito.
+- Filas cargadas con un `include`: Prisma las resuelve en la misma consulta, así
+  que no se filtran por la política del modelo relacionado. Consulta el modelo
+  relacionado directamente (o con `runtime.client(user)`) cuando importe.
 
 ## Organización y roles
 
-`PolicyContext` lleva `user`, `organizationId` y `roles`. Se resuelven así:
+`PolicyContext` lleva `user`, `organizationId` y `roles`. Los valores salen de
+`organizationOf` / `rolesOf` cuando esas funciones están definidas en
+`policies.ts`; si no, salen de `user.organizationId` / `user.roles`. Es una cosa
+u otra, no una cadena de fallback: si `organizationOf` devuelve `null`, el
+contexto tiene `null`, aunque `user.organizationId` esté definido.
 
-1. `organizationOf` / `rolesOf` de `policies.ts`, si están definidos.
-2. `user.organizationId` / `user.roles`, si el adaptador ya los aporta.
-
-Para la mayoría de apps basta con devolverlos desde `getCurrentUser`:
+Devolverlos desde `getCurrentUser` basta para la mayoría de apps:
 
 ```ts
 async function getCurrentUser() {
@@ -53,9 +83,17 @@ async function getCurrentUser() {
 }
 ```
 
-Usa `hasRole(ctx, "ADMIN", "SALES")` para predicados legibles. Un recurso con
-ámbito no puede crear salvo que `can.create` sea explícito, porque el runtime no
-puede inferir a qué organización pertenece la fila nueva.
+Usa `hasRole(ctx, "ADMIN", "SALES")` para predicados legibles. Un recurso
+scopeado no puede crear salvo que `can.create` sea explícito, porque el runtime
+no puede inferir a qué organización pertenece la fila nueva.
+
+## Valores por defecto
+
+- `list`, `view`, `update` y `delete` se permiten cuando no hay predicado para
+  ellos.
+- `create` se deniega cuando el scope no está vacío y no hay `can.create`.
+- Una acción declarada con `requires` se deniega salvo que la política tenga un
+  predicado con ese nombre.
 
 ## Acciones
 
@@ -77,18 +115,27 @@ Customer: {
 La UI oculta las acciones cuyo `requires` es falso, y el servidor también las
 deniega.
 
-## Cliente Prisma con ámbito
+## Cliente Prisma scopeado
 
-`withDashildScope` devuelve una extensión de Prisma con el ámbito activo
-aplicado; el runtime la monta con `prisma.$extends`. Para código de servidor
-propio, prefiere `runtime.client(user)`:
+`withDashildScope` devuelve una extensión de Prisma con el scope activo; el
+runtime la monta con `prisma.$extends`. Vive en el entry point de servidor:
 
 ```ts
-const client = runtime.client(user);
+import { withDashildScope } from "@dashild/core/server";
+```
+
+Para código de servidor propio, prefiere `runtime.client(user)`:
+
+```ts
+const client = runtime.client(user) as typeof prisma;
 const customers = await client.customer.findMany();
 ```
 
-Para extenderlo directamente:
+`runtime.client` está tipado como `unknown` para que `@dashild/core` no dependa
+de tu cliente Prisma generado; haz el cast una vez, como arriba. Si tu cliente
+no soporta `$extends`, el runtime devuelve el cliente Prisma sin extender.
+
+Para una extensión directa:
 
 ```ts
 const client = prisma.$extends(
@@ -96,11 +143,12 @@ const client = prisma.$extends(
 );
 ```
 
-El archivo del recurso nunca contiene el `where`; esa es la idea.
+El fichero del recurso nunca contiene el `where`; de eso se trata.
 
 ## Reglas
 
-- `policies.ts` es de servidor y nunca se importa desde un componente cliente.
+- `policies.ts` es server-only por convención: nada lo impide en el build, así
+  que nunca lo importes desde un componente de cliente.
 - El cliente no puede influir en la política: las server actions la resuelven
-  por su cuenta.
-- Los roles son strings; la app decide sus nombres y cómo se asignan.
+  ellas mismas.
+- Los roles son cadenas; la app decide sus nombres y cómo se asignan.

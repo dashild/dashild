@@ -1,16 +1,21 @@
 ---
 title: CLI reference
-description: init, make:resource, doctor, ui:add, and eject.
+description: init, make:resource, make:action, doctor, ui:add, and eject.
 ---
 
-The `dashild` binary lives in `@dashild/cli`. Run it through your package
-manager:
+The `dashild` binary lives in `@dashild/cli`, which you install in the project:
 
 ```bash
+pnpm add -D @dashild/cli@alpha
 pnpm dashild <command>
 ```
 
-Global option: `--lang en|es` (or `DASHILD_LANG`) for CLI messages.
+`pnpm create dashild` is a different package (`create-dashild`) and only
+scaffolds new apps.
+
+Global option: `--lang en|es` (or `DASHILD_LANG`). It translates the main
+messages; some command output (`make:action`, `ui:add`, `eject`, `doctor`) is
+still English, and any value other than `es` falls back to `en`.
 
 ## `init`
 
@@ -18,25 +23,33 @@ Global option: `--lang en|es` (or `DASHILD_LANG`) for CLI messages.
 pnpm dashild init --auth better-auth --yes
 ```
 
-Adds the panel to an existing Next.js app. It prints the plan first; `--yes`
-writes, `--dry-run` never writes. Without `--force` it refuses to overwrite
-existing files.
+Adds the panel to an existing Next.js app. It reads
+`dashild-metadata.json`, so run `prisma generate` first (or pass `--metadata`).
+It prints the plan first; `--yes` writes, `--dry-run` never writes. Without
+`--force` it refuses to overwrite existing files.
 
 | Option | Purpose |
 | --- | --- |
 | `--auth <none\|better-auth>` | Auth integration. Defaults to `none`. |
 | `--path <route>` | Mount route. Avoids an existing `app/admin/page.tsx`. |
+| `--metadata <path>` | Explicit `dashild-metadata.json`. |
+| `--cwd <dir>` | Project root. Defaults to the current directory. |
 | `--yes` | Apply the plan. |
 | `--dry-run` | Show the plan only. |
-| `--force` | Overwrite existing files. |
-| `--metadata <path>` | Explicit `dashild-metadata.json`. |
+| `--force` | Overwrite the generated files. |
 
 It writes `panel.ts`, `policies.ts`, `actions/index.ts`, `icons.tsx`,
 `runtime.ts`, `server.ts`, `registry.tsx`, and the mount route. With
-`--auth better-auth` it also writes the auth files, models, and env keys.
+`--auth better-auth` it also writes the auth files, models, and env keys, and
+appends missing keys to `.env.example`.
 
 It does not touch `middleware.ts`/`proxy.ts`, the root layout, `next.config`,
 or your `.env`.
+
+`--force` overwrites the generated files (including the auth ones) but it does
+not bypass a route conflict when you pass an explicit `--path`; choose another
+route instead. Running `init` a second time fails on the files it already wrote,
+and `--force` rewrites them.
 
 ## `make:resource`
 
@@ -47,9 +60,10 @@ pnpm dashild make:resource Customer
 Reads the Prisma metadata and writes `src/dashild/resources/customer.ts`. The
 file is write-once: it never overwrites an existing resource.
 
-- Skips `id`, `@updatedAt`, foreign keys written by a relation, and scalar
-  lists.
-- Includes `Bytes` fields and m2m relations as a multiselect.
+- Skips `id`, `@updatedAt`, and foreign keys written by a relation (Prisma marks
+  them read-only).
+- Includes `Bytes` fields, scalar lists as a JSON array, and m2m relations as a
+  multiselect. o2m relations are managed from the child's detail page.
 - Adds the resource to `panel.resources` and a fail-closed entry to
   `policies.ts`.
 - `--no-register` leaves `panel.ts` and `policies.ts` untouched.
@@ -63,7 +77,10 @@ pnpm dashild make:action Customer export
 
 Appends a typed handler stub to `src/dashild/actions/index.ts`. It does not
 edit the resource: declare the action in `table.actions` or `form.actions`.
-Running it twice does not duplicate the handler.
+Running it twice does not duplicate the handler, and `dashild doctor`
+recognizes the generated assignment.
+
+Options: `--cwd`, `--dir` (actions folder).
 
 ## `doctor`
 
@@ -74,8 +91,13 @@ pnpm dashild doctor --json
 
 Parses resources with Babel and compares them with the metadata: model, slug,
 columns, filters, form fields, relations, `policy`, the `policies.ts` entry,
-action handlers, `requires` predicates, and duplicate slugs. It reports the file
-and line and exits with code 1 on errors. `--json` is for CI.
+action handlers, `requires` predicates, and duplicate slugs. It reports the
+file and the line when the issue has one, and exits with code 1 on errors.
+Findings such as a column without a form field are warnings and do not change
+the exit code. It also exits with 1 when there is no resource at all. `--json`
+is for CI.
+
+Options: `--cwd`, `--dir`, `--metadata`, `--policies`, `--actions`, `--json`.
 
 ## `ui:add`
 
@@ -84,10 +106,12 @@ pnpm dashild ui:add avatar-cell email-field
 ```
 
 Copies cell and field templates to `components/dashild/` (or `--dir`). It does
-not edit `registry.tsx`; it prints the `registerCell`/`registerField` call to add.
-Options: `--force`, `--dry-run`, `--dir`.
+not edit `registry.tsx`; it prints the exact call to add, for example
+`registerCell("avatar", AvatarCell)`. Options: `--force`, `--dry-run`, `--dir`,
+`--cwd`.
 
-Available templates: `avatar-cell`, `email-field`.
+Available templates: `avatar-cell`, `email-field`. An unknown name is reported
+and the command still exits with code 0.
 
 ## `eject`
 
@@ -97,10 +121,12 @@ pnpm dashild eject --yes
 ```
 
 Removes the files written by `init`: the panel files, the mount route, and the
-`dashild` script. It keeps resources, auth, the schema, and dependencies and
-lists them as “Kept”. Without `--yes` it only prints the plan; `--path` helps if
-the route cannot be read from `panel.ts`.
+`dashild` script. It keeps resources, auth files, the Prisma generator, and
+dependencies, and lists the ones it can detect. Without `--yes` it only prints
+the plan. Options: `--cwd`, `--path` (when the route cannot be read from
+`panel.ts`), `--dry-run`.
 
 ## Exit codes
 
-`0` success; `1` a failed check, a refused overwrite, or a validation error.
+`0` success; `1` a failed check, a refused overwrite, a missing metadata file,
+or a validation error. A `doctor` run with no resources also exits with 1.
