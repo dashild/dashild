@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0-alpha.7 — 2026-11-26
+## 0.1.0-alpha.8 — 2026-11-26
 
 - Documentation site with Astro + Starlight: English primary, Spanish mirror,
   Pagefind search, language picker, edit links, sitemap, and a CI build.
