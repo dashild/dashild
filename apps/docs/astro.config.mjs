@@ -3,8 +3,17 @@ import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 
+// SITE_URL wins (custom domain). On Vercel, use the production domain so
+// canonical URLs, hreflang and the sitemap point at the deployed site.
+const site = (
+  process.env.SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "https://docs.dashild.dev")
+).replace(/\/$/, "");
+
 export default defineConfig({
-  site: "https://docs.dashild.dev",
+  site,
   integrations: [
     starlight({
       title: "Dashild",

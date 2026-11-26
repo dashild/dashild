@@ -30,3 +30,20 @@ nativo corte el sitemap:
 ```bash
 DOCS_PAGEFIND=false pnpm docs:build
 ```
+
+## Deploy en Vercel
+
+1. Importa el repositorio en Vercel y pon **Root Directory** en `apps/docs`.
+2. Framework: **Astro**. Build: `pnpm build`; Output: `dist`.
+3. Sin dominio propio, Vercel asigna `<proyecto>.vercel.app`. El sitio toma la
+   URL de producción de `VERCEL_PROJECT_PRODUCTION_URL` para canonical,
+   hreflang y sitemap.
+4. Cuando tengas dominio, define `SITE_URL=https://docs.tudominio.com` en las
+   variables de entorno de Vercel.
+
+También puedes desplegar desde la CLI:
+
+```bash
+vercel --cwd apps/docs
+vercel --cwd apps/docs --prod
+```

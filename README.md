@@ -55,6 +55,10 @@ pnpm docs:dev      # servidor local
 pnpm docs:build    # build estático en apps/docs/dist
 ```
 
+El sitio está preparado para Vercel (Root Directory: `apps/docs`). Sin dominio
+propio usa el subdominio `*.vercel.app`; cuando exista dominio, define
+`SITE_URL` en Vercel para canonical, hreflang y sitemap.
+
 El contenido está en `apps/docs/src/content/docs` (inglés) y
 `apps/docs/src/content/docs/es` (español).
 
