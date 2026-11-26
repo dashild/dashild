@@ -1,0 +1,67 @@
+name: Publish alpha
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: npm dist-tag
+        required: true
+        default: alpha
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.21.0
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ inputs.tag }}
+        run: |
+          pnpm --filter @dashild/core publish --tag "$DIST_TAG" --access public --no-git-checks
+          pnpm --filter @dashild/prisma publish --tag "$DIST_TAG" --access public --no-git-checks
+          pnpm --filter @dashild/admin publish --tag "$DIST_TAG" --access public --no-git-checks
+          pnpm --filter @dashild/cli publish --tag "$DIST_TAG" --access public --no-git-checks
+          pnpm --filter create-dashild publish --tag "$DIST_TAG" --access public --no-git-checks
+
+      - name: Point create-dashild latest at this version
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          VERSION=$(node -p "require('./packages/create-dashild/package.json').version")
+          npm dist-tag add "create-dashild@$VERSION" latest
+
+      - name: Verify tarballs
+        run: pnpm release:verify
