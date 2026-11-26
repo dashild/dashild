@@ -1,0 +1,87 @@
+---
+title: Solución de problemas
+description: Los fallos más habituales durante la instalación.
+---
+
+## El panel no hidrata en 127.0.0.1
+
+Next 16 solo permite `localhost` para assets y HMR en desarrollo por defecto.
+Abre `http://localhost:3000`, no `http://127.0.0.1:3000`, o añade el origen a
+`next.config.ts`:
+
+```ts
+const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
+};
+```
+
+La configuración generada ya incluye ambos.
+
+## `better-sqlite3` tiene la ABI equivocada
+
+Los bindings nativos se compilan para el Node que ejecuta el script de
+instalación. Con pnpm no hay `node-gyp` incluido, así que el prebuild debe
+coincidir. Instala con el Node que ejecuta la app y fija el target:
+
+```bash
+PATH="$(dirname "$(node -p process.execPath)"):$PATH" \
+  npm_config_target="$(node -p process.versions.node)" \
+  npm_config_arch="$(node -p process.arch)" \
+  pnpm install
+```
+
+El scaffolder ya lo hace. Si usas un version manager, asegúrate de que no
+resuelve otro Node dentro de `node_modules`.
+
+## El login falla por origen
+
+`BETTER_AUTH_URL` debe coincidir exactamente con el origen del navegador,
+incluido el puerto:
+
+```bash
+BETTER_AUTH_URL="http://localhost:3000"
+```
+
+Si abres la app desde otro host o puerto, cambia la variable y reinicia el dev
+server.
+
+## Prisma no conecta
+
+Si usas lerd, comprueba que el servicio PostgreSQL está arrancado; el idle puede
+suspenderlo. `lerd service start postgres` lo levanta. Para una base remota,
+revisa `DATABASE_URL` y `DIRECT_URL` y si el proveedor exige SSL.
+
+## Las fuentes parecen Times New Roman
+
+`--font-sans` es autoreferenciada o está sin definir. Define una pila real en
+`globals.css`:
+
+```css
+@theme inline {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+```
+
+## Faltan clases de Tailwind del shell
+
+Tailwind debe escanear el build del paquete. Añade el source a tu CSS global:
+
+```css
+@source "../../node_modules/@dashild/admin/dist";
+```
+
+Ajusta la ruta relativa si tu CSS está en otra carpeta.
+
+## No se envían los emails de reset
+
+`src/lib/email.ts` imprime el correo en desarrollo y falla en producción hasta
+que configures un proveedor. Define `RESEND_API_KEY` y `EMAIL_FROM`, o sustituye
+`sendEmail` por tu transporte.
+
+## Un recurso devuelve 404
+
+La entrada de política es fail-closed. Comprueba que el recurso declara
+`policy: { scope: ... }`, que `policies.ts` tiene una entrada para el modelo y
+que `scope` devuelve un fragmento `where` en vez de `null`. Ejecuta
+`pnpm dashild doctor` para ver archivo y línea.

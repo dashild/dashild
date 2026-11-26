@@ -1,0 +1,215 @@
+---
+title: Installation
+description: Create a new Dashild app or add the panel to an existing Next.js project.
+---
+
+Dashild is an admin layer for Next.js + Prisma. A resource is a data file; there
+are no pages to generate or files to keep in sync.
+
+## Requirements
+
+- Node.js 22 or newer.
+- Next.js 15 or 16 with the App Router.
+- Prisma 7.10 or newer and a client generated with the `prisma-client` provider.
+- PostgreSQL, MySQL/MariaDB, or SQLite (PostgreSQL and SQLite are tested
+  end-to-end; MySQL/MariaDB is supported by the adapter).
+- Tailwind CSS v4 and shadcn/ui for the shell.
+
+## Create a new app
+
+```bash
+pnpm create dashild@latest my-app
+```
+
+The scaffolder reuses `create-next-app` and asks for the starter, auth, database,
+and whether to install, migrate, and seed. It also works with flags:
+
+```bash
+npx create-dashild@latest my-app \
+  --template demo \
+  --database postgresql \
+  --database-url "$DATABASE_URL" \
+  --pm pnpm \
+  --yes
+```
+
+| Flag | Values |
+| --- | --- |
+| `--template` | `basic`, `demo`, `local:<path>`, `github:<owner>/<repo>#<ref>` |
+| `--auth` | `better-auth`, `none` |
+| `--database` | `postgresql`, `mysql`, `sqlite` |
+| `--database-url` | Connection string |
+| `--direct-url` | Non-pooled URL for migrations |
+| `--pm` | `pnpm`, `npm`, `yarn`, `bun` |
+| `--path` | Panel route (defaults to `/admin`) |
+| `--no-install` | Skip dependency installation |
+| `--no-git` | Skip `git init` |
+| `--no-migrate` | Do not apply the schema |
+| `--no-seed` | Do not load starter data |
+| `--dry-run` | Print the plan without writing |
+| `--list-templates` | List bundled starters |
+
+If the database is unreachable, the app is still created and the migration and
+seed commands are printed as pending steps. See
+[Templates](/reference/templates/) for the starter format.
+
+## Manual installation
+
+```bash
+pnpm add @dashild/core@alpha @dashild/admin@alpha @dashild/prisma@alpha
+pnpm add -D @dashild/cli@alpha
+```
+
+Add the two Prisma generators:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+generator dashild {
+  provider = "dashild-prisma-generator"
+  output   = "../src/generated/dashild"
+}
+```
+
+`dashild` writes `dashild-metadata.json`, the contract used by the CLI, the
+runtime, and the panel.
+
+Prisma 7 reads the connection from `prisma.config.ts`:
+
+```ts
+import "dotenv/config";
+
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: {
+    // DIRECT_URL wins when set: use it for migrations behind a pooler.
+    url: process.env.DIRECT_URL || env("DATABASE_URL"),
+  },
+});
+```
+
+The app also needs a Prisma client with a driver adapter:
+
+```ts
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/src/generated/prisma/client";
+
+export const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
+```
+
+For SQLite use `@prisma/adapter-better-sqlite3` and `better-sqlite3`; for
+MySQL/MariaDB, `@prisma/adapter-mariadb`. The scaffolder picks the right one.
+
+### Database
+
+Dashild does not start a database. Point `DATABASE_URL` at a running instance:
+
+```bash
+# SQLite
+DATABASE_URL="file:./prisma/dev.db"
+
+# PostgreSQL
+DATABASE_URL="postgresql://user:password@host:5432/database"
+
+# MySQL
+DATABASE_URL="mysql://user:password@host:3306/database"
+```
+
+For SQLite, the Prisma CLI and the adapter both resolve the path from the
+project root. The scaffolder installs `better-sqlite3` with the Node that runs
+the app (pinning `PATH` and `npm_config_target`) because pnpm does not ship
+`node-gyp`.
+
+## Mount the panel
+
+```bash
+pnpm dashild init --auth better-auth
+```
+
+The command prints the plan and writes nothing until you add `--yes`:
+
+```bash
+pnpm dashild init --auth better-auth --yes
+```
+
+It writes:
+
+```text
+src/dashild/panel.ts
+src/dashild/policies.ts
+src/dashild/actions/index.ts
+src/dashild/icons.tsx
+src/dashild/runtime.ts
+src/dashild/server.ts
+src/dashild/registry.tsx
+src/app/<route>/[[...dashild]]/page.tsx
+```
+
+With `--auth better-auth` it also writes login, signup, session, password
+reset, and API route files. See [Authentication](/guides/authentication/).
+
+Then regenerate Prisma and apply the schema:
+
+```bash
+pnpm prisma generate
+pnpm prisma db push
+```
+
+If `app/admin/page.tsx` already exists, `init` proposes `/panel`,
+`/admin-panel`, or `/dashild`. Use `--path /other-route` to force one.
+
+## Tailwind
+
+The shell lives in `@dashild/admin`; Tailwind must scan its build. Add this to
+your global CSS (adjust the relative path):
+
+```css
+@source "../../node_modules/@dashild/admin/dist";
+```
+
+You also need the shadcn theme variables (`--background`, `--foreground`,
+`--primary`, `--sidebar`, etc.). The scaffolder writes a complete
+`globals.css`; for a manual install, start from
+`apps/playground/app/globals.css` in the repository. Define a real font
+stack in `--font-sans`; a self-referencing variable leaves the app in Times New
+Roman.
+
+## First resource
+
+```bash
+pnpm dashild make:resource Customer
+pnpm dashild doctor
+```
+
+`make:resource` writes one file and never touches it again. It also registers
+the resource in `panel.ts` and adds a fail-closed entry to `policies.ts`.
+
+The policy entry starts as `scope: () => null`, so the resource returns 404
+until you define its scope and permissions. See
+[Policies and security](/guides/policies/) and
+[Resources](/guides/resources/).
+
+## Run
+
+```bash
+pnpm dev
+```
+
+The panel is at `http://localhost:3000/admin` (or the route you chose). In
+development use `localhost`, not `127.0.0.1`: Next 16 blocks assets and
+hydration from unlisted origins. The scaffold adds
+`allowedDevOrigins: ["127.0.0.1", "localhost"]`; add any other domain you use.
+
+## Next steps
+
+- [Resources](/guides/resources/): tables, forms, filters, and actions.
+- [Policies and security](/guides/policies/): scoping and roles.
+- [Authentication](/guides/authentication/): Better Auth, email, and resets.
+- [CLI](/reference/cli/): every command.

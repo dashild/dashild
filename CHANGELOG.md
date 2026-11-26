@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Sitio de documentación con Astro + Starlight: inglés como idioma principal,
+  español como espejo, búsqueda Pagefind, selector de idioma, enlaces de edición
+  y build en CI.
+- Contenido nuevo en ambos idiomas: instalación, recursos, políticas,
+  autenticación, personalización, CLI, plantillas y troubleshooting.
+
+
 ## 0.1.0-alpha.6 — 2026-11-26
 
 - `@dashild/core`: `CurrentUser` acepta `organizationId` y `roles`; las

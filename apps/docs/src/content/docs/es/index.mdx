@@ -1,0 +1,42 @@
+---
+title: Dashild
+description: La capa de administración para Next.js.
+template: splash
+hero:
+  tagline: Construye producto, no dashboards. Un archivo de recurso, seguridad en servidor y UI de shadcn.
+  actions:
+    - text: Empezar
+      link: /es/getting-started/installation/
+      icon: right-arrow
+    - text: GitHub
+      link: https://github.com/dashild/dashild
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+
+<CardGrid>
+  <Card title="Un archivo por recurso">
+    Describe la tabla, el formulario, los filtros y las acciones en un único
+    archivo serializable. No hay páginas que generar.
+  </Card>
+  <Card title="Seguridad en servidor">
+    Las políticas y el ámbito se aplican en el servidor. El recurso nunca
+    contiene el `where`.
+  </Card>
+  <Card title="Tu app, tu auth">
+    Better Auth viene scaffolded, o conecta tu propia sesión con dos funciones.
+  </Card>
+  <Card title="UI de shadcn">
+    El shell usa shadcn/ui y Tailwind v4, con celdas y campos que puedes
+    reemplazar.
+  </Card>
+</CardGrid>
+
+## Empieza aquí
+
+¿Es tu primera vez con Dashild? [Crea tu primera app](/es/getting-started/installation/)
+y genera un recurso en unos minutos. Después lee
+[Recursos](/es/guides/resources/) para ver qué puede describir un recurso y
+[Políticas y seguridad](/es/guides/policies/) para cerrarlo.

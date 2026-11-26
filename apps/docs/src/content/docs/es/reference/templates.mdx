@@ -1,0 +1,71 @@
+---
+title: Plantillas
+description: Starters incluidos y el formato template.json.
+---
+
+`create-dashild` incluye dos starters:
+
+- `basic`: el panel y auth, sin recursos. El dashboard muestra el estado vacío.
+- `demo`: usuarios, posts y etiquetas, con políticas de demo permisivas y seed
+  (`ana@acme.test` / `dashild123`).
+
+```bash
+pnpm create dashild@latest mi-app --template demo
+```
+
+Un starter también puede ser local o venir de GitHub:
+
+```bash
+npx create-dashild@latest mi-app --template ./starters/crm
+npx create-dashild@latest mi-app --template github:acme/dashild-crm#main
+```
+
+Las plantillas desde npm no están soportadas en v1.
+
+## Formato
+
+Una plantilla es una carpeta con `template.json` y archivos del proyecto:
+
+```json
+{
+  "name": "crm",
+  "version": "1.0.0",
+  "dashild": ">=0.1.0-alpha.6",
+  "prisma": { "provider": ["postgresql"] },
+  "requires": { "auth": ["better-auth"] },
+  "extend": { "User": ["role Role @default(USER)"] }
+}
+```
+
+| Campo | Para qué |
+| --- | --- |
+| `name`, `version` | Identidad que se guarda en `dashild.json`. |
+| `dashild` | Rango semver de Dashild soportado. |
+| `prisma.provider` | Bases de datos permitidas. |
+| `requires.auth` | Integración de auth requerida. |
+| `extend` | Campos extra de Prisma para un modelo existente. |
+| `dependencies`, `devDependencies` | Dependencias extra de la app. |
+| `env` | Claves de entorno extra. |
+
+## Archivos
+
+- `prisma/models.prisma` se añade al schema dentro de un bloque con marcadores,
+  así que aplicar la plantilla dos veces no duplica modelos.
+- `extend` añade campos a modelos que ya existen (por ejemplo `User`).
+- `src/dashild/resources/*.ts` se copian y se registran en `panel.ts`.
+- `src/dashild/policies.ts` reemplaza las políticas por defecto.
+- `prisma/seed.ts` se ejecuta cuando el paso de seed está activo.
+
+Las plantillas se aplican después de crear los modelos de Better Auth, así que
+pueden extender `User` sin conflicto. Aplicar la misma plantilla dos veces, o
+añadir un modelo que ya existe, falla en lugar de sobrescribir en silencio.
+
+## Versión de los paquetes
+
+`create-dashild` guarda el stack instalado en `dashild.json` y fija `@dashild/*`
+a una versión conocida. El scaffolder puede adelantarse al stack para sus
+propios arreglos; la app generada conserva los paquetes publicados con los que
+fue probada.
+
+`create-dashild` se publica con los tags `latest` y `alpha`. La documentación usa
+`pnpm create dashild@latest`.

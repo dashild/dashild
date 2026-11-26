@@ -1,0 +1,72 @@
+---
+title: Templates
+description: Bundled starters and the template.json format.
+---
+
+`create-dashild` ships two starters:
+
+- `basic`: the panel and auth, with no resources. The dashboard shows the empty
+  state.
+- `demo`: users, posts, and labels, with permissive demo policies and a seed
+  (`ana@acme.test` / `dashild123`).
+
+```bash
+pnpm create dashild@latest my-app --template demo
+```
+
+A starter can also be local or come from GitHub:
+
+```bash
+npx create-dashild@latest my-app --template ./starters/crm
+npx create-dashild@latest my-app --template github:acme/dashild-crm#main
+```
+
+npm templates are not supported in v1.
+
+## Format
+
+A template is a folder with `template.json` and project files:
+
+```json
+{
+  "name": "crm",
+  "version": "1.0.0",
+  "dashild": ">=0.1.0-alpha.6",
+  "prisma": { "provider": ["postgresql"] },
+  "requires": { "auth": ["better-auth"] },
+  "extend": { "User": ["role Role @default(USER)"] }
+}
+```
+
+| Field | Purpose |
+| --- | --- |
+| `name`, `version` | Identity recorded in `dashild.json`. |
+| `dashild` | Supported Dashild semver range. |
+| `prisma.provider` | Allowed database providers. |
+| `requires.auth` | Required auth integration. |
+| `extend` | Extra Prisma fields for an existing model. |
+| `dependencies`, `devDependencies` | Extra app dependencies. |
+| `env` | Extra env keys. |
+
+## Files
+
+- `prisma/models.prisma` is appended to the schema inside a marker block, so
+  applying the template twice does not duplicate models.
+- `extend` adds fields to models that already exist (for example `User`).
+- `src/dashild/resources/*.ts` are copied and registered in `panel.ts`.
+- `src/dashild/policies.ts` replaces the default policies.
+- `prisma/seed.ts` runs when the seed step is enabled.
+
+Templates run after the Better Auth models are created, so a template can extend
+`User` safely. Applying the same template twice, or adding a model that already
+exists, fails instead of silently overwriting.
+
+## Package pinning
+
+`create-dashild` records the installed stack in `dashild.json` and pins
+`@dashild/*` to a known version. The scaffolder can move ahead of the stack for
+its own fixes; the generated app keeps the published packages it was tested
+with.
+
+`create-dashild` is published as `latest` and `alpha`. The docs use
+`pnpm create dashild@latest`.

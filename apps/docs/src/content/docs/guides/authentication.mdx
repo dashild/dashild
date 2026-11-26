@@ -1,0 +1,131 @@
+---
+title: Authentication
+description: Better Auth is scaffolded, or connect your own session in two functions.
+---
+
+Dashild does not ship an auth library. The panel needs two things from the app:
+
+```ts
+export const panel = definePanel({
+  // ...
+  auth: {
+    getCurrentUser,
+    signOut, // optional
+  },
+});
+```
+
+`getCurrentUser` runs on the server and returns the signed-in user or `null`.
+`signOut` is optional; when present, the user menu shows a sign-out action.
+
+## Better Auth
+
+```bash
+pnpm dashild init --auth better-auth --yes
+```
+
+This writes:
+
+```text
+src/lib/auth.ts
+src/lib/auth-client.ts
+src/lib/session.ts
+src/lib/auth-actions.ts
+src/lib/email.ts
+src/app/api/auth/[...all]/route.ts
+src/app/login/page.tsx
+src/app/signup/page.tsx
+src/app/forgot-password/page.tsx
+src/app/reset-password/page.tsx
+src/components/dashild/login-form.tsx
+src/components/dashild/signup-form.tsx
+src/components/dashild/forgot-password-form.tsx
+src/components/dashild/reset-password-form.tsx
+```
+
+It also adds the Better Auth models to `prisma/schema.prisma` when they are
+missing and adds `better-auth` to `package.json`.
+
+## Environment
+
+The scaffolder writes `.env` and a committed `.env.example` with every key and
+its comments:
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | yes | App and Prisma connection. |
+| `DIRECT_URL` | no | Non-pooled URL for migrations. |
+| `BETTER_AUTH_SECRET` | with Better Auth | Session signing. Generate with `openssl rand -base64 32`. |
+| `BETTER_AUTH_URL` | with Better Auth | Public origin; must match the browser URL. |
+| `ALLOW_SIGNUP` | no (`true`) | `false` closes public sign-up. |
+| `REQUIRE_EMAIL_VERIFICATION` | no (`false`) | `true` requires the verification link. |
+| `RESEND_API_KEY` | no | If set, `sendEmail` sends through Resend. |
+| `EMAIL_FROM` | no | Resend sender. |
+
+`BETTER_AUTH_URL` must match the origin you open in the browser. A mismatch
+makes sign-in fail with an origin error.
+
+## Sign-up, verification, and reset
+
+- `ALLOW_SIGNUP=false` disables the sign-up API and the signup page shows
+  “Sign-up disabled”. Create users from your own admin flow.
+- `REQUIRE_EMAIL_VERIFICATION=true` sends the verification link on sign-up and
+  blocks sign-in until the email is verified.
+- `/forgot-password` requests a reset link; `/reset-password?token=...` sets the
+  new password.
+- Rate limiting is enabled (100 requests per minute) in the generated config.
+
+## Email
+
+`src/lib/email.ts` uses Resend when `RESEND_API_KEY` is present:
+
+```ts
+await fetch("https://api.resend.com/emails", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject,
+    text,
+  }),
+});
+```
+
+Without a key it logs the email in development and throws in production, so
+password reset and verification never lose emails silently. Replace it with
+Postmark, SES, or your own transport if you prefer.
+
+## Your own auth
+
+Use the default mode and fill the adapter:
+
+```bash
+pnpm dashild init --auth none --yes
+```
+
+```ts
+async function getCurrentUser(): Promise<CurrentUser | null> {
+  const session = await myAuth.getSession();
+  if (!session) return null;
+
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    name: session.user.name,
+    organizationId: session.user.organizationId,
+    roles: session.user.roles,
+  };
+}
+```
+
+`CurrentUser` requires `id`; `email`, `name`, `organizationId`, and `roles` are
+optional. Returning `organizationId` and `roles` is enough for
+[policies](/guides/policies/).
+
+If the schema already has a `User` model or session models,
+`init --auth better-auth` does not modify them; it warns and leaves the
+adaptation to you.

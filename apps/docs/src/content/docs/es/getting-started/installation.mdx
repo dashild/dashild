@@ -1,0 +1,217 @@
+---
+title: Instalación
+description: Crea una app nueva con Dashild o añade el panel a un proyecto Next.js existente.
+---
+
+Dashild es una capa de administración para Next.js + Prisma. Un recurso es un
+archivo de datos; no hay páginas que generar ni archivos que sincronizar.
+
+## Requisitos
+
+- Node.js 22 o superior.
+- Next.js 15 o 16 con App Router.
+- Prisma 7.10 o superior y un cliente generado con el provider `prisma-client`.
+- PostgreSQL, MySQL/MariaDB o SQLite (PostgreSQL y SQLite están probados
+  end-to-end; MySQL/MariaDB está soportado por el adapter).
+- Tailwind CSS v4 y shadcn/ui para el shell.
+
+## Crear una app nueva
+
+```bash
+pnpm create dashild@latest mi-app
+```
+
+El scaffolder reutiliza `create-next-app` y pregunta starter, auth, base de
+datos y si instalar, migrar y sembrar. También acepta flags:
+
+```bash
+npx create-dashild@latest mi-app \
+  --template demo \
+  --database postgresql \
+  --database-url "$DATABASE_URL" \
+  --pm pnpm \
+  --yes
+```
+
+| Flag | Valores |
+| --- | --- |
+| `--template` | `basic`, `demo`, `local:<ruta>`, `github:<owner>/<repo>#<ref>` |
+| `--auth` | `better-auth`, `none` |
+| `--database` | `postgresql`, `mysql`, `sqlite` |
+| `--database-url` | Cadena de conexión |
+| `--direct-url` | URL sin pooler para migraciones |
+| `--pm` | `pnpm`, `npm`, `yarn`, `bun` |
+| `--path` | Ruta del panel (por defecto `/admin`) |
+| `--no-install` | No instala dependencias |
+| `--no-git` | No ejecuta `git init` |
+| `--no-migrate` | No aplica el esquema |
+| `--no-seed` | No carga los datos del starter |
+| `--dry-run` | Imprime el plan sin escribir |
+| `--list-templates` | Lista los starters incluidos |
+
+Si la base de datos no está disponible, la app se crea igual y los comandos de
+migración y seed quedan como pasos pendientes. El formato de starter está en
+[Plantillas](/es/reference/templates/).
+
+## Instalación manual
+
+```bash
+pnpm add @dashild/core@alpha @dashild/admin@alpha @dashild/prisma@alpha
+pnpm add -D @dashild/cli@alpha
+```
+
+Añade los dos generadores de Prisma:
+
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+generator dashild {
+  provider = "dashild-prisma-generator"
+  output   = "../src/generated/dashild"
+}
+```
+
+`dashild` escribe `dashild-metadata.json`, el contrato que usan la CLI, el
+runtime y el panel.
+
+Prisma 7 lee la conexión de `prisma.config.ts`:
+
+```ts
+import "dotenv/config";
+
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: {
+    // DIRECT_URL gana cuando existe: úsala para migraciones tras un pooler.
+    url: process.env.DIRECT_URL || env("DATABASE_URL"),
+  },
+});
+```
+
+La app también necesita un cliente Prisma con driver adapter:
+
+```ts
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@/src/generated/prisma/client";
+
+export const prisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
+```
+
+Para SQLite usa `@prisma/adapter-better-sqlite3` y `better-sqlite3`; para
+MySQL/MariaDB, `@prisma/adapter-mariadb`. El scaffolder elige el correcto.
+
+### Base de datos
+
+Dashild no levanta una base de datos. Apunta `DATABASE_URL` a una instancia que
+ya exista:
+
+```bash
+# SQLite
+DATABASE_URL="file:./prisma/dev.db"
+
+# PostgreSQL
+DATABASE_URL="postgresql://user:password@host:5432/database"
+
+# MySQL
+DATABASE_URL="mysql://user:password@host:3306/database"
+```
+
+En SQLite, el CLI de Prisma y el adapter resuelven la ruta desde la raíz del
+proyecto. El scaffolder instala `better-sqlite3` con el Node que ejecuta la app
+(fijando `PATH` y `npm_config_target`) porque pnpm no incluye `node-gyp`.
+
+## Montar el panel
+
+```bash
+pnpm dashild init --auth better-auth
+```
+
+El comando muestra el plan y no escribe nada hasta que añadas `--yes`:
+
+```bash
+pnpm dashild init --auth better-auth --yes
+```
+
+Escribe:
+
+```text
+src/dashild/panel.ts
+src/dashild/policies.ts
+src/dashild/actions/index.ts
+src/dashild/icons.tsx
+src/dashild/runtime.ts
+src/dashild/server.ts
+src/dashild/registry.tsx
+src/app/<ruta>/[[...dashild]]/page.tsx
+```
+
+Con `--auth better-auth` añade además login, signup, sesión, reset de
+contraseña y la ruta de API. Lo detallamos en
+[Autenticación](/es/guides/authentication/).
+
+Después regenera Prisma y aplica el esquema:
+
+```bash
+pnpm prisma generate
+pnpm prisma db push
+```
+
+Si ya existe `app/admin/page.tsx`, `init` propone `/panel`, `/admin-panel` o
+`/dashild`. Usa `--path /otra-ruta` para forzar una.
+
+## Tailwind
+
+El shell vive en `@dashild/admin`; Tailwind debe escanear su build. Añade esto a
+tu CSS global (ajusta la ruta relativa):
+
+```css
+@source "../../node_modules/@dashild/admin/dist";
+```
+
+También necesitas las variables de tema de shadcn (`--background`,
+`--foreground`, `--primary`, `--sidebar`, etc.). El scaffolder escribe un
+`globals.css` completo; para una instalación manual, parte de
+`apps/playground/app/globals.css` del repositorio. Define una pila de
+fuentes real en `--font-sans`; una variable autoreferenciada deja la app en
+Times New Roman.
+
+## Primer recurso
+
+```bash
+pnpm dashild make:resource Customer
+pnpm dashild doctor
+```
+
+`make:resource` escribe un archivo y no lo vuelve a tocar. Además registra el
+recurso en `panel.ts` y añade una entrada fail-closed en `policies.ts`.
+
+La entrada empieza con `scope: () => null`, así que el recurso devuelve 404
+hasta que definas su ámbito y permisos. Lo explicamos en
+[Políticas y seguridad](/es/guides/policies/) y
+[Recursos](/es/guides/resources/).
+
+## Arrancar
+
+```bash
+pnpm dev
+```
+
+El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
+En desarrollo usa `localhost`, no `127.0.0.1`: Next 16 bloquea assets e
+hidratación desde orígenes no listados. El scaffold añade
+`allowedDevOrigins: ["127.0.0.1", "localhost"]`; añade cualquier otro dominio
+que uses.
+
+## Siguientes pasos
+
+- [Recursos](/es/guides/resources/): tablas, formularios, filtros y acciones.
+- [Políticas y seguridad](/es/guides/policies/): ámbito y roles.
+- [Autenticación](/es/guides/authentication/): Better Auth, email y resets.
+- [CLI](/es/reference/cli/): todos los comandos.

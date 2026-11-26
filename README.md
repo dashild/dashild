@@ -40,8 +40,23 @@ npx create-dashild@latest mi-app \
 ```
 
 Añade `--dry-run` para ver el plan sin escribir nada y `--list-templates` para
-listar los starters incluidos. La guía completa está en
-[`docs/install.md`](docs/install.md).
+listar los starters incluidos. La documentación completa está en el sitio de
+docs y en [`apps/docs`](apps/docs).
+
+## Documentación
+
+El sitio vive en `apps/docs` con Astro + Starlight:
+
+- **English (principal)**: <https://docs.dashild.dev>
+- **Español (espejo)**: <https://docs.dashild.dev/es>
+
+```bash
+pnpm docs:dev      # servidor local
+pnpm docs:build    # build estático en apps/docs/dist
+```
+
+El contenido está en `apps/docs/src/content/docs` (inglés) y
+`apps/docs/src/content/docs/es` (español).
 
 ## Instalación manual
 
@@ -98,11 +113,12 @@ packages/
 
 apps/
   playground/      app de desarrollo y demo; no se publica en npm
+  docs/            sitio de documentación (Astro + Starlight), en/es
 
 examples/
   existing-next-app/   FUERA del workspace: instalación real desde tarballs
 
-docs/              documentación pública: instalación y guías
+docs/              puntero a la documentación; la fuente está en apps/docs
 ```
 
 ## Requisitos
@@ -119,6 +135,8 @@ pnpm build             # compila los paquetes en orden topológico
 pnpm dev               # tsc --watch en todos los paquetes
 pnpm typecheck
 pnpm test              # mapeo, políticas, acciones y CLI
+pnpm docs:dev          # sitio de documentación en local
+pnpm docs:build        # build estático del sitio
 pnpm pack:all          # tarballs en artifacts/
 pnpm smoke:scaffold -- --pm pnpm --database sqlite
 pnpm release:verify    # comprueba que los tarballs publicados existen

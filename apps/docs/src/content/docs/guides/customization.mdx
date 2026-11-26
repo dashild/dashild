@@ -1,0 +1,109 @@
+---
+title: Customization
+description: Replace cells and fields, brand the panel, and eject the generated glue.
+---
+
+The shell lives in `@dashild/admin`; the app owns the panel configuration,
+auth, and any custom components.
+
+## Panel
+
+```ts
+// src/dashild/panel.ts
+export const panel = definePanel({
+  title: "Acme",
+  path: "/admin",
+  locale: "en",
+  brand: { name: "Acme", logo: "/logo.svg" },
+  theme: { defaultMode: "dark", toggle: true, primary: "zinc" },
+  sidebar: { collapsible: "icon" },
+  maxContentWidth: "xl",
+  resources: [customerResource],
+  auth: { getCurrentUser, signOut },
+});
+```
+
+`primary` accepts a shadcn/Tailwind palette (`zinc`, `slate`, `blue`, `emerald`,
+and so on). `locale` switches built-in labels and validation messages.
+
+## Cells and fields
+
+Cells and fields are React components registered on the client:
+
+```tsx
+// src/dashild/registry.tsx
+"use client";
+
+import {
+  registerCell,
+  registerField,
+  registeredCells,
+  registeredFields,
+} from "@dashild/core";
+import { RegistryProvider } from "@dashild/admin";
+
+import { AvatarCell } from "../../components/dashild/avatar-cell";
+import { EmailField } from "../../components/dashild/email-field";
+
+registerCell("avatar", AvatarCell);
+registerField("email", EmailField);
+
+export function AppRegistryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <RegistryProvider cells={registeredCells()} fields={registeredFields()}>
+      {children}
+    </RegistryProvider>
+  );
+}
+```
+
+Wrap `AdminPage` with `AppRegistryProvider` (the generated route does this), then
+reference the components from a resource:
+
+```ts
+table: { columns: [{ field: "name", cell: "avatar" }] }
+form: { fields: [{ field: "email", component: "email" }] }
+```
+
+The renderer props are `CellRendererProps` and `FieldRendererProps` from
+`@dashild/admin`.
+
+`dashild ui:add avatar-cell email-field` copies both templates into
+`components/dashild/` and prints the registration calls. Options: `--dir`,
+`--force`, `--dry-run`.
+
+## Tailwind
+
+Tailwind must scan the package build:
+
+```css
+@source "../../node_modules/@dashild/admin/dist";
+```
+
+The theme variables come from shadcn. Define a real font stack in
+`--font-sans`; the generated `globals.css` does this for you.
+
+## Icons
+
+`src/dashild/icons.tsx` mounts an `IconProvider` with the shell icons and any
+extra icons your resources use. Unknown icon names fall back to the generic icon
+in development.
+
+## Eject
+
+If you want to remove the panel glue, run:
+
+```bash
+pnpm dashild eject --dry-run
+pnpm dashild eject --yes
+```
+
+It removes `panel.ts`, `policies.ts`, `actions/index.ts`, `icons.tsx`,
+`runtime.ts`, `server.ts`, `registry.tsx`, the mount route, and the `dashild`
+script. It keeps resources, auth files, the Prisma schema, and dependencies, and
+lists them so you can remove them yourself. Without `--yes` it only prints the
+plan.

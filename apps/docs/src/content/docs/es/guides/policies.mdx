@@ -1,0 +1,106 @@
+---
+title: Políticas y seguridad
+description: Ámbito, permisos y roles se ejecutan en servidor.
+---
+
+La seguridad no se declara en el recurso. El recurso solo dice que está sujeto a
+un ámbito (`policy: { scope: "organization" }`); el servidor resuelve el `where`,
+los permisos y los roles.
+
+## Fallo cerrado
+
+Si un recurso no tiene `policy`, o `policies.ts` no tiene entrada para su modelo,
+el runtime lo deniega. Si `scope` devuelve `null`, se deniega el recurso entero.
+
+```ts
+import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
+
+export const policies = definePolicies<CurrentUser>({
+  Customer: {
+    scope: (ctx) => ({ organizationId: ctx.organizationId }),
+    can: {
+      create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+      update: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+      delete: (ctx) => hasRole(ctx, "ADMIN"),
+    },
+  },
+});
+```
+
+`scope` es un fragmento `where` de Prisma que se aplica a cada lectura y
+escritura, incluidas relaciones y consultas directas con el cliente extendido.
+
+## Organización y roles
+
+`PolicyContext` lleva `user`, `organizationId` y `roles`. Se resuelven así:
+
+1. `organizationOf` / `rolesOf` de `policies.ts`, si están definidos.
+2. `user.organizationId` / `user.roles`, si el adaptador ya los aporta.
+
+Para la mayoría de apps basta con devolverlos desde `getCurrentUser`:
+
+```ts
+async function getCurrentUser() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { id: true, email: true, name: true, organizationId: true, roles: true },
+  });
+
+  return user;
+}
+```
+
+Usa `hasRole(ctx, "ADMIN", "SALES")` para predicados legibles. Un recurso con
+ámbito no puede crear salvo que `can.create` sea explícito, porque el runtime no
+puede inferir a qué organización pertenece la fila nueva.
+
+## Acciones
+
+Las acciones pueden exigir un permiso declarado aquí:
+
+```ts
+table: {
+  actions: [{ name: "refund", requires: "refund" }],
+}
+```
+
+```ts
+Customer: {
+  scope: (ctx) => ({ organizationId: ctx.organizationId }),
+  can: { refund: (ctx) => hasRole(ctx, "ADMIN") },
+}
+```
+
+La UI oculta las acciones cuyo `requires` es falso, y el servidor también las
+deniega.
+
+## Cliente Prisma con ámbito
+
+`withDashildScope` devuelve una extensión de Prisma con el ámbito activo
+aplicado; el runtime la monta con `prisma.$extends`. Para código de servidor
+propio, prefiere `runtime.client(user)`:
+
+```ts
+const client = runtime.client(user);
+const customers = await client.customer.findMany();
+```
+
+Para extenderlo directamente:
+
+```ts
+const client = prisma.$extends(
+  withDashildScope({ resources, policies, user }),
+);
+```
+
+El archivo del recurso nunca contiene el `where`; esa es la idea.
+
+## Reglas
+
+- `policies.ts` es de servidor y nunca se importa desde un componente cliente.
+- El cliente no puede influir en la política: las server actions la resuelven
+  por su cuenta.
+- Los roles son strings; la app decide sus nombres y cómo se asignan.

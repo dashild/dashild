@@ -1,0 +1,94 @@
+---
+title: Referencia de la CLI
+description: init, make:resource, doctor, ui:add y eject.
+---
+
+El binario `dashild` vive en `@dashild/cli`. Ejecútalo con tu gestor de paquetes:
+
+```bash
+pnpm dashild <comando>
+```
+
+Opción global: `--lang en|es` (o `DASHILD_LANG`) para los mensajes de la CLI.
+
+## `init`
+
+```bash
+pnpm dashild init --auth better-auth --yes
+```
+
+Añade el panel a una app Next.js existente. Primero muestra el plan; `--yes`
+escribe y `--dry-run` nunca escribe. Sin `--force` se niega a sobrescribir
+archivos existentes.
+
+| Opción | Para qué |
+| --- | --- |
+| `--auth <none\|better-auth>` | Integración de auth. Por defecto `none`. |
+| `--path <ruta>` | Ruta de montaje. Evita un `app/admin/page.tsx` existente. |
+| `--yes` | Aplica el plan. |
+| `--dry-run` | Solo muestra el plan. |
+| `--force` | Sobrescribe archivos existentes. |
+| `--metadata <ruta>` | `dashild-metadata.json` explícito. |
+
+Escribe `panel.ts`, `policies.ts`, `actions/index.ts`, `icons.tsx`, `runtime.ts`,
+`server.ts`, `registry.tsx` y la ruta de montaje. Con `--auth better-auth`
+también escribe los archivos de auth, los modelos y las claves de entorno.
+
+No toca `middleware.ts`/`proxy.ts`, el layout raíz, `next.config` ni tu `.env`.
+
+## `make:resource`
+
+```bash
+pnpm dashild make:resource Customer
+```
+
+Lee los metadatos de Prisma y escribe `src/dashild/resources/customer.ts`. El
+archivo es write-once: nunca sobrescribe un recurso existente.
+
+- Omite `id`, `@updatedAt`, las FK que escribe una relación y las listas
+  escalares.
+- Incluye `Bytes` y relaciones m2m como multiselect.
+- Añade el recurso a `panel.resources` y una entrada fail-closed a
+  `policies.ts`.
+- `--no-register` deja `panel.ts` y `policies.ts` intactos.
+- También acepta `--dir`, `--metadata`, `--cwd` y `--dry-run`.
+
+## `doctor`
+
+```bash
+pnpm dashild doctor
+pnpm dashild doctor --json
+```
+
+Parsea los recursos con Babel y los compara con los metadatos: modelo, slug,
+columnas, filtros, campos, relaciones, `policy`, la entrada en `policies.ts`,
+handlers de acciones, predicados `requires` y slugs duplicados. Indica archivo y
+línea y sale con código 1 si hay errores. `--json` es para CI.
+
+## `ui:add`
+
+```bash
+pnpm dashild ui:add avatar-cell email-field
+```
+
+Copia plantillas de celdas y campos a `components/dashild/` (o `--dir`). No edita
+`registry.tsx`; imprime la llamada `registerCell`/`registerField` que debes
+añadir. Opciones: `--force`, `--dry-run`, `--dir`.
+
+Plantillas disponibles: `avatar-cell`, `email-field`.
+
+## `eject`
+
+```bash
+pnpm dashild eject
+pnpm dashild eject --yes
+```
+
+Retira lo que escribió `init`: los archivos del panel, la ruta de montaje y el
+script `dashild`. Conserva recursos, auth, el schema y las dependencias, y los
+lista como “Kept”. Sin `--yes` solo muestra el plan; `--path` ayuda si no puede
+leer la ruta de `panel.ts`.
+
+## Códigos de salida
+
+`0` éxito; `1` check fallido, sobrescritura rechazada o error de validación.

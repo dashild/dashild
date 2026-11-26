@@ -1,0 +1,151 @@
+---
+title: Resources
+description: Describe a table, form, filters, and actions in one data file.
+---
+
+A resource is a serializable file. It describes the table, form, filters,
+navigation, and actions for a Prisma model. There are no pages to generate and
+no files to keep in sync.
+
+```ts
+// src/dashild/resources/customer.ts
+import { defineResource } from "@dashild/core";
+
+export const customerResource = defineResource({
+  model: "Customer",
+  navigation: {
+    label: "Customers",
+    slug: "customers",
+    group: "Sales",
+    icon: "users",
+  },
+  table: {
+    searchable: ["name", "email"],
+    columns: [
+      { field: "name", sortable: true },
+      { field: "email" },
+      {
+        field: "status",
+        format: "badge",
+        tone: { ACTIVE: "green", LEAD: "amber" },
+      },
+    ],
+    filters: [{ field: "status", type: "enum" }],
+  },
+  form: {
+    fields: [
+      { field: "name", type: "text", rules: { required: true } },
+      { field: "email", type: "email", rules: { required: true } },
+      { field: "status", type: "enum" },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+```
+
+`dashild make:resource Customer` generates this file from the Prisma metadata
+and registers it in `panel.ts` and `policies.ts`. The file is write-once: the
+command never overwrites your edits.
+
+## Navigation
+
+`label` is the sidebar label, `slug` is the URL segment under the panel route,
+and `group` groups resources in the sidebar. `icon` is resolved by the shell
+(`users`, `building`, `file-text`, `settings`, `database`, `folder`, `chart`,
+`package`, `shopping-cart`, `tag`, `calendar`, `mail`, `briefcase`,
+`credit-card`, `truck`, `layers`), and the app can add its own in
+`src/dashild/icons.tsx`.
+
+## Table
+
+- `columns`: field, optional label, `sortable`, `format`, `cell`, `display`,
+  and `tone`.
+- `searchable`: fields used by the search box. Pagination, sorting, and filters
+  run on the server.
+- `filters`: `boolean`, `enum`, `relation`, `text`, `number`, or `date`.
+- `pageSize`: optional page size.
+- `actions`: header or row actions (see below).
+
+`format` covers dates, numbers, booleans, and `badge`; `tone` maps badge values
+to a color. `cell` points to a component registered with `registerCell` (see
+[Customization](/guides/customization/)).
+
+For relations, set `field` to the relation name and `display` to the related
+field:
+
+```ts
+{ field: "organization", display: "name" }
+```
+
+## Form
+
+Fields use the Prisma type by default. `rules` adds `required`, `min`, `max`, or
+a `pattern` string; `component` points to a field registered with
+`registerField`; `default` sets an initial value.
+
+```ts
+form: {
+  fields: [
+    { field: "name", type: "text", rules: { required: true, max: 120 } },
+    { field: "email", type: "email", component: "email" },
+    { field: "notes", type: "textarea" },
+    { field: "tags", type: "relation", relation: "tags", multiple: true, display: "name" },
+  ],
+}
+```
+
+`Bytes` fields render a file picker and are sent as base64. `createdAt`,
+`updatedAt`, and `deletedAt` are shown in the table but omitted from the form by
+`make:resource`.
+
+## Relations
+
+- **o2m** (one-to-many): the parent detail page shows a `RelationManager` for
+  the children. Create, edit, and delete work out of the box; if the foreign key
+  is optional, rows can also be detached.
+- **m2m** (many-to-many): the detail page allows attach and detach, and the form
+  can use `type: "relation"` with `multiple: true`.
+
+The child model needs its own resource in `panel.resources`. If the foreign key
+is required, the manager does not offer detach.
+
+## Actions
+
+Actions are declared in the resource and handled on the server:
+
+```ts
+table: {
+  actions: [{ name: "export", label: "Export", placement: "header" }],
+}
+```
+
+```ts
+// src/dashild/actions/index.ts
+import type { ActionHandler, CurrentUser } from "@dashild/core";
+
+export const resourceActions: Record<
+  string,
+  Record<string, ActionHandler<CurrentUser>>
+> = {
+  Customer: {
+    export: async ({ db, organizationId }) => {
+      // `db` is Prisma extended with the active policy scope.
+      return { ok: true, message: "Export started" };
+    },
+  },
+};
+```
+
+An action can declare `requires` (checked against policies), `confirm`,
+`variant`, `placement` (`header` or `row`), and `href` for link actions.
+
+## Doctor
+
+```bash
+pnpm dashild doctor
+```
+
+It parses resources with Babel (without importing Next) and checks models,
+columns, filters, form fields, relations, `policy`, the `policies.ts` entry,
+action handlers, `requires` predicates, and duplicate slugs. It reports the file
+and line and exits with code 1 on errors.
