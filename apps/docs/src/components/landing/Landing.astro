@@ -42,6 +42,46 @@ export const customerResource = defineResource({
   policy: { scope: "organization" },
 });
 `;
+
+const monoTheme = {
+  name: "dashild-mono",
+  type: "dark" as const,
+  colors: {
+    "editor.background": "#0b0b0b",
+    "editor.foreground": "#d4d4d4",
+  },
+  settings: [
+    { settings: { foreground: "#d4d4d4", background: "#0b0b0b" } },
+    {
+      scope: ["comment", "punctuation.definition.comment"],
+      settings: { foreground: "#6f6f6f" },
+    },
+    {
+      scope: ["string", "constant.other.symbol"],
+      settings: { foreground: "#b0b0b0" },
+    },
+    {
+      scope: ["keyword", "storage", "storage.type", "storage.modifier"],
+      settings: { foreground: "#ffffff" },
+    },
+    {
+      scope: ["entity.name.function", "support.function"],
+      settings: { foreground: "#f2f2f2" },
+    },
+    {
+      scope: ["constant.numeric", "constant.language", "constant.character"],
+      settings: { foreground: "#ffffff" },
+    },
+    {
+      scope: ["punctuation", "meta.brace"],
+      settings: { foreground: "#9a9a9a" },
+    },
+    {
+      scope: ["variable", "variable.other", "entity.name.type"],
+      settings: { foreground: "#d4d4d4" },
+    },
+  ],
+};
 ---
 
 <header class="site-header">
@@ -153,22 +193,26 @@ export const customerResource = defineResource({
   </section>
 
   <section class="section">
-    <div class="container code-grid">
-      <div>
-        <p class="eyebrow">{t.code.eyebrow}</p>
-        <h2>{t.code.title}</h2>
-        <p class="section-lead">{t.code.body}</p>
-        <ul class="checklist">
-          {
-            t.code.checklist.map((item) => (
-              <li>
-                <Icon name="check" size={16} />
-                {item}
-              </li>
-            ))
-          }
-        </ul>
-        <p class="code-note">{t.code.note}</p>
+    <div class="container">
+      <div class="code-intro">
+        <div class="section-head">
+          <p class="eyebrow">{t.code.eyebrow}</p>
+          <h2>{t.code.title}</h2>
+          <p class="section-lead">{t.code.body}</p>
+        </div>
+        <div class="code-aside">
+          <ul class="checklist">
+            {
+              t.code.checklist.map((item) => (
+                <li>
+                  <Icon name="check" size={16} />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+          <p class="code-note">{t.code.note}</p>
+        </div>
       </div>
 
       <div class="window code-window">
@@ -179,7 +223,7 @@ export const customerResource = defineResource({
           <span class="window-title">{t.code.filename}</span>
           <span class="window-tag">resource</span>
         </div>
-        <Code code={resourceCode} lang="ts" theme="css-variables" />
+        <Code code={resourceCode} lang="ts" theme={monoTheme} />
       </div>
     </div>
   </section>

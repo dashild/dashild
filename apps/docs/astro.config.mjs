@@ -18,6 +18,12 @@ export default defineConfig({
     starlight({
       title: "Dashild",
       description: "The application admin layer for Next.js.",
+      logo: {
+        light: "./src/assets/logo.svg",
+        dark: "./src/assets/logo-dark.svg",
+        alt: "Dashild",
+      },
+      customCss: ["./src/styles/docs-theme.css"],
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },

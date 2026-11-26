@@ -546,16 +546,31 @@ p {
 
 /* Code ------------------------------------------------------------------- */
 
-.code-grid {
+.code-intro {
   display: grid;
-  grid-template-columns: 0.82fr 1.18fr;
-  gap: 56px;
-  align-items: start;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: end;
+  margin-bottom: 36px;
 }
 
-.code-grid > div:first-child {
-  position: sticky;
-  top: 96px;
+.code-intro .section-head {
+  margin-bottom: 0;
+  max-width: none;
+}
+
+.code-aside {
+  width: 100%;
+  max-width: 380px;
+  justify-self: end;
+}
+
+.code-aside .checklist {
+  margin-top: 0;
+}
+
+.code-aside .code-note {
+  margin-top: 18px;
 }
 
 .checklist {
@@ -594,29 +609,18 @@ p {
 }
 
 .code-window {
-  --astro-code-color-text: #d4d4d4;
-  --astro-code-color-background: transparent;
-  --astro-code-token-constant: #ffffff;
-  --astro-code-token-string: #a3a3a3;
-  --astro-code-token-comment: #6b6b6b;
-  --astro-code-token-keyword: #ffffff;
-  --astro-code-token-parameter: #cfcfcf;
-  --astro-code-token-function: #f2f2f2;
-  --astro-code-token-string-expression: #a3a3a3;
-  --astro-code-token-punctuation: #8a8a8a;
-  --astro-code-token-link: #ffffff;
+  width: 100%;
 }
 
 .code-window pre,
 .code-window pre.astro-code {
   margin: 0;
-  padding: 20px;
+  padding: 22px;
   overflow: auto;
   background: transparent !important;
   font-family: var(--mono);
-  font-size: 0.8rem;
-  line-height: 1.8;
-  filter: grayscale(1);
+  font-size: 0.88rem;
+  line-height: 1.75;
 }
 
 /* Steps ------------------------------------------------------------------ */
@@ -871,13 +875,14 @@ p {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .code-grid {
+  .code-intro {
     grid-template-columns: 1fr;
-    gap: 36px;
+    gap: 28px;
   }
 
-  .code-grid > div:first-child {
-    position: static;
+  .code-aside {
+    max-width: none;
+    justify-self: start;
   }
 
   .steps-grid {
@@ -896,6 +901,10 @@ p {
 
   .nav-inner {
     gap: 14px;
+  }
+
+  .nav-actions {
+    margin-left: auto;
   }
 
   .hero {
@@ -936,10 +945,13 @@ p {
     border-radius: 14px;
   }
 
-  .terminal,
+  .terminal {
+    font-size: 0.74rem;
+  }
+
   .code-window pre,
   .code-window pre.astro-code {
-    font-size: 0.74rem;
+    font-size: 0.68rem;
   }
 }
 
