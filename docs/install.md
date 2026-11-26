@@ -244,6 +244,26 @@ Si el schema ya tenía un modelo `User` o alguno de los modelos de sesión,
 `init --auth better-auth` **no lo modifica**: avisa y deja la adaptación en tus
 manos.
 
+### Variables de entorno
+
+El scaffolder escribe `.env` (gitignored) y `.env.example` (versionado) con
+todas las claves. `.env.example` funciona como en Laravel: copias, descomentas
+lo opcional y rellenas el valor.
+
+| Variable | Obligatoria | Para qué |
+| --- | --- | --- |
+| `DATABASE_URL` | sí | Conexión de la app y de Prisma. |
+| `DIRECT_URL` | no | URL sin pooler para migraciones. |
+| `BETTER_AUTH_SECRET` | con Better Auth | Firma de sesiones (`openssl rand -base64 32`). |
+| `BETTER_AUTH_URL` | con Better Auth | Origen público; debe coincidir con el navegador. |
+| `ALLOW_SIGNUP` | no (`true`) | `false` cierra el alta pública. |
+| `REQUIRE_EMAIL_VERIFICATION` | no (`false`) | `true` exige verificar el email. |
+| `RESEND_API_KEY` | no | Si está, `sendEmail` envía por Resend. |
+| `EMAIL_FROM` | no | Remitente de Resend. |
+
+Sin `RESEND_API_KEY`, `sendEmail` imprime el correo en desarrollo y falla en
+producción; así el reset y la verificación no se pierden en silencio.
+
 ## 7. Tailwind
 
 El shell vive en `@dashild/admin`. Tailwind debe escanear su build. Añade esto a

@@ -11,7 +11,7 @@
  *   node scripts/smoke-scaffold.mjs --pm npm --database postgresql --url postgresql://...
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,6 +95,22 @@ try {
     scaffoldArgs.push("--database-url", databaseUrl);
   }
   run(process.execPath, scaffoldArgs, workdir, nodeEnv);
+
+  const envExample = readFileSync(join(project, ".env.example"), "utf8");
+  const requiredEnv = envExample.includes("BETTER_AUTH_SECRET")
+    ? [
+        "DATABASE_URL",
+        "BETTER_AUTH_URL",
+        "ALLOW_SIGNUP",
+        "REQUIRE_EMAIL_VERIFICATION",
+        "RESEND_API_KEY",
+      ]
+    : ["DATABASE_URL"];
+  for (const key of requiredEnv) {
+    if (!envExample.includes(key)) {
+      throw new Error(`.env.example is missing ${key}`);
+    }
+  }
 
   const build =
     packageManager === "pnpm"

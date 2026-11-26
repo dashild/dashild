@@ -318,13 +318,40 @@ function emailFile(): string {
 }
 
 /**
- * Development email sink.
+ * Email sender.
  *
- * Replace this with Resend, Postmark, SES or your own transport. Production
- * throws, so enabling password reset or email verification without a real
- * provider fails loudly instead of losing emails.
+ * Resend is wired: set RESEND_API_KEY and EMAIL_FROM. Without a key it logs in
+ * development and throws in production, so password reset and verification
+ * never lose emails silently.
  */
 export async function sendEmail(message: EmailMessage): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (apiKey) {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: process.env.EMAIL_FROM ?? "Dashild <onboarding@resend.dev>",
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        "Resend rejected the email: " +
+          response.status +
+          " " +
+          (await response.text()),
+      );
+    }
+    return;
+  }
+
   if (process.env.NODE_ENV !== "production") {
     console.info(
       "[dashild] email to " +
@@ -338,7 +365,7 @@ export async function sendEmail(message: EmailMessage): Promise<void> {
   }
 
   throw new Error(
-    "No email provider configured. Implement sendEmail in src/lib/email.ts.",
+    "No email provider configured. Set RESEND_API_KEY or implement sendEmail in src/lib/email.ts.",
   );
 }
 `;
@@ -1568,26 +1595,43 @@ export function planInit(options: InitOptions): InitPlan {
 
     const envPath = resolve(cwd, ".env.example");
     const env = existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
-    const envKeys = [
-      "BETTER_AUTH_SECRET",
-      "BETTER_AUTH_URL",
-      "ALLOW_SIGNUP",
-      "REQUIRE_EMAIL_VERIFICATION",
-    ].filter((key) => !new RegExp(`^${key}=`, "m").test(env));
+    const authKeys = [
+      [
+        "BETTER_AUTH_SECRET",
+        '# Generate with: openssl rand -base64 32\nBETTER_AUTH_SECRET=""',
+      ],
+      [
+        "BETTER_AUTH_URL",
+        '# Public origin of the app; it must match the browser URL.\nBETTER_AUTH_URL="http://localhost:3000"',
+      ],
+      [
+        "ALLOW_SIGNUP",
+        '# Set to false to close public sign-up.\nALLOW_SIGNUP="true"',
+      ],
+      [
+        "REQUIRE_EMAIL_VERIFICATION",
+        '# Set to true to require the verification link.\nREQUIRE_EMAIL_VERIFICATION="false"',
+      ],
+    ] as const;
+    const missingAuth = authKeys.filter(
+      ([key]) => !new RegExp(`^${key}=`, "m").test(env),
+    );
 
-    if (envKeys.length > 0) {
-      const lines = [
-        "BETTER_AUTH_SECRET=\"\"",
-        "BETTER_AUTH_URL=\"http://localhost:3000\"",
-        "ALLOW_SIGNUP=\"true\"",
-        "REQUIRE_EMAIL_VERIFICATION=\"false\"",
-      ].filter((line) =>
-        envKeys.some((key) => line.startsWith(`${key}=`)),
-      );
+    if (missingAuth.length > 0) {
       const separator = env === "" || env.endsWith("\n") ? "" : "\n";
       appends.push({
         path: envPath,
-        content: `${separator}\n# Better Auth\n${lines.join("\n")}\n`,
+        content: `${separator}\n# Better Auth\n${missingAuth
+          .map(([, line]) => line)
+          .join("\n")}\n`,
+      });
+    }
+
+    if (!env.includes("RESEND_API_KEY") && !env.includes("EMAIL_FROM")) {
+      appends.push({
+        path: envPath,
+        content:
+          '\n# Email (optional). sendEmail uses Resend when RESEND_API_KEY is set.\n# RESEND_API_KEY=""\n# EMAIL_FROM="Dashild <no-reply@example.com>"\n',
       });
     }
 

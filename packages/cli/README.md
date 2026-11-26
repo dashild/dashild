@@ -78,14 +78,14 @@ src/components/dashild/reset-password-form.tsx
 
 Añade `better-auth` a `package.json` y los modelos `User`, `Session`, `Account`
 y `Verification` a `prisma/schema.prisma` si no existen. También añade
-`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP` y
-`REQUIRE_EMAIL_VERIFICATION` a `.env.example`.
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP`,
+`REQUIRE_EMAIL_VERIFICATION`, `RESEND_API_KEY` y `EMAIL_FROM` a `.env.example`.
 
 La configuración generada activa rate limiting (100/minuto), permite cerrar el
 signup público con `ALLOW_SIGNUP="false"`, exige verificación con
 `REQUIRE_EMAIL_VERIFICATION="true"` y monta el flujo de reset de contraseña.
-`src/lib/email.ts` es un stub: registra el correo en desarrollo y falla en
-producción hasta que conectes Resend, Postmark, SES o tu transporte.
+`src/lib/email.ts` envía por Resend si `RESEND_API_KEY` está definido; sin él,
+registra el correo en desarrollo y falla en producción.
 
 Añade el script `dashild` a `package.json` si falta. **No toca** `middleware.ts`/`proxy.ts`, el layout raíz, `next.config`, `.env` ni los archivos de autenticación.
 

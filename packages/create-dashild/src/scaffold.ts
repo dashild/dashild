@@ -58,7 +58,7 @@ function datasource(provider: DatabaseProvider): string {
   return ["datasource db {", `  provider = "${provider}"`, "}"].join("\n");
 }
 
-function prismaConfig(directUrl: boolean): string {
+function prismaConfig(): string {
   return `import "dotenv/config";
 
 import { defineConfig, env } from "prisma/config";
@@ -66,13 +66,13 @@ import { defineConfig, env } from "prisma/config";
 /**
  * Prisma 7 CLI configuration.
  *
- * The app reads DATABASE_URL through its driver adapter; migrations use the
- * non-pooled URL when the provider needs one.
+ * Migrations use DIRECT_URL when it is set (a non-pooled URL), otherwise
+ * DATABASE_URL. The app always reads DATABASE_URL through its driver adapter.
  */
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env(${JSON.stringify(directUrl ? "DIRECT_URL" : "DATABASE_URL")}),
+    url: process.env.DIRECT_URL || env("DATABASE_URL"),
   },
 });
 `;
@@ -387,6 +387,8 @@ function envFile(options: {
   secret: string;
 }): string {
   const lines = [
+    "# Copy .env.example to .env and fill the values. .env is gitignored.",
+    "",
     "# Database",
     `DATABASE_URL=${JSON.stringify(options.databaseUrl)}`,
   ];
@@ -399,6 +401,8 @@ function envFile(options: {
       "# Better Auth. Generate the secret with: openssl rand -base64 32",
       `BETTER_AUTH_SECRET=${JSON.stringify(options.secret)}`,
       'BETTER_AUTH_URL="http://localhost:3000"',
+      'ALLOW_SIGNUP="true"',
+      'REQUIRE_EMAIL_VERIFICATION="false"',
     );
   }
   return `${lines.join("\n")}\n`;
@@ -410,21 +414,43 @@ function envExample(options: {
   auth: AuthProvider;
 }): string {
   const lines = [
-    "# Database. Dashild does not start a database: point this at a running",
-    "# PostgreSQL, MySQL or SQLite database (Neon, Supabase, PlanetScale...).",
+    "# Copy this file to .env and fill the values. .env is gitignored.",
+    "",
+    "# Database -------------------------------------------------------------",
+    "# Dashild does not start a database. Point this at a running instance:",
+    "#   postgresql://user:password@host:5432/database",
+    "#   mysql://user:password@host:3306/database",
+    "#   file:./prisma/dev.db",
     `DATABASE_URL=${JSON.stringify(options.databaseUrl)}`,
+    "",
+    "# Optional: non-pooled URL for migrations when DATABASE_URL goes through a",
+    "# pooler (Neon, Supabase, PlanetScale...). Uncomment and fill it if needed.",
+    options.directUrl
+      ? `DIRECT_URL=${JSON.stringify(options.directUrl)}`
+      : '# DIRECT_URL=""',
   ];
-  if (options.directUrl) {
-    lines.push(`DIRECT_URL=${JSON.stringify(options.directUrl)}`);
-  }
+
   if (options.auth === "better-auth") {
     lines.push(
       "",
-      "# Better Auth. Generate the secret with: openssl rand -base64 32",
+      "# Better Auth ----------------------------------------------------------",
+      "# Generate with: openssl rand -base64 32",
       'BETTER_AUTH_SECRET=""',
+      "# Public origin of the app; it must match the browser URL.",
       'BETTER_AUTH_URL="http://localhost:3000"',
+      "# Set to false to close public sign-up; create users from your own flow.",
+      'ALLOW_SIGNUP="true"',
+      "# Set to true to require the verification link before signing in.",
+      'REQUIRE_EMAIL_VERIFICATION="false"',
+      "",
+      "# Email (optional) -----------------------------------------------------",
+      "# Password reset and email verification use sendEmail in src/lib/email.ts.",
+      "# With RESEND_API_KEY it sends through Resend; without it, dev logs the email.",
+      '# RESEND_API_KEY=""',
+      '# EMAIL_FROM="Dashild <no-reply@example.com>"',
     );
   }
+
   return `${lines.join("\n")}\n`;
 }
 
@@ -455,7 +481,7 @@ export function writeScaffold(options: CreateOptions): string {
   );
   write(
     resolve(options.dir, "prisma.config.ts"),
-    prismaConfig(Boolean(options.directUrl)),
+    prismaConfig(),
   );
   write(
     resolve(options.dir, "src/lib/prisma.ts"),

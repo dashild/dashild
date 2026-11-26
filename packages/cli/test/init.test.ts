@@ -276,7 +276,9 @@ test("init: better-auth plans the auth files, schema and env", () => {
         (append) =>
           append.path.endsWith(".env.example") &&
           append.content.includes("BETTER_AUTH_SECRET") &&
-          append.content.includes("BETTER_AUTH_URL"),
+          append.content.includes("BETTER_AUTH_URL") &&
+          append.content.includes("ALLOW_SIGNUP") &&
+          append.content.includes("REQUIRE_EMAIL_VERIFICATION"),
       ),
     );
 
@@ -307,6 +309,9 @@ test("init: better-auth applies files and appends without losing content", () =>
     assert.match(env, /DATABASE_URL/);
     assert.match(env, /BETTER_AUTH_SECRET/);
     assert.match(env, /BETTER_AUTH_URL/);
+    assert.match(env, /ALLOW_SIGNUP/);
+    assert.match(env, /REQUIRE_EMAIL_VERIFICATION/);
+    assert.match(env, /RESEND_API_KEY/);
 
     assert.ok(
       existsSync(join(directory, "src/app/api/auth/[...all]/route.ts")),
