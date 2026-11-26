@@ -24,6 +24,11 @@ export default defineConfig({
         alt: "Dashild",
       },
       customCss: ["./src/styles/docs-theme.css"],
+      expressiveCode: {
+        // Editor colors; Starlight keeps them in sync with the site theme.
+        themes: ["github-dark", "github-light"],
+        useStarlightUiThemeColors: true,
+      },
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },

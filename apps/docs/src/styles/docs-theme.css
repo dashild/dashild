@@ -23,8 +23,4 @@
   --sl-color-bg-accent: #f5f5f5;
 }
 
-/* Syntax colors are grayscale too; the landing uses the same treatment. */
-.expressive-code,
-.expressive-code pre {
-  filter: grayscale(1);
-}
+/* Code blocks keep editor colors; only the surrounding UI is monochrome. */

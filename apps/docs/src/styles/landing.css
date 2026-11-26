@@ -220,6 +220,21 @@ p {
   border-color: #fff;
 }
 
+.github-stars {
+  margin-left: 2px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
+  color: var(--on-ink-muted);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.github-stars[hidden] {
+  display: none;
+}
+
 .btn-sm {
   height: 38px;
   padding: 0 15px;
@@ -441,20 +456,20 @@ p {
 }
 
 .term-prompt {
-  color: #fff;
+  color: #7ee787;
 }
 
 .term-command {
-  color: #fff;
+  color: #e6edf3;
   font-weight: 600;
 }
 
 .term-line {
-  color: #8f8f8f;
+  color: #8b949e;
 }
 
 .term-ok {
-  color: #d4d4d4;
+  color: #79c0ff;
 }
 
 /* Sections --------------------------------------------------------------- */
