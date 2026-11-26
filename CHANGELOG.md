@@ -1,14 +1,24 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.7 — 2026-11-26
 
-- Sitio de documentación con Astro + Starlight: inglés como idioma principal,
-  español como espejo, búsqueda Pagefind, selector de idioma, enlaces de edición
-  y build en CI.
-- Contenido nuevo en ambos idiomas: instalación, recursos, políticas,
-  autenticación, personalización, CLI, plantillas y troubleshooting.
-- Desplegado en Vercel: <https://dashild.vercel.app> (inglés) y `/es` (español).
-
+- Documentation site with Astro + Starlight: English primary, Spanish mirror,
+  Pagefind search, language picker, edit links, sitemap, and a CI build.
+- New product landing (monochrome, Geist/JetBrains Mono) and a monochrome docs
+  theme with the same logo mark. Deployed at <https://dashild.vercel.app> and
+  `/es`.
+- All READMEs rewritten in English.
+- MySQL 8.4 verified end-to-end (scaffold, migrate, seed, build) and added to the
+  CI scaffold matrix.
+- `dashild make:action <Model> <action>` appends a typed handler stub without
+  touching the write-once resource.
+- Scalar lists (`String[]`, `Int[]`...) are supported as JSON arrays in tables
+  and forms.
+- `format: "currency"` with an ISO code renders Decimal money correctly.
+- `theme.defaultMode` accepts `system` and follows `prefers-color-scheme`.
+- Save and delete show success toasts after the server redirect.
+- `pnpm release:bump <version>` keeps package versions and `dashildPackages` in
+  sync.
 
 ## 0.1.0-alpha.6 — 2026-11-26
 

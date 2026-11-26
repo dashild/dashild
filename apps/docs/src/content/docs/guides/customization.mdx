@@ -24,7 +24,11 @@ export const panel = definePanel({
 ```
 
 `primary` accepts a shadcn/Tailwind palette (`zinc`, `slate`, `blue`, `emerald`,
-and so on). `locale` switches built-in labels and validation messages.
+and so on). `theme.defaultMode` accepts `light`, `dark`, or `system`; `system`
+follows `prefers-color-scheme` and reacts to changes. `locale` switches built-in
+labels and validation messages. `domain`
+is optional metadata for absolute URLs; Next routes by host, so Dashild does not
+use it to route requests.
 
 ## Cells and fields
 

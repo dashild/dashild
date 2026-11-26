@@ -91,7 +91,7 @@ try {
     "--no-git",
     "--yes",
   ];
-  if (database === "postgresql" && databaseUrl) {
+  if (database !== "sqlite" && databaseUrl) {
     scaffoldArgs.push("--database-url", databaseUrl);
   }
   run(process.execPath, scaffoldArgs, workdir, nodeEnv);

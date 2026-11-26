@@ -28,6 +28,7 @@ export default async function RootLayout({
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={cn(
         "font-sans",
         geist.variable,

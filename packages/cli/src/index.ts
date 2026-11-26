@@ -15,6 +15,7 @@ import { Command } from "commander";
 import { formatDoctor, runDoctor } from "./doctor.js";
 import { eject } from "./eject.js";
 import { generateResourceFile } from "./generate.js";
+import { makeAction } from "./make-action.js";
 import { applyInit, formatInitPlan, planInit } from "./init.js";
 import { cliMessage, resolveCliLocale } from "./messages.js";
 import { findMetadata, readMetadata } from "./metadata.js";
@@ -133,6 +134,42 @@ program
       process.exitCode = 1;
     }
   });
+
+program
+  .command("make:action <model> <action>")
+  .description("Append a handler stub to src/dashild/actions/index.ts")
+  .option("--cwd <dir>", "project root", process.cwd())
+  .option("--dir <path>", "actions folder", "src/dashild/actions")
+  .action(
+    (
+      model: string,
+      action: string,
+      options: { cwd: string; dir: string },
+    ) => {
+      try {
+        const cwd = resolve(options.cwd);
+        const result = makeAction({
+          cwd,
+          dir: options.dir,
+          model,
+          action,
+        });
+        console.log(
+          result.created
+            ? `Added ${model}.${action} to ${relative(cwd, result.path)}`
+            : `${model}.${action} is already registered in ${relative(cwd, result.path)}`,
+        );
+        console.log(
+          "Declare the action in the resource (table.actions or form.actions); the resource stays write-once.",
+        );
+      } catch (error) {
+        console.error(
+          `dashild: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        process.exitCode = 1;
+      }
+    },
+  );
 
 program
   .command("init")

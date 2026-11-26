@@ -1,4 +1,4 @@
-import { Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 import { translate, type Locale } from "@dashild/core";
 import Link from "next/link";
@@ -60,13 +60,15 @@ export function SiteHeader({
             type="submit"
             variant="ghost"
             size="icon"
-            aria-label={
-              theme === "dark"
-                ? translate(locale, "shell.lightMode")
-                : translate(locale, "shell.darkMode")
-            }
+            aria-label={translate(locale, "shell.changeTheme")}
           >
-            {theme === "dark" ? <Sun /> : <Moon />}
+            {theme === "dark" ? (
+              <Sun />
+            ) : theme === "system" ? (
+              <Monitor />
+            ) : (
+              <Moon />
+            )}
           </Button>
         </form>
       ) : null}

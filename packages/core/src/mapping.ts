@@ -55,6 +55,7 @@ export type FieldType =
   | "select"
   | "relation"
   | "json"
+  | "list"
   | "bytes";
 
 /** Operation that determines schema presence. */
@@ -357,13 +358,19 @@ export function resolveFieldMapping(
 
   if (!scalar) return resolveUnknownScalar(field);
 
-  // Scalar lists (`String[]`): no control in v1.
+  // Scalar lists (`String[]`, `Int[]`...): a JSON array in the form and table.
   if (field.isList) {
     return {
       ...baseFromScalar(scalar, field, context),
-      column: false,
-      editable: false,
-      warning: `Scalar list ${field.name} (${field.type}[]) is not supported in v1.`,
+      field: "list",
+      format: "json",
+      zod: z.array(scalar.zod(field, context.locale)),
+      dto: (value) =>
+        Array.isArray(value) ? value.map((entry) => scalar.dto(entry)) : [],
+      toDb: (value) =>
+        Array.isArray(value) ? value.map((entry) => scalar.toDb(entry)) : [],
+      column: true,
+      editable: true,
     };
   }
 
@@ -418,6 +425,22 @@ function resolveEnum(
   field: FieldMetadata,
   context: MappingContext,
 ): ResolvedFieldMapping {
+  if (field.isList) {
+    const base = resolveEnum({ ...field, isList: false }, context);
+    return {
+      ...base,
+      field: "list",
+      format: "json",
+      zod: z.array(base.zod),
+      dto: (value) =>
+        Array.isArray(value) ? value.map((entry) => base.dto(entry)) : [],
+      toDb: (value) =>
+        Array.isArray(value) ? value.map((entry) => base.toDb(entry)) : [],
+      column: true,
+      editable: true,
+    };
+  }
+
   const values = context.enums.get(field.type);
 
   if (!values || values.length === 0) {

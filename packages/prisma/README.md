@@ -1,6 +1,6 @@
 # @dashild/prisma
 
-Generador oficial de Prisma. Se declara en `schema.prisma`:
+The official Prisma generator. Declare it in `schema.prisma`:
 
 ```prisma
 generator client {
@@ -14,36 +14,47 @@ generator dashild {
 }
 ```
 
-Escribe **un solo archivo**: `dashild-metadata.json`. No genera recursos, ni páginas, ni clientes.
+It writes **one file**: `dashild-metadata.json`. It does not generate resources,
+pages, or clients.
 
-## Qué contiene el artefacto
+## What the artifact contains
 
-| Campo | Para qué |
+| Field | Purpose |
 | --- | --- |
-| `formatVersion` | Dashild rechaza metadatos de un formato que no entiende |
-| `schemaPath` | Ruta absoluta del schema de origen |
-| `clientOutput` | Ruta absoluta del cliente Prisma, si hay un generador `prisma-client` |
-| `engineVersion` | Hash del engine con el que Prisma generó (diagnóstico) |
-| `models` | Campos, tipos, enums, relaciones, `nativeType`, marcas de solo lectura |
-| `enums` | Nombre y valores |
+| `formatVersion` | Dashild rejects metadata in a format it does not understand |
+| `schemaPath` | Absolute path to the source schema |
+| `clientOutput` | Absolute path to the Prisma client, when a `prisma-client` generator exists |
+| `engineVersion` | Hash of the engine Prisma used (diagnostic) |
+| `models` | Fields, types, enums, relations, `nativeType`, read-only flags |
+| `enums` | Name and values |
 
-`engineVersion` no es la versión de Prisma: `options.version` de Prisma 7 es el commit del engine. La versión del paquete no se expone al generador.
+`engineVersion` is not the Prisma version: Prisma 7's `options.version` is the
+engine commit. The package version is not exposed to the generator.
 
-## Resolución del provider (verificado con Prisma 7.10.1)
+## Provider resolution (verified with Prisma 7.10.1)
 
-**Prisma no resuelve `provider` como módulo de Node.** Ejecuta la cadena tal cual con `/bin/sh`. Por eso `provider = "dashild-prisma-generator"` funciona únicamente porque el paquete publica un `bin` con ese nombre y npm/pnpm ponen `node_modules/.bin` en el `PATH` al correr scripts.
+**Prisma does not resolve `provider` as a Node module.** It runs the string
+through `/bin/sh`. `provider = "dashild-prisma-generator"` works only because the
+package publishes a `bin` with that name and npm/pnpm put `node_modules/.bin` on
+`PATH` when running scripts.
 
-Consecuencia: `pnpm prisma generate` (o `npm run ...`) funciona; invocar el binario de Prisma desde un entorno sin ese `PATH` falla con `dashild-prisma-generator: orden no encontrada`. El error es explícito, no silencioso.
+Consequently, `pnpm prisma generate` (or `npm run ...`) works; invoking the
+Prisma binary from an environment without that `PATH` fails with
+`dashild-prisma-generator: command not found`. The error is explicit, not silent.
 
 ## Prisma 7
 
-- La `url` del datasource ya no se declara en el schema: va en `prisma.config.ts` o en el constructor del cliente. El fixture no la declara porque `generate` no se conecta.
-- `@prisma/generator-helper` es CommonJS: el entrypoint lo carga con `createRequire`, no con un import nombrado de ESM.
+- The datasource `url` is no longer declared in the schema: it lives in
+  `prisma.config.ts` or in the client constructor. The fixture does not declare
+  it because `generate` does not connect.
+- `@prisma/generator-helper` is CommonJS: the entrypoint loads it with
+  `createRequire`, not a named ESM import.
 
-## Código
+## Code
 
-- `src/generator.ts` — entrypoint. Solo registra el handler y escribe el archivo.
-- `src/extract.ts` — DMMF → `DashildMetadata`. Funciones puras, probadas aparte.
+- `src/generator.ts` — entrypoint. It only registers the handler and writes the
+  file.
+- `src/extract.ts` — DMMF → `DashildMetadata`. Pure functions, tested separately.
 
 ## Tests
 
@@ -51,9 +62,15 @@ Consecuencia: `pnpm prisma generate` (o `npm run ...`) funciona; invocar el bina
 pnpm --filter @dashild/prisma test
 ```
 
-Dos niveles:
+Two levels:
 
-- **Integración**: ejecuta `prisma generate` de verdad sobre `test/fixtures/hostile/schema.prisma` (enum, opcionales, `Decimal`, `BigInt`, `Json`, `Bytes`, `@db.Text`, `@db.Uuid`, m2o, o2m y auto-relación) y verifica el JSON.
-- **Unidad**: `resolveClientOutput` con generadores sintéticos, incluido el caso de `provider` por variable de entorno.
+- **Integration**: runs a real `prisma generate` over
+  `test/fixtures/hostile/schema.prisma` (enum, optionals, `Decimal`, `BigInt`,
+  `Json`, `Bytes`, `@db.Text`, `@db.Uuid`, m2o, o2m, and self-relation) and
+  verifies the JSON.
+- **Unit**: `resolveClientOutput` with synthetic generators, including the
+  `provider` from an environment variable.
 
-El test necesita el `bin` del generador en el `PATH`; lo resuelve desde el `.bin` de la raíz del monorepo, que es donde pnpm enlaza `@dashild/prisma` (declarado como devDependency de la raíz precisamente para esto).
+The test needs the generator `bin` on `PATH`; it resolves it from the monorepo
+root `.bin`, where pnpm links `@dashild/prisma` (declared as a root
+devDependency for exactly this reason).

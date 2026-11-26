@@ -76,6 +76,7 @@ function guessDisplay(
 }
 
 function formType(field: FieldMetadata, mapped: string): string {
+  if (mapped === "list") return "list";
   if (mapped === "text") {
     if (/email/i.test(field.name)) return "email";
     if (/password/i.test(field.name)) return "password";

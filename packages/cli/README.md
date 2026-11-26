@@ -1,6 +1,6 @@
 # @dashild/cli
 
-Binario `dashild`.
+The `dashild` binary.
 
 ## `make:resource <Model>`
 
@@ -8,32 +8,64 @@ Binario `dashild`.
 pnpm dashild make:resource Organization
 ```
 
-Lee `dashild-metadata.json`, usa **la tabla de mapeo de `@dashild/core`** y escribe un único archivo:
+Reads `dashild-metadata.json`, uses **the `@dashild/core` mapping table**, and
+writes a single file:
 
 ```text
 src/dashild/resources/organization.ts
 ```
 
-- **Write-once**: si el archivo existe, no se sobrescribe. El recurso es del desarrollador.
-- Omite `id`, `@updatedAt`, las FK que escribe una relación y listas escalares.
-- Incluye `Bytes` en el formulario y relaciones m2m como multiselect. o2m no se genera como campo: se gestiona con el relation manager del padre, y el modelo hijo necesita su propio recurso.
-- Genera columnas, campos de formulario, búsqueda y filtros a partir de los metadatos.
-- Los campos de auditoría (`createdAt`, `updatedAt`, `deletedAt`) aparecen en la tabla pero no en el formulario.
-- Etiquetas y slugs se derivan del modelo (`BlogPost` → `blog-post.ts`, `Blog Posts`, `blog-posts`); se editan después.
-- Por defecto añade el recurso a `panel.resources` y una entrada **fail-closed** en `policies.ts` (`scope: () => null`). Edita esa entrada para definir el ámbito y los permisos.
-- `--no-register` deja `panel.ts` y `policies.ts` intactos.
+- **Write-once**: if the file exists, it is not overwritten. The resource belongs
+  to the developer.
+- Omits `id`, `@updatedAt`, and foreign keys written by a relation. Scalar
+  lists (`String[]`, `Int[]`...) are included as a JSON array.
+- Includes `Bytes` in the form and m2m relations as a multiselect. o2m is not
+  generated as a field: it is handled by the parent relation manager, and the
+  child model needs its own resource.
+- Generates columns, form fields, search, and filters from metadata.
+- Audit fields (`createdAt`, `updatedAt`, `deletedAt`) appear in the table but
+  not in the form.
+- Labels and slugs derive from the model (`BlogPost` → `blog-post.ts`,
+  `Blog Posts`, `blog-posts`); edit them afterwards.
+- By default it adds the resource to `panel.resources` and a **fail-closed**
+  entry to `policies.ts` (`scope: () => null`). Edit that entry to define the
+  scope and permissions.
+- `--no-register` leaves `panel.ts` and `policies.ts` untouched.
 
-Opciones:
+Options:
 
-| Opción | Uso |
+| Option | Purpose |
 | --- | --- |
-| `--cwd <dir>` | Raíz del proyecto (por defecto el directorio actual) |
-| `--metadata <path>` | Ruta explícita a `dashild-metadata.json` |
-| `--dir <path>` | Carpeta de recursos (por defecto `src/dashild/resources`) |
-| `--no-register` | No añade el recurso a `panel.ts` ni a `policies.ts` |
-| `--dry-run` | Imprime el archivo sin escribirlo |
+| `--cwd <dir>` | Project root (defaults to the current directory) |
+| `--metadata <path>` | Explicit `dashild-metadata.json` |
+| `--dir <path>` | Resources folder (defaults to `src/dashild/resources`) |
+| `--no-register` | Do not add the resource to `panel.ts` or `policies.ts` |
+| `--dry-run` | Print the file without writing it |
 
-Rutas de metadatos que busca por defecto: `src/generated/dashild/`, `generated/dashild/` y `prisma/generated/dashild/`.
+Default metadata paths: `src/generated/dashild/`, `generated/dashild/`, and
+`prisma/generated/dashild/`.
+
+## `make:action <Model> <action>`
+
+```bash
+pnpm dashild make:action Customer export
+```
+
+Appends a typed handler stub to `src/dashild/actions/index.ts`:
+
+```ts
+resourceActions.Customer = {
+  ...resourceActions.Customer,
+  export: async (_context) => ({
+    ok: true,
+    message: "TODO: implement Customer.export",
+  }),
+};
+```
+
+It does not touch the resource (write-once): declare the action in
+`table.actions` or `form.actions` yourself. Running it twice does not duplicate
+the handler. Options: `--cwd`, `--dir` (actions folder).
 
 ## `init`
 
@@ -44,20 +76,20 @@ pnpm dashild init --auth none --yes
 pnpm dashild init --dry-run
 ```
 
-Añade el panel a una app Next.js existente. Escribe solo el pegamento de la app:
+Adds the panel to an existing Next.js app. It writes only the app glue:
 
 ```text
-src/dashild/panel.ts          configuración y adaptador de auth a completar
-src/dashild/policies.ts       políticas fail-closed, sin recursos
-src/dashild/actions/index.ts  registro de handlers
-src/dashild/icons.tsx         IconProvider + iconos propios
+src/dashild/panel.ts          configuration and auth adapter to complete
+src/dashild/policies.ts       fail-closed policies, no resources
+src/dashild/actions/index.ts  handler registry
+src/dashild/icons.tsx         IconProvider + custom icons
 src/dashild/runtime.ts        Prisma + metadata + panel + policies
 src/dashild/server.ts         server actions (save/delete/action)
-src/dashild/registry.tsx      RegistryProvider para celdas/campos propios
-src/app/<ruta>/[[...dashild]]/page.tsx
+src/dashild/registry.tsx      RegistryProvider for custom cells/fields
+src/app/<route>/[[...dashild]]/page.tsx
 ```
 
-Con `--auth better-auth` añade además:
+With `--auth better-auth` it also writes:
 
 ```text
 src/lib/auth.ts
@@ -76,38 +108,45 @@ src/components/dashild/forgot-password-form.tsx
 src/components/dashild/reset-password-form.tsx
 ```
 
-Añade `better-auth` a `package.json` y los modelos `User`, `Session`, `Account`
-y `Verification` a `prisma/schema.prisma` si no existen. También añade
-`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP`,
-`REQUIRE_EMAIL_VERIFICATION`, `RESEND_API_KEY` y `EMAIL_FROM` a `.env.example`.
+It adds `better-auth` to `package.json` and the `User`, `Session`, `Account`, and
+`Verification` models to `prisma/schema.prisma` when they are missing. It also
+adds `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP`,
+`REQUIRE_EMAIL_VERIFICATION`, `RESEND_API_KEY`, and `EMAIL_FROM` to
+`.env.example`.
 
-La configuración generada activa rate limiting (100/minuto), permite cerrar el
-signup público con `ALLOW_SIGNUP="false"`, exige verificación con
-`REQUIRE_EMAIL_VERIFICATION="true"` y monta el flujo de reset de contraseña.
-`src/lib/email.ts` envía por Resend si `RESEND_API_KEY` está definido; sin él,
-registra el correo en desarrollo y falla en producción.
+The generated configuration enables rate limiting (100/minute), lets you close
+public signup with `ALLOW_SIGNUP="false"`, requires verification with
+`REQUIRE_EMAIL_VERIFICATION="true"`, and mounts the password reset flow.
+`src/lib/email.ts` sends through Resend when `RESEND_API_KEY` is set; otherwise
+it logs the email in development and throws in production.
 
-Añade el script `dashild` a `package.json` si falta. **No toca** `middleware.ts`/`proxy.ts`, el layout raíz, `next.config`, `.env` ni los archivos de autenticación.
+It adds the `dashild` script to `package.json` if missing. **It does not touch**
+`middleware.ts`/`proxy.ts`, the root layout, `next.config`, `.env`, or the auth
+files.
 
-- `--auth <none|better-auth>` elige la integración. Por defecto `none` para no tocar una autenticación existente.
-- `--path <ruta>` elige la ruta de montaje. Si `/admin` ya tiene una `page.tsx`, propone `/panel`, `/admin-panel` o `/dashild`.
-- `--yes` escribe; sin él, solo muestra el plan. `--dry-run` nunca escribe.
-- `--force` sobrescribe archivos existentes. Sin `--force`, se niega para no pisar trabajo manual.
-- Avisa si falta un cliente Prisma o alguna dependencia de Dashild.
+- `--auth <none|better-auth>` picks the integration. It defaults to `none` so an
+  existing auth setup is not touched.
+- `--path <route>` picks the mount route. If `/admin` already has a `page.tsx`,
+  it proposes `/panel`, `/admin-panel`, or `/dashild`.
+- `--yes` writes; without it, it only prints the plan. `--dry-run` never writes.
+- `--force` overwrites existing files. Without `--force`, it refuses to clobber
+  manual work.
+- It warns when a Prisma client or a Dashild dependency is missing.
 
-## `ui:add <componente>`
+## `ui:add <component>`
 
 ```bash
 pnpm dashild ui:add avatar-cell
 pnpm dashild ui:add email-field
 ```
 
-Copia una plantilla a `components/dashild/` (o `--dir`). Plantillas disponibles:
+Copies a template to `components/dashild/` (or `--dir`). Available templates:
 
-- `avatar-cell`: celda con iniciales.
-- `email-field`: campo de email con ayuda.
+- `avatar-cell`: initials cell.
+- `email-field`: email field with help text.
 
-No modifica `registry.tsx`: imprime la llamada `registerCell`/`registerField` que debes añadir. Opciones: `--cwd`, `--dir`, `--force`, `--dry-run`.
+It does not edit `registry.tsx`: it prints the `registerCell`/`registerField`
+call you need to add. Options: `--cwd`, `--dir`, `--force`, `--dry-run`.
 
 ## `doctor`
 
@@ -116,19 +155,21 @@ pnpm dashild doctor
 pnpm dashild doctor --json
 ```
 
-Parsea `src/dashild/resources/*.ts` (no los importa: `panel.ts` arrastra Next) y los compara con `dashild-metadata.json`:
+Parses `src/dashild/resources/*.ts` (without importing them: `panel.ts` pulls in
+Next) and compares them with `dashild-metadata.json`:
 
-- modelo y `navigation.slug`,
-- columnas, filtros y campos de formulario,
-- relaciones y su `display`,
-- campos de solo lectura en el formulario,
-- `policy` presente y con `scope`,
-- entrada del modelo en `policies.ts`,
-- handlers de acciones personalizadas en `actions/index.ts`,
-- predicados `requires` de acciones en `policies.ts`,
-- slugs duplicados.
+- model and `navigation.slug`,
+- columns, filters, and form fields,
+- relations and their `display`,
+- read-only fields in the form,
+- a `policy` with a `scope`,
+- the model entry in `policies.ts`,
+- custom action handlers in `actions/index.ts`,
+- action `requires` predicates in `policies.ts`,
+- duplicate slugs.
 
-Indica archivo y línea, sugiere el arreglo y sale con código 1 si hay errores. `--json` es para CI.
+It reports file and line, suggests the fix, and exits with code 1 on errors.
+`--json` is for CI.
 
 ## `eject`
 
@@ -137,23 +178,24 @@ pnpm dashild eject
 pnpm dashild eject --yes
 ```
 
-Retira lo que escribió `init`: `panel.ts`, `policies.ts`, `actions/index.ts`,
-`icons.tsx`, `runtime.ts`, `server.ts`, `registry.tsx`, la ruta de montaje y el
-script `dashild` de `package.json`. No toca recursos, autenticación, schema ni
-dependencias; los lista como “Kept”.
+Removes what `init` wrote: `panel.ts`, `policies.ts`, `actions/index.ts`,
+`icons.tsx`, `runtime.ts`, `server.ts`, `registry.tsx`, the mount route, and the
+`dashild` script in `package.json`. It does not touch resources, auth, the schema,
+or dependencies; it lists them as “Kept”.
 
-Sin `--yes` solo muestra el plan. Usa `--path` si no puede leer la ruta de
-`panel.ts` y `--dry-run` para forzar el modo simulación.
+Without `--yes` it only prints the plan. Use `--path` if it cannot read the route
+from `panel.ts`, and `--dry-run` to force simulation.
 
-## Comandos
+## Commands
 
-| Comando | Estado |
+| Command | Status |
 | --- | --- |
-| `init` | Funcionando |
-| `make:resource` | Funcionando |
-| `doctor` | Funcionando |
-| `ui:add` | Funcionando |
-| `eject` | Funcionando |
+| `init` | Working |
+| `make:resource` | Working |
+| `make:action` | Working |
+| `doctor` | Working |
+| `ui:add` | Working |
+| `eject` | Working |
 
 ## Tests
 
@@ -161,4 +203,7 @@ Sin `--yes` solo muestra el plan. Usa `--path` si no puede leer la ruta de
 pnpm --filter @dashild/cli test
 ```
 
-Verifican `make:resource`, `doctor`, `init`, `ui:add`, `register` y `eject` con proyectos y metadatos sintéticos: navegación, columnas, formulario, filtros, omisiones, nombres, plan de escritura, conflicto de ruta, registro de recursos y fallo cerrado.
+They cover `make:resource`, `make:action`, `doctor`, `init`, `ui:add`, `register`, and `eject`
+with synthetic projects and metadata: navigation, columns, form, filters,
+omissions, names, write plan, route conflict, resource registration, and
+fail-closed behavior.

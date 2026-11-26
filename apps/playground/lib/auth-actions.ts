@@ -58,7 +58,8 @@ export async function switchOrganization(formData: FormData): Promise<void> {
 export async function toggleTheme(formData: FormData): Promise<void> {
   const store = await cookies();
   const current = store.get(THEME_COOKIE)?.value;
-  const next: ThemeMode = current === "dark" ? "light" : "dark";
+  const next: ThemeMode =
+    current === "dark" ? "system" : current === "system" ? "light" : "dark";
 
   store.set(THEME_COOKIE, next, {
     httpOnly: false,

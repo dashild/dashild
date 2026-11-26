@@ -55,6 +55,16 @@ file is write-once: it never overwrites an existing resource.
 - `--no-register` leaves `panel.ts` and `policies.ts` untouched.
 - `--dir`, `--metadata`, `--cwd`, and `--dry-run` are available.
 
+## `make:action`
+
+```bash
+pnpm dashild make:action Customer export
+```
+
+Appends a typed handler stub to `src/dashild/actions/index.ts`. It does not
+edit the resource: declare the action in `table.actions` or `form.actions`.
+Running it twice does not duplicate the handler.
+
 ## `doctor`
 
 ```bash

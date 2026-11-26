@@ -4,7 +4,7 @@
 
 > Build products, not dashboards.
 
-Un recurso administrativo cuesta un archivo:
+An admin resource costs one file:
 
 ```bash
 pnpm dashild make:resource User
@@ -14,24 +14,24 @@ pnpm dashild make:resource User
 src/dashild/resources/user.ts
 ```
 
-Ese archivo describe la tabla, el formulario, los filtros y las acciones. No hay
-páginas que generar ni archivos que sincronizar. La seguridad (autorización y
-aislamiento de datos) no vive ahí: la aplica el servidor.
+That file describes the table, form, filters, and actions. There are no pages to
+generate and no files to keep in sync. Security (authorization and data
+isolation) does not live there: the server enforces it.
 
-**Estado: alpha.** Versión `0.1.0-alpha.6`. Todavía no es estable y la API puede cambiar entre versiones
-`alpha`.
+**Status: alpha.** Version `0.1.0-alpha.7`. It is not stable yet and the API may
+change between `alpha` releases.
 
-## Crear una app
+## Create an app
 
 ```bash
-pnpm create dashild@latest mi-app
+pnpm create dashild@latest my-app
 ```
 
-Pregunta starter (`basic` o `demo`), autenticación, base de datos y si migrar y
-sembrar. Para CI acepta flags y `--yes`:
+It asks for the starter (`basic` or `demo`), authentication, database, and
+whether to migrate and seed. For CI it accepts flags and `--yes`:
 
 ```bash
-npx create-dashild@latest mi-app \
+npx create-dashild@latest my-app \
   --template demo \
   --database postgresql \
   --database-url "$DATABASE_URL" \
@@ -39,137 +39,137 @@ npx create-dashild@latest mi-app \
   --yes
 ```
 
-Añade `--dry-run` para ver el plan sin escribir nada y `--list-templates` para
-listar los starters incluidos. La documentación completa está en el sitio de
-docs y en [`apps/docs`](apps/docs).
+Add `--dry-run` to print the plan without writing anything, and
+`--list-templates` to list the bundled starters. The full documentation is on
+the docs site and in [`apps/docs`](apps/docs).
 
-## Documentación
+## Documentation
 
-El sitio vive en `apps/docs` con Astro + Starlight:
+The site lives in `apps/docs` (Astro + Starlight):
 
-- **English (principal)**: <https://dashild.vercel.app>
-- **Español (espejo)**: <https://dashild.vercel.app/es>
+- **English (primary)**: <https://dashild.vercel.app>
+- **Spanish (mirror)**: <https://dashild.vercel.app/es>
 
 ```bash
-pnpm docs:dev      # servidor local
-pnpm docs:build    # build estático en apps/docs/dist
+pnpm docs:dev      # local server
+pnpm docs:build    # static build in apps/docs/dist
 ```
 
-El sitio está preparado para Vercel (Root Directory: `apps/docs`). Sin dominio
-propio usa el subdominio `*.vercel.app`; cuando exista dominio, define
-`SITE_URL` en Vercel para canonical, hreflang y sitemap.
+It is ready for Vercel (Root Directory: `apps/docs`). Without a custom domain it
+uses the `*.vercel.app` subdomain; when you have one, set `SITE_URL` in Vercel for
+canonical URLs, hreflang, and the sitemap.
 
-El contenido está en `apps/docs/src/content/docs` (inglés) y
-`apps/docs/src/content/docs/es` (español).
+Content lives in `apps/docs/src/content/docs` (English) and
+`apps/docs/src/content/docs/es` (Spanish).
 
-## Instalación manual
+## Manual installation
 
 ```bash
 pnpm add @dashild/core@alpha @dashild/admin@alpha @dashild/prisma@alpha
 pnpm add -D @dashild/cli@alpha
 ```
 
-Después:
+Then:
 
 ```bash
 pnpm dashild init --auth better-auth
 pnpm dashild make:resource User
 ```
 
-Si la app ya tiene autenticación propia, usa `dashild init --auth none` y conecta
-el adaptador de `src/dashild/panel.ts`.
+If the app already has its own auth, use `dashild init --auth none` and connect
+the adapter in `src/dashild/panel.ts`.
 
-## Qué incluye
+## What it includes
 
-- **Recursos como datos**: columnas, formulario, búsqueda, filtros y acciones en
-  un solo archivo.
-- **Relaciones**: gestores o2m/m2m en el detalle (crear, editar, eliminar,
-  asociar/desasociar y attach/detach).
-- **Tabla TanStack**: paginación, ordenación y filtros en servidor.
-- **Campos y celdas propias**: `registerCell`/`registerField` y `dashild ui:add`
-  para copiar plantillas al proyecto.
-- **Bytes**: escritura en base64 con selector de archivo.
-- **Políticas en servidor**: `scope` (aislamiento), `can` por acción, roles con
-  `hasRole` y organización activa.
-- **Better Auth**: login y signup, rate limiting, cierre de signup público,
-  verificación de email y reset de contraseña (con tu proveedor de email).
-- **CLI**: `init`, `make:resource`, `doctor`, `ui:add` y `eject`.
-- **Bases de datos**: PostgreSQL, MySQL/MariaDB y SQLite para desarrollo.
+- **Resources as data**: columns, form, search, filters, and actions in one file.
+- **Relations**: o2m/m2m managers in the detail page (create, edit, delete,
+  associate/detach, and attach/detach).
+- **TanStack table**: server-side pagination, sorting, and filters.
+- **Custom cells and fields**: `registerCell`/`registerField` and
+  `dashild ui:add` to copy templates into the project.
+- **Bytes**: base64 writes with a file picker.
+- **Server policies**: `scope` (isolation), per-action `can`, roles with
+  `hasRole`, and the active organization.
+- **Better Auth**: login and signup, rate limiting, public signup gate, email
+  verification, and password reset (with your email provider).
+- **CLI**: `init`, `make:resource`, `doctor`, `ui:add`, and `eject`.
+- **Databases**: PostgreSQL, MySQL/MariaDB, and SQLite for development.
 
-## Base de datos
+## Database
 
-Dashild no levanta la base de datos en Docker: apunta `DATABASE_URL` a un
-PostgreSQL, MySQL o SQLite que ya exista (Neon, Supabase, PlanetScale, Turso o un
-archivo local). Si usas un pooler, añade `DIRECT_URL` para las migraciones.
+Dashild does not start the database in Docker: point `DATABASE_URL` at a
+PostgreSQL, MySQL, or SQLite database that already exists (Neon, Supabase,
+PlanetScale, Turso, or a local file). If you use a pooler, add `DIRECT_URL` for
+migrations.
 
-SQLite escribe en `prisma/dev.db` por defecto. El scaffolder instala el binding
-nativo con el Node que ejecuta la app para que funcione también con pnpm.
+SQLite writes to `prisma/dev.db` by default. The scaffolder installs the native
+binding with the Node that runs the app so it also works with pnpm.
 
-## Estructura
+## Structure
 
 ```text
 packages/
-  core/            declaraciones + lógica isomorfa (+ subpath ./server)
-  admin/           runtime de cliente: shell, tabla, formulario y primitivas shadcn
-  prisma/          generador oficial de Prisma (metadatos)
-  cli/             binario `dashild` + plantillas copy-in
-  create-dashild/  `pnpm create dashild`: scaffold interactivo o por flags
+  core/            declarations + isomorphic logic (+ ./server subpath)
+  admin/           client runtime: shell, table, form, and shadcn primitives
+  prisma/          official Prisma generator (metadata)
+  cli/             `dashild` binary + copy-in templates
+  create-dashild/  `pnpm create dashild`: interactive or flag-driven scaffolder
 
 apps/
-  playground/      app de desarrollo y demo; no se publica en npm
-  docs/            sitio de documentación (Astro + Starlight), en/es
+  playground/      development and demo app; not published to npm
+  docs/            documentation site (Astro + Starlight), en/es
 
 examples/
-  existing-next-app/   FUERA del workspace: instalación real desde tarballs
+  existing-next-app/   OUTSIDE the workspace: real install from tarballs
 
-docs/              puntero a la documentación; la fuente está en apps/docs
+docs/              pointer to the docs; the source lives in apps/docs
 ```
 
-## Requisitos
+## Requirements
 
-- Node.js >= 22 (Node 20 está fuera de soporte y Prisma 7 lo rechaza).
-- pnpm, npm, yarn o bun para el proyecto.
-- PostgreSQL, MySQL/MariaDB o SQLite.
+- Node.js >= 22 (Node 20 is out of support and Prisma 7 rejects it).
+- pnpm, npm, yarn, or bun for the project.
+- PostgreSQL, MySQL/MariaDB, or SQLite.
 
-## Desarrollo
+## Development
 
 ```bash
 pnpm install
-pnpm build             # compila los paquetes en orden topológico
-pnpm dev               # tsc --watch en todos los paquetes
+pnpm build             # build packages in topological order
+pnpm dev               # tsc --watch in every package
 pnpm typecheck
-pnpm test              # mapeo, políticas, acciones y CLI
-pnpm docs:dev          # sitio de documentación en local
-pnpm docs:build        # build estático del sitio
-pnpm pack:all          # tarballs en artifacts/
+pnpm test              # mapping, policies, actions, and CLI
+pnpm docs:dev          # local docs site
+pnpm docs:build        # static docs build
+pnpm pack:all          # tarballs in artifacts/
 pnpm smoke:scaffold -- --pm pnpm --database sqlite
-pnpm release:verify    # comprueba que los tarballs publicados existen
+pnpm release:verify    # check that the published tarballs exist
 ```
 
-Los paquetes publican ESM compilado con `tsc` (`module: NodeNext`). Los imports
-relativos llevan extensión `.js`, también en el código fuente.
+Packages publish ESM compiled with `tsc` (`module: NodeNext`). Relative imports
+include the `.js` extension, including in source.
 
-## Reglas del repo
+## Repository rules
 
-- `packages/*` y `apps/*` viven en el workspace. `examples/*` no.
-- Un paquete se justifica por una razón técnica o de distribución, no por
-  estética. Hoy son cinco.
-- `internal/` está en `.gitignore`: la planificación no se publica.
-- El stack `@dashild/*` comparte versión; `create-dashild` puede adelantarse para
-  publicar un arreglo del scaffolder sin republicar el resto.
-- Todo el stack se publica con el tag `alpha`.
+- `packages/*` and `apps/*` live in the workspace. `examples/*` do not.
+- A package must be justified by a technical or distribution reason, not
+  aesthetics. Today there are five.
+- `internal/` is gitignored: planning is not published.
+- The `@dashild/*` stack shares a version; `create-dashild` may move ahead to
+  ship a scaffolder fix without republishing the rest.
+- The whole stack is published with the `alpha` tag.
 
-## Problemas comunes
+## Troubleshooting
 
-- **`127.0.0.1` no hidrata en desarrollo**: Next 16 solo acepta `localhost` por
-  defecto. El scaffold añade `allowedDevOrigins` para ambos; si usas otro dominio,
-  añádelo a `next.config.ts`.
-- **`better-sqlite3` con la ABI equivocada**: reinstala con el Node que ejecuta la
-  app (`node -v`) y `npm_config_target` igual a esa versión. El scaffolder ya lo
-  hace.
-- **`BETTER_AUTH_URL`**: debe coincidir con el origen real (`http://localhost:3000`
-  por defecto) o el login fallará por origen.
+- **`127.0.0.1` does not hydrate in development**: Next 16 only allows
+  `localhost` by default. The scaffold adds `allowedDevOrigins` for both; add any
+  other domain to `next.config.ts`.
+- **`better-sqlite3` with the wrong ABI**: reinstall with the Node that runs the
+  app (`node -v`) and `npm_config_target` set to that version. The scaffolder
+  already does this.
+- **`BETTER_AUTH_URL`**: it must match the real origin (`http://localhost:3000`
+  by default) or sign-in fails with an origin error.
 
-## Licencia
+## License
 
-MIT. Consulta [`LICENSE`](LICENSE).
+MIT. See [`LICENSE`](LICENSE).

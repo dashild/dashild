@@ -215,14 +215,17 @@ test("@updatedAt nunca está en el formulario", () => {
   assert.equal(mapping.editable, false);
 });
 
-test("Lista escalar: fuera del formulario y de la tabla, con aviso", () => {
+test("Scalar list: JSON array in the form and table", () => {
   const mapping = resolveFieldMapping(
     field({ name: "tags", isList: true }),
     context,
   );
-  assert.equal(mapping.column, false);
-  assert.equal(mapping.editable, false);
-  assert.match(mapping.warning ?? "", /tags/);
+  assert.equal(mapping.field, "list");
+  assert.equal(mapping.format, "json");
+  assert.equal(mapping.column, true);
+  assert.equal(mapping.editable, true);
+  assert.deepEqual(mapping.dto(["a", "b"]), ["a", "b"]);
+  assert.deepEqual(mapping.toDb(["a", "b"]), ["a", "b"]);
 });
 
 test("Bytes: base64, editable y convertido a Uint8Array", () => {

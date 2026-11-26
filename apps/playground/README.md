@@ -1,60 +1,83 @@
 # playground
 
-App Next.js 16 que **simula una aplicación que ya existía**. Es la demo y el entorno de desarrollo del panel; no se publica en npm.
+A Next.js 16 app that **pretends it already existed**. It is the demo and
+development environment for the panel; it is not published to npm.
 
-La regla es simple: todo lo que ves aquí lo tenía la app antes de Dashild. Si una pieza existe solo para que Dashild funcione, está en el sitio equivocado.
+The rule is simple: everything you see here belonged to the app before Dashild.
+If a piece exists only to make Dashild work, it is in the wrong place.
 
-## Stack de UI
+## UI stack
 
-- **Tailwind CSS v4 + shadcn/ui** (preset `radix-nova`, base Radix, iconos `lucide`).
-- Las primitivas shadcn viven en `@dashild/admin/ui/*`; la app las importa desde ahí. El shell también está en `@dashild/admin`.
-- `components/dashild/` solo conserva lo propio de esta app: login, signup, el layout de autenticación y el `IconProvider`.
-- Tailwind escanea el build del paquete con `@source` en `app/globals.css`; no hay CSS propio.
-- No hay `space-y-*`, colores crudos ni iconos con `size-4` dentro de un componente que ya los dimensiona.
+- **Tailwind CSS v4 + shadcn/ui** (preset `radix-nova`, Radix base, `lucide`
+  icons).
+- shadcn primitives live in `@dashild/admin/ui/*`; the app imports them from
+  there. The shell is also in `@dashild/admin`.
+- `components/dashild/` only keeps what belongs to this app: login, signup, the
+  auth layout, and the `IconProvider`.
+- Tailwind scans the package build with `@source` in `app/globals.css`; there is
+  no custom CSS.
+- No `space-y-*`, raw colors, or `size-4` icons inside a component that already
+  sizes them.
 
-## Autenticación: Better Auth
+## Authentication: Better Auth
 
-Better Auth 1.7 con el adapter de Prisma, email y contraseña.
+Better Auth 1.7 with the Prisma adapter, email and password.
 
 ```text
-lib/auth.ts                       configuración del servidor
-lib/auth-client.ts                cliente para login/signup
-lib/auth-actions.ts               signOut, tema y cambio de organización
-app/api/auth/[...all]/route.ts    handler de Better Auth
-lib/session.ts                    getCurrentUser (sesión + campos de dominio)
+lib/auth.ts                       server configuration
+lib/auth-client.ts                login/signup client
+lib/auth-actions.ts               signOut, theme, and organization switch
+app/api/auth/[...all]/route.ts    Better Auth handler
+lib/session.ts                    getCurrentUser (session + domain fields)
 ```
 
-- Los ids de usuario se generan como UUID (`advanced.database.generateId`) porque `User.id` es `@db.Uuid`.
-- El proxy solo comprueba la presencia de `better-auth.session_token`; la comprobación real la hace cada página con `auth.api.getSession`.
-- Un usuario recién registrado no tiene organización: el panel le muestra el dashboard, pero no verá datos cuando exista el aislamiento.
-- Credenciales de demo (tras `db:seed`): `ana@acme.test` / `dashild123`. También `bruno@beta.test` y `carla@acme.test`.
+- User ids are UUIDs (`advanced.database.generateId`) because `User.id` is
+  `@db.Uuid`.
+- The proxy only checks for the presence of `better-auth.session_token`; every
+  page performs the real check with `auth.api.getSession`.
+- A newly registered user has no organization: the panel shows the dashboard,
+  but data isolation hides rows until they belong to one.
+- Demo credentials (after `db:seed`): `ana@acme.test` / `dashild123`. Also
+  `bruno@beta.test` and `carla@acme.test`.
 
 ## Panel
 
-- `/admin` — shell con `sidebar-07`: selector de organización, grupos y recursos colapsables; header, tema y dashboard vacío si no hay recursos.
-- `/admin/users` — el recurso User.
-- `/login` y `/signup` — blocks `login-02` y `signup-02` adaptados a Better Auth.
-- `src/dashild/panel.ts` — ruta, marca, tema (`defaultMode`, `toggle`, `primary`), sidebar, ancho de contenido, recursos, `locale` y auth.
-- `locale: "es"` activa el catálogo español de core; el framework usa inglés por defecto. Los labels de recursos siguen siendo datos de la app.
-- El tema se guarda en la cookie `dashild_theme` y se aplica como `.dark` en el contenedor del panel, no en el `<html>`: Dashild no toca el layout raíz.
+- `/admin` — `sidebar-07` shell: organization switcher, collapsible groups and
+  resources, header, theme, and an empty dashboard when there are no resources.
+- `/admin/users` — the User resource.
+- `/login` and `/signup` — `login-02` and `signup-02` blocks adapted to Better
+  Auth.
+- `src/dashild/panel.ts` — route, brand, theme (`defaultMode`, `toggle`,
+  `primary`), sidebar, content width, resources, `locale`, and auth.
+- `locale: "es"` enables the Spanish core catalog; the framework defaults to
+  English. Resource labels remain app data.
+- The theme is stored in the `dashild_theme` cookie and applied as `.dark` on the
+  panel container, not on `<html>`: Dashild does not touch the root layout.
 
-### Estructura de `src/dashild`
+### `src/dashild` structure
 
 ```text
-panel.ts        configuración del panel (editar)
-policies.ts     seguridad: scopes y permisos (editar)
-icons.ts        overrides de iconos (opcional)
-resources/      un archivo por recurso (editar)
-actions/        handlers propios: index.ts + <modelo>.ts (editar si hay acciones)
+panel.ts        panel configuration (edit)
+policies.ts     security: scopes and permissions (edit)
+icons.tsx       icon overrides (optional)
+resources/      one file per resource (edit)
+actions/        custom handlers: index.ts + <model>.ts (edit when there are actions)
 runtime.ts      Prisma + metadata + panel + policies
-server/         metadata.ts, read.ts, write.ts (runtime de servidor, no editar)
+server/         metadata.ts, read.ts, write.ts (server runtime, do not edit)
 ```
 
-La regla: **arriba, lo que se edita; en `server/`, el pegamento que no deberías tocar**. El shell, la tabla, el formulario y el Zod de cliente viven en `@dashild/admin`; `lib/auth-actions.ts` es autenticación de la app, no handlers de recursos.
+The rule: **top is yours; `server/` is glue you should not touch**. The shell,
+table, form, and client Zod live in `@dashild/admin`; `lib/auth-actions.ts` is
+app authentication, not resource handlers.
 
-### Iconos y grupos
+### Icons and groups
 
-`navigation.group` coloca el recurso en un grupo del sidebar. `navigation.icon` acepta un nombre del mapa base de `packages/admin/src/components/nav-main.tsx` (`users`, `building`, `file-text`, `settings`, `database`, `folder`, `chart`, `package`, `shopping-cart`, `tag`, `calendar`, `mail`, `briefcase`, `credit-card`, `truck`, `layers`) **o uno propio declarado en `src/dashild/icons.ts`**:
+`navigation.group` places a resource in a sidebar group. `navigation.icon`
+accepts a name from the base map in
+`packages/admin/src/components/nav-main.tsx` (`users`, `building`, `file-text`,
+`settings`, `database`, `folder`, `chart`, `package`, `shopping-cart`, `tag`,
+`calendar`, `mail`, `briefcase`, `credit-card`, `truck`, `layers`) **or one
+declared in `src/dashild/icons.tsx`**:
 
 ```ts
 import { Rocket } from "lucide-react";
@@ -62,35 +85,45 @@ import { Rocket } from "lucide-react";
 export const icons = { rocket: Rocket };
 ```
 
-No hay comando para esto: es un archivo de la app, como `panel.ts`. Un nombre desconocido no rompe el panel: usa `Table2` y avisa por consola en desarrollo.
+There is no command for this: it is an app file, like `panel.ts`. An unknown name
+does not break the panel: it falls back to `Table2` and warns in the console in
+development.
 
 ### CRUD
 
-- `/admin/<slug>/create` — formulario de creación.
-- `/admin/<slug>/<id>` — detalle del registro.
-- `/admin/<slug>/<id>/edit` — formulario de edición.
-- Menú `...` por fila con Ver, Editar y Eliminar; el borrado pide confirmación.
-- Validación de cliente con React Hook Form + Zod y validación autoritativa en el servidor.
-- Errores de Prisma traducidos: P2002 a campo único, P2003 a relación, P2025/P2007 a “no existe”.
+- `/admin/<slug>/create` — create form.
+- `/admin/<slug>/<id>` — record detail.
+- `/admin/<slug>/<id>/edit` — edit form.
+- Row `...` menu with View, Edit, and Delete; delete asks for confirmation.
+- Client validation with React Hook Form + Zod and authoritative validation on
+  the server.
+- Translated Prisma errors: P2002 to unique field, P2003 to relation,
+  P2025/P2007 to "does not exist".
 
-`pnpm --filter playground db:write-smoke` crea, actualiza y borra un usuario con el mismo camino que la acción de servidor.
+`pnpm --filter playground db:write-smoke` creates, updates, and deletes a user
+through the same path as the server action.
 
-### Celdas y campos propios
+### Custom cells and fields
 
-`src/dashild/registry.tsx` registra `avatar` como celda y `email` como campo. El recurso los usa con `cell: "avatar"` y `component: "email"`. `AppRegistryProvider` envuelve `AdminPage` en la ruta.
+`src/dashild/registry.tsx` registers `avatar` as a cell and `email` as a field.
+The resource uses them with `cell: "avatar"` and `component: "email"`.
+`AppRegistryProvider` wraps `AdminPage` in the route.
 
-### Acciones
+### Actions
 
-Por defecto: `create`, `view`, `edit`, `delete` en tabla y `save`, `cancel` en formulario. Declarar `table.actions` o `form.actions` **reemplaza** la lista: si omites `delete`, desaparece.
+Defaults: `create`, `view`, `edit`, `delete` in the table and `save`, `cancel` in
+the form. Declaring `table.actions` or `form.actions` **replaces** the list: if
+you omit `delete`, it disappears.
 
-Los handlers propios viven en `src/dashild/actions/<modelo>.ts` y se registran en `actions/index.ts`:
+Custom handlers live in `src/dashild/actions/<model>.ts` and are registered in
+`actions/index.ts`:
 
 ```ts
 // src/dashild/actions/user.ts
 import type { ActionHandler } from "@dashild/core";
 
 export const actions = {
-  export: async ({ id }) => ({ ok: true, message: "Exportado." }),
+  export: async ({ id }) => ({ ok: true, message: "Exported." }),
 } satisfies Record<string, ActionHandler>;
 ```
 
@@ -99,63 +132,80 @@ export const actions = {
 table: {
   actions: [
     { name: "create", placement: "header" },
-    { name: "export", placement: "header", label: "Exportar Excel" },
+    { name: "export", placement: "header", label: "Export Excel" },
     { name: "view" },
     { name: "edit" },
   ],
 },
 ```
 
-`runResourceAction` resuelve el recurso desde el panel, comprueba la sesión, valida que la acción esté declarada y busca el handler. La lógica nunca cruza al cliente; el recurso solo lleva datos.
+`runResourceAction` resolves the resource from the panel, checks the session,
+validates that the action is declared, and finds the handler. Logic never crosses
+to the client; the resource only carries data.
 
-### Aislamiento
+### Isolation
 
-- `src/dashild/policies.ts` define `organizationOf`/`rolesOf` y, por recurso, un `scope` (fragmento `where`) y `can` (permisos).
-- Un recurso sin `policy` o sin entrada en `policies.resources` **falla cerrado**: el listado, el detalle y las escrituras devuelven denegado/404.
-- El ámbito se aplica a listado, `count`, detalle, actualización y borrado; las opciones de relación se filtran por la organización activa.
-- `can.create`/`can.update` impiden mover registros a otra organización; `can.delete` restringe el borrado y la UI oculta el botón cuando es falso.
-- La organización activa sale de la cookie del switcher, validada en servidor.
+- `src/dashild/policies.ts` defines `organizationOf`/`rolesOf` and, per resource,
+  a `scope` (a `where` fragment) and `can` (permissions).
+- A resource without `policy` or without an entry in `policies.resources` **fails
+  closed**: list, detail, and writes return denied/404.
+- The scope applies to list, `count`, detail, update, and delete; relation options
+  are filtered by the active organization.
+- `can.create`/`can.update` prevent moving records to another organization;
+  `can.delete` restricts deletion and the UI hides the button when it is false.
+- The active organization comes from the switcher cookie, validated on the
+  server.
 
-`pnpm --filter playground db:security-smoke` verifica A/B con Ana (org-1 admin), Bruno (org-2) y Carla (org-1): listados, detalle, organizaciones, opciones del formulario, permisos y fallo cerrado.
+`pnpm --filter playground db:security-smoke` checks A/B with Ana (org-1 admin),
+Bruno (org-2), and Carla (org-1): lists, detail, organizations, form options,
+permissions, and fail-closed behavior.
 
-`pnpm --filter playground db:scope-smoke` prueba la extensión `withDashildScope` con consultas directas de Prisma: Ana no ve ni modifica filas de Bruno. Es la segunda barrera para código que no pasa por el runtime.
+`pnpm --filter playground db:scope-smoke` tests the `withDashildScope` extension
+with direct Prisma queries: Ana cannot see or modify Bruno's rows. It is the
+second barrier for code that does not go through the runtime.
 
-`pnpm --filter playground db:bytes-smoke` verifica la escritura de `Bytes` (base64 ↔ `Uint8Array`). `db:relations-smoke` verifica el relation manager: lista hijos o2m/m2m, bloquea asociar/desasociar en o2m con FK obligatoria y attach/detach en m2m.
+`pnpm --filter playground db:bytes-smoke` checks `Bytes` writes (base64 ↔
+`Uint8Array`). `db:relations-smoke` checks the relation manager: lists o2m/m2m
+children, blocks associate/detach on o2m with a required FK, and allows
+attach/detach on m2m.
 
-El detalle de un usuario muestra los relation managers de `posts` y `labels`, con crear/editar/eliminar y las acciones permitidas por la política.
+The user detail page shows the `posts` and `labels` relation managers, with
+create/edit/delete and the actions allowed by the policy.
 
-### Selector de organización
+### Organization switcher
 
-El team switcher de `sidebar-07` es el selector de organización. La cookie `dashild_organization` se valida en servidor en cada petición:
+The `sidebar-07` team switcher is the organization selector. The
+`dashild_organization` cookie is validated on the server on every request:
 
-- `ADMIN`: puede cambiar a cualquier organización.
-- `USER`: solo a la suya; una cookie manipulada se ignora.
+- `ADMIN`: can switch to any organization.
+- `USER`: only to their own; a manipulated cookie is ignored.
 
-Hoy el selector cambia la organización activa que devuelve `getCurrentUser`, pero el listado todavía no filtra por ella: el aislamiento de datos es el Bloque 4.
+## Database
 
-## Base de datos
-
-Postgres de lerd, base `playground`, en `127.0.0.1:5432`.
+lerd PostgreSQL, `playground` database, at `127.0.0.1:5432`.
 
 ```bash
 pnpm --filter playground prisma:generate
-pnpm --filter playground db:push     # sincroniza el schema
-pnpm --filter playground db:seed     # RESETEA usuarios y posts, y crea cuentas Better Auth
-pnpm --filter playground db:smoke    # lee tipos crudos de Prisma
+pnpm --filter playground db:push     # sync the schema
+pnpm --filter playground db:seed     # RESETS users and posts, creates Better Auth accounts
+pnpm --filter playground db:smoke    # read raw Prisma types
 ```
 
-`prisma.config.ts` es la única fuente de la URL para el CLI. Prisma 7 no acepta `url` en el schema ni carga `.env` solo, por eso el config importa `dotenv/config`.
+`prisma.config.ts` is the only source of the URL for the CLI. Prisma 7 does not
+accept `url` in the schema and does not load `.env` on its own, which is why the
+config imports `dotenv/config`.
 
-Si el panel devuelve `P1001`, el servicio de Postgres está parado: `lerd service start postgres`.
+If the panel returns `P1001`, the PostgreSQL service is stopped:
+`lerd service start postgres`.
 
-## Comandos
+## Commands
 
 ```bash
 pnpm --filter playground dev       # http://localhost:3100
 pnpm --filter playground build
-pnpm --filter playground typecheck # requiere prisma:generate antes
+pnpm --filter playground typecheck # requires prisma:generate first
 ```
 
-## Requisitos
+## Requirements
 
 Node.js >= 22.

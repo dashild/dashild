@@ -43,6 +43,11 @@ export function formatCell(
         </Badge>
       );
     }
+    case "currency":
+      return new Intl.NumberFormat(intlLocale, {
+        style: "currency",
+        currency: column.currency ?? "USD",
+      }).format(Number(value));
     case "datetime":
       return new Intl.DateTimeFormat(intlLocale, {
         dateStyle: "medium",

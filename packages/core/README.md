@@ -1,77 +1,88 @@
 # @dashild/core
 
-Declaraciones públicas y lógica isomorfa. **No puede importar React ni Prisma**: lo consume tanto el servidor como `registry.tsx` en el cliente. Sí depende de `zod`, que es isomorfo y es el mismo esquema en ambos lados.
+Public declarations and isomorphic logic. **It cannot import React or Prisma**:
+both the server and `registry.tsx` on the client consume it. It does depend on
+`zod`, which is isomorphic and provides the same schema on both sides.
 
-## Superficie pública
+## Public surface
 
 ```ts
-// Declaraciones (datos serializables)
-export { defineResource, definePanel, definePolicies, hasRole }
-export type { CurrentUser, PolicyContext, PoliciesDefinition }
+// Declarations (serializable data)
+export { defineResource, definePanel, definePolicies, hasRole };
+export type { CurrentUser, PolicyContext, PoliciesDefinition };
 
-// Registro de la app (componentes, no datos)
-export { registerCell, registerField }
+// App registry (components, not data)
+export { registerCell, registerField };
 
-// Contrato de metadatos (DMMF → JSON)
-export type { FieldMetadata, ModelMetadata, EnumMetadata, DashildMetadata }
-export { METADATA_FORMAT_VERSION }
+// Metadata contract (DMMF → JSON)
+export type { FieldMetadata, ModelMetadata, EnumMetadata, DashildMetadata };
+export { METADATA_FORMAT_VERSION };
 
-// Tabla de mapeo de tipos
+// Type mapping table
 export {
-  SCALAR_MAPPINGS,          // Prisma → zod / campo / celda / dto / toDb
-  resolveFieldMapping,      // campo del DMMF → mapeo resuelto
-  buildFieldSchema,         // + obligatoriedad según la operación
-  buildObjectSchema,        // fila completa de formulario
+  SCALAR_MAPPINGS, // Prisma → zod / field / cell / dto / toDb
+  resolveFieldMapping, // DMMF field → resolved mapping
+  buildFieldSchema, // + requiredness for the operation
+  buildObjectSchema, // full form row
   mappingContext,
-}
+};
 ```
 
-## Celdas y campos propios
+## Custom cells and fields
 
-`registerCell(name, component)` y `registerField(name, component)` guardan
-renderers para el cliente. El recurso los referencia con datos:
+`registerCell(name, component)` and `registerField(name, component)` store
+renderers for the client. Resources reference them with data:
 
 ```ts
 table: { columns: [{ field: "name", cell: "avatar" }] }
 form: { fields: [{ field: "email", type: "email", component: "email" }] }
 ```
 
-`registerCell`/`registerField` se llaman desde un módulo cliente
-(`src/dashild/registry.tsx`) y el renderer se sirve con `RegistryProvider`.
-Core no importa React: el tipo es deliberadamente genérico.
+`registerCell`/`registerField` are called from a client module
+(`src/dashild/registry.tsx`), and the renderer is served through
+`RegistryProvider`. Core does not import React: the type is deliberately
+generic.
 
-## `metadata.ts` y `mapping.ts`
+## `metadata.ts` and `mapping.ts`
 
-Son el mismo contrato visto desde dos lados:
+They are the same contract seen from two sides:
 
-- `metadata.ts` define lo que el generador extrae del DMMF. Datos planos, serializables.
-- `mapping.ts` define qué hace Dashild con cada tipo. Es la especificación ejecutable de `Architecture.md` §10.
+- `metadata.ts` defines what the generator extracts from the DMMF. Flat,
+  serializable data.
+- `mapping.ts` defines what Dashild does with each type. It is the executable
+  specification of `Architecture.md` §10.
 
-Viven en core y no en `@dashild/prisma` porque los necesita el runtime del servidor (autoridad de validación y DTO) y el CLI (scaffold), no solo el generador. `@dashild/prisma` los re-exporta.
+They live in core, not in `@dashild/prisma`, because the server runtime
+(validation and DTO authority) and the CLI (scaffold) need them, not just the
+generator. `@dashild/prisma` re-exports them.
 
-`mapping.ts` expone **`dto` y `toDb`**: la conversión de ida y de vuelta. Sin la vuelta, el esquema Zod promete algo que Prisma rechaza (`BigInt` como string).
+`mapping.ts` exposes **`dto` and `toDb`**: the conversion in both directions.
+Without the return path, the Zod schema promises something Prisma rejects (for
+example, `BigInt` as a string).
 
 ## `./server`
 
-Subpath con la superficie de servidor. Nunca se importa desde un componente cliente:
+A subpath with the server surface. Never import it from a client component:
 
 - `createDashildRuntime({ prisma, metadata, resources, policies, actions })`:
-  listado, detalle, opciones, escritura y acciones.
-- `withDashildScope({ resources, policies, user })`: extensión de Prisma que
-  aplica el `where` de la política a consultas directas.
-- `runtime.client(user)`: cliente Prisma ya extendido para código propio.
-- `runtime.relationManagers(...)` y `runtime.relationAction(...)`: relation manager
-  o2m/m2m (listar, asociar, desasociar, attach, detach, delete).
-- `canPerform`, `resolvePolicy`, `withScope` y la conversión a DTO.
+  list, detail, options, writes, and actions.
+- `withDashildScope({ resources, policies, user })`: a Prisma extension that
+  applies the policy `where` to direct queries.
+- `runtime.client(user)`: a Prisma client already extended for your own code.
+- `runtime.relationManagers(...)` and `runtime.relationAction(...)`: o2m/m2m
+  relation manager (list, associate, detach, attach, delete).
+- `canPerform`, `resolvePolicy`, `withScope`, and DTO conversion.
 
-Mantenerlo como subpath (y no como paquete aparte) evita multiplicar nombres de paquete: el bundle no arrastra Prisma porque el cliente no importa `@dashild/core/server`.
+Keeping it as a subpath (instead of a separate package) avoids multiplying
+package names: the client never imports `@dashild/core/server`, so the browser
+bundle does not pull in Prisma.
 
-## Políticas y roles
+## Policies and roles
 
-`PolicyContext` lleva `user`, `organizationId` y `roles`. La organización y los
-roles se resuelven con `organizationOf`/`rolesOf` si están definidos; si no, se
-usan `user.organizationId` y `user.roles`. Eso permite que `getCurrentUser`
-devuelva el contexto directamente:
+`PolicyContext` carries `user`, `organizationId`, and `roles`. The organization
+and roles are resolved with `organizationOf`/`rolesOf` when defined; otherwise
+`user.organizationId` and `user.roles` are used. That lets `getCurrentUser`
+return the context directly:
 
 ```ts
 export const policies = definePolicies<CurrentUser>({
@@ -85,8 +96,8 @@ export const policies = definePolicies<CurrentUser>({
 });
 ```
 
-`hasRole(ctx, ...roles)` devuelve `true` si el contexto tiene al menos uno. Si no
-hay `scope` ni entrada en `policies.ts`, el runtime falla cerrado.
+`hasRole(ctx, ...roles)` returns `true` when the context has at least one of
+them. Without a `scope` or an entry in `policies.ts`, the runtime fails closed.
 
 ## Tests
 
@@ -94,4 +105,6 @@ hay `scope` ni entrada en `policies.ts`, el runtime falla cerrado.
 pnpm --filter @dashild/core test
 ```
 
-Compila `src` + `test` a `dist-test/` y ejecuta con `node --test`. `test/mapping.test.ts` es la especificación: 21 casos sobre el schema hostil (Decimal, BigInt, Json, enums, relaciones, opcionales, tipos desconocidos).
+Compiles `src` + `test` into `dist-test/` and runs with `node --test`.
+`test/mapping.test.ts` is the specification: 21 cases over the hostile schema
+(Decimal, BigInt, Json, enums, relations, optionals, unknown types).

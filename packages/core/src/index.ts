@@ -55,6 +55,8 @@ export interface ColumnDefinition {
   display?: string;
   /** Mapa valor -> tono, para celdas de tipo badge. */
   tone?: Record<string, string>;
+  /** ISO 4217 code for `format: "currency"` (defaults to USD). */
+  currency?: string;
 }
 
 export interface FilterDefinition {
@@ -187,8 +189,8 @@ export interface PanelBrand {
 }
 
 export interface PanelTheme {
-  /** Modo inicial. El usuario puede cambiarlo si `toggle` es true. */
-  defaultMode?: "light" | "dark";
+  /** Initial mode. The user can switch it when `toggle` is true. */
+  defaultMode?: "light" | "dark" | "system";
   /** Show the light/dark toggle in the header. */
   toggle?: boolean;
   /** Paleta primaria de shadcn. */

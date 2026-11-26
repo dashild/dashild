@@ -66,9 +66,11 @@ panel y `group` agrupa recursos en el sidebar. `icon` lo resuelve el shell
 - `pageSize`: tamaño de página opcional.
 - `actions`: acciones de cabecera o de fila (ver abajo).
 
-`format` cubre fechas, números, booleanos y `badge`; `tone` asigna color a los
-valores del badge. `cell` apunta a un componente registrado con `registerCell`
-(ver [Personalización](/es/guides/customization/)).
+`format` cubre fechas, números, currency, booleanos, JSON y `badge`; `tone`
+asigna color a los valores del badge. Para dinero `Decimal`, usa
+`format: "currency", currency: "EUR"`. Las listas escalares se muestran y editan
+como un array JSON. `cell` apunta a un componente registrado con
+`registerCell` (ver [Personalización](/es/guides/customization/)).
 
 Para relaciones, usa el nombre de la relación en `field` y el campo visible en
 `display`:

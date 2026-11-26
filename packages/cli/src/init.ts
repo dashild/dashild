@@ -1212,7 +1212,7 @@ export async function saveResource(input: {
   if (!result.ok) return result;
 
   revalidatePath(\`\${panel.path}/\${input.slug}\`);
-  redirect(\`\${panel.path}/\${input.slug}\`);
+  redirect(\`\${panel.path}/\${input.slug}?flash=saved\`);
 }
 
 export async function deleteResource(input: {
@@ -1228,7 +1228,7 @@ export async function deleteResource(input: {
   if (!result.ok) return result;
 
   revalidatePath(\`\${panel.path}/\${input.slug}\`);
-  redirect(\`\${panel.path}/\${input.slug}\`);
+  redirect(\`\${panel.path}/\${input.slug}?flash=deleted\`);
 }
 
 export async function runResourceAction(

@@ -24,8 +24,10 @@ export const panel = definePanel({
 ```
 
 `primary` acepta una paleta de shadcn/Tailwind (`zinc`, `slate`, `blue`,
-`emerald`, etc.). `locale` cambia las etiquetas y los mensajes de validación
-integrados.
+`emerald`, etc.). `theme.defaultMode` acepta `light`, `dark` o `system`; `system`
+sigue `prefers-color-scheme` y reacciona a los cambios. `locale` cambia las
+etiquetas y los mensajes de validación integrados. `domain` es metadata opcional para URLs absolutas; Next enruta por
+host, así que Dashild no lo usa para enrutar peticiones.
 
 ## Celdas y campos
 

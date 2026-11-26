@@ -1,48 +1,48 @@
 # @dashild/docs
 
-Sitio de documentación de Dashild con Astro + Starlight.
+Dashild documentation site built with Astro + Starlight.
 
-- Inglés en `/` (idioma principal).
-- Español en `/es` (espejo traducido).
-- Contenido: `src/content/docs` para inglés y `src/content/docs/es` para español.
-- Búsqueda con Pagefind, modo claro/oscuro y selector de idioma incluidos.
+- English at `/` (primary language).
+- Spanish at `/es` (translated mirror).
+- Content: `src/content/docs` for English and `src/content/docs/es` for Spanish.
+- Pagefind search, light/dark mode, and a language picker included.
 
 ```bash
-pnpm docs:dev      # desde la raíz del monorepo
+pnpm docs:dev      # from the monorepo root
 pnpm docs:build
 pnpm docs:preview
 ```
 
-El despliegue es estático: `apps/docs/dist`. Producción:
-<https://dashild.vercel.app> (inglés) y <https://dashild.vercel.app/es>
-(español). Cuando haya dominio propio, define `SITE_URL` en Vercel.
+The deployment is static: `apps/docs/dist`. Production:
+<https://dashild.vercel.app> (English) and <https://dashild.vercel.app/es>
+(Spanish). When a custom domain exists, set `SITE_URL` in Vercel.
 
-## Versiones
+## Versions
 
-Astro queda en 6.x y Starlight en 0.40.x a propósito. Astro 7 usa Vite 8 y
-Rolldown, cuyo binario x64 requiere AVX2; esta máquina no lo tiene y el build
-muere con SIGILL. Actualiza cuando el hardware (o un CI con AVX2) lo soporte.
+Astro stays on 6.x and Starlight on 0.40.x on purpose. Astro 7 uses Vite 8 and
+Rolldown, whose x64 binary requires AVX2; this machine does not have it and the
+build dies with SIGILL. Upgrade when the hardware (or a CI runner with AVX2)
+supports it.
 
-La búsqueda usa Pagefind. El binario de indexado es nativo y necesita AVX2; en
-esta máquina el build local no genera `dist/pagefind` (el CI sí, porque sus
-runners tienen AVX2). Para construir en local sin buscador y evitar que el hook
-nativo corte el sitemap:
+Search uses Pagefind. Its indexing binary is native and requires AVX2; on this
+machine the local build does not generate `dist/pagefind` (CI does, because its
+runners have AVX2). To build locally without search and avoid the native hook
+cutting off the sitemap:
 
 ```bash
 DOCS_PAGEFIND=false pnpm docs:build
 ```
 
-## Deploy en Vercel
+## Deploy on Vercel
 
-1. Importa el repositorio en Vercel y pon **Root Directory** en `apps/docs`.
+1. Import the repository in Vercel and set **Root Directory** to `apps/docs`.
 2. Framework: **Astro**. Build: `pnpm build`; Output: `dist`.
-3. Sin dominio propio, Vercel asigna `<proyecto>.vercel.app`. El sitio toma la
-   URL de producción de `VERCEL_PROJECT_PRODUCTION_URL` para canonical,
-   hreflang y sitemap.
-4. Cuando tengas dominio, define `SITE_URL=https://docs.tudominio.com` en las
-   variables de entorno de Vercel.
+3. Without a custom domain, Vercel assigns `<project>.vercel.app`. The site uses
+   `VERCEL_PROJECT_PRODUCTION_URL` for canonical URLs, hreflang, and the sitemap.
+4. When you have a domain, set `SITE_URL=https://docs.yourdomain.com` in the
+   Vercel environment variables.
 
-También puedes desplegar desde la CLI:
+You can also deploy from the CLI:
 
 ```bash
 vercel --cwd apps/docs

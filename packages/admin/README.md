@@ -1,36 +1,41 @@
 # @dashild/admin
 
-Runtime del panel: shell, tabla, formulario y primitivas shadcn. El subpath
-`./server` monta la ruta y no entra en el bundle del navegador; el resto sí.
+Panel runtime: shell, table, form, and shadcn primitives. The `./server` subpath
+mounts the route and does not enter the browser bundle; everything else does.
 
-## Contenido
+## Contents
 
-- `AdminPage` (`@dashild/admin/server`): resuelve sesión, recurso, políticas y datos, y monta el shell. La ruta de la app queda en pocas líneas.
-- `AdminShell`: sidebar, cabecera, tema, toasts y contenedor del panel.
-- `ResourceTable`/`DataTable` (TanStack), `ResourceDetail`, `ResourceForm` y sus acciones.
-- `RelationManager` para o2m/m2m en el detalle: crear/editar/eliminar, asociar/desasociar y attach/detach.
-- `BytesField` y `RelationMultiSelect` para campos `bytes` y relaciones m2m.
+- `AdminPage` (`@dashild/admin/server`): resolves session, resource, policies,
+  and data, then mounts the shell. The app route stays a few lines long.
+- `AdminShell`: sidebar, header, theme, toasts, and panel container.
+- `ResourceTable`/`DataTable` (TanStack), `ResourceDetail`, `ResourceForm`, and
+  their actions.
+- `RelationManager` for o2m/m2m in the detail page: create/edit/delete,
+  associate/detach, and attach/detach.
+- `BytesField` and `RelationMultiSelect` for `bytes` fields and m2m relations.
 - `DashboardHome`, `NavMain`, `NavUser`, `SiteHeader`, `OrganizationSwitcher`.
-- `IconProvider`/`useIcons`: registro de iconos de la app.
-- `RegistryProvider`/`useRegistry`: celdas y campos propios. `ColumnDefinition.cell`
-  elige una celda; `FieldDefinition.component` elige un campo.
-- `buildFormSchema`: Zod de cliente, la misma validación que aplica el servidor.
-- `ui/*`: primitivas shadcn autocontenidas (`@dashild/admin/ui/button`, etc.).
-- Tipos de acciones (`SaveAction`, `DeleteAction`, `RunAction`) para que la app
-  pase sus server actions sin acoplar el paquete.
+- `IconProvider`/`useIcons`: the app's icon registry.
+- `RegistryProvider`/`useRegistry`: custom cells and fields.
+  `ColumnDefinition.cell` picks a cell; `FieldDefinition.component` picks a
+  field.
+- `buildFormSchema`: client Zod, the same validation the server applies.
+- `ui/*`: self-contained shadcn primitives (`@dashild/admin/ui/button`, etc.).
+- Action types (`SaveAction`, `DeleteAction`, `RunAction`) so the app can pass
+  its server actions without coupling the package.
 
-## Reglas
+## Rules
 
-- `"use client"` en los módulos que lo necesiten. El build conserva el directive.
-- Nunca importa `@/dashild/policies`, `panel.ts`, el cliente de Prisma ni las
-  acciones de la app. La página pasa datos serializables y server actions.
-- Los iconos, celdas y campos son componentes React: no se pueden serializar.
-  El shell los lee de `IconProvider` y `RegistryProvider`, que la app monta en
-  módulos cliente (`src/dashild/icons.tsx`, `src/dashild/registry.tsx`).
-- React, React DOM y Next son `peerDependencies`.
-- El CSS del shell se escanea desde la app con `@source`; no hay CSS propio.
+- `"use client"` on the modules that need it. The build preserves the directive.
+- It never imports `@/dashild/policies`, `panel.ts`, the Prisma client, or the
+  app's actions. The page passes serializable data and server actions.
+- Icons, cells, and fields are React components: they cannot be serialized. The
+  shell reads them from `IconProvider` and `RegistryProvider`, which the app
+  mounts in client modules (`src/dashild/icons.tsx`,
+  `src/dashild/registry.tsx`).
+- React, React DOM, and Next are `peerDependencies`.
+- The shell CSS is scanned from the app with `@source`; there is no custom CSS.
 
-## Uso
+## Usage
 
 ```tsx
 // app/admin/[[...dashild]]/page.tsx (Server Component)
@@ -52,6 +57,6 @@ return (
 );
 ```
 
-`AdminPage` recibe el runtime de datos (`@dashild/core/server`) y las server
-actions de la app. `ResourceTable` y `ResourceForm` también se pueden usar por
-separado si una app necesita una pantalla propia.
+`AdminPage` receives the data runtime (`@dashild/core/server`) and the app's
+server actions. `ResourceTable` and `ResourceForm` can also be used separately
+when an app needs a custom screen.

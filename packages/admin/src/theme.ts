@@ -8,7 +8,7 @@ import type { PanelColor } from "@dashild/core";
  * Tailwind class.
  */
 
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "light" | "dark" | "system";
 
 /** Default panel mode. The app mirrors it in the root layout. */
 export const DEFAULT_THEME_MODE: ThemeMode = "dark";

@@ -1,28 +1,30 @@
 # existing-next-app
 
-**Este example está fuera del workspace a propósito.**
+**This example is outside the workspace on purpose.**
 
-No aparece en `pnpm-workspace.yaml` y tiene su propio `node_modules` y lockfile.
-Consume los paquetes de Dashild desde tarballs (`pnpm pack`) o desde versiones
-publicadas, nunca por `workspace:*`.
+It does not appear in `pnpm-workspace.yaml` and has its own `node_modules` and
+lockfile. It consumes Dashild packages from tarballs (`pnpm pack`) or from
+published versions, never through `workspace:*`.
 
-## Por qué
+## Why
 
-Un example dentro del workspace prueba un monorepo. Este prueba una instalación:
+An example inside the workspace tests a monorepo. This one tests an installation:
 
-- Resolución de `exports` y subpaths (`@dashild/admin/server`, `@dashild/core/server`).
-- Dependencias que faltan en `dependencies` porque en el workspace estaban hoisteadas.
-- `"use client"` sobreviviendo a `node_modules`.
-- `sideEffects` mal puesto.
-- Imports `@/` que no se resuelven.
-- Tailwind escaneando el build del paquete (`@source`).
+- `exports` and subpath resolution (`@dashild/admin/server`,
+  `@dashild/core/server`).
+- Dependencies missing from `dependencies` because they were hoisted in the
+  workspace.
+- `"use client"` surviving `node_modules`.
+- Incorrect `sideEffects`.
+- `@/` imports that do not resolve.
+- Tailwind scanning the package build (`@source`).
 
-Son exactamente los fallos que hacen que un framework parezca roto en la primera
-hora de un usuario, y ninguno aparece si el example comparte el workspace.
+These are exactly the failures that make a framework look broken in a user's
+first hour, and none of them show up if the example shares the workspace.
 
-## Cómo se prueba
+## How to test it
 
-Desde la raíz de Dashild:
+From the Dashild root:
 
 ```bash
 pnpm build
@@ -32,9 +34,9 @@ for pkg in core admin prisma cli create-dashild; do
 done
 ```
 
-`create-dashild` no lleva scope (`--filter create-dashild`).
+`create-dashild` is unscoped (`--filter create-dashild`).
 
-Después, en el example:
+Then, in the example:
 
 ```bash
 pnpm install
@@ -47,28 +49,31 @@ pnpm dashild doctor
 pnpm build
 ```
 
-`make:resource` no inventa la política. Hay que añadir `policy` al recurso y una
-entrada en `src/dashild/policies.ts`; hasta entonces el runtime falla cerrado.
+`make:resource` does not invent the policy. Add `policy` to the resource and an
+entry to `src/dashild/policies.ts`; until then the runtime fails closed.
 
-Para tarballs locales, pnpm 12 ignora `pnpm.overrides` de `package.json`. El
-example necesita un `pnpm-workspace.yaml`:
+For local tarballs, pnpm 12 ignores `pnpm.overrides` in `package.json`. The
+example needs a `pnpm-workspace.yaml`:
 
 ```yaml
 overrides:
   "@dashild/core": "file:../tarballs/dashild-core-0.0.0.tgz"
 ```
 
-Sin ese override, `@dashild/admin` intenta resolver `@dashild/core@0.0.0` en el
-registro. Con versiones publicadas no hace falta.
+Without that override, `@dashild/admin` tries to resolve `@dashild/core@0.0.0`
+from the registry. Published versions do not need it.
 
-## Qué se verificó
+## What was verified
 
-- `init` escribe panel, políticas, actions, iconos, runtime, server actions y ruta.
-- `init` **no modifica** `app/layout.tsx`, `app/login/page.tsx`, `proxy.ts`,
-  `next.config.ts` ni `src/lib/auth.ts` (checksums antes/después).
-- Un segundo `init` sale con código 1 y no sobrescribe.
-- `make:resource Customer` genera el recurso; `doctor` da 0 errores.
-- `/admin`, listado, creación, detalle y edición responden 200; slug desconocido 404.
-- Quitar `policy` del recurso devuelve 404; restaurarla devuelve 200.
-- El runtime creado (`src/dashild/runtime.ts`) crea, lista, actualiza y borra.
-- `next build` compila y Tailwind incluye las clases del paquete instalado.
+- `init` writes the panel, policies, actions, icons, runtime, server actions, and
+  route.
+- `init` **does not modify** `app/layout.tsx`, `app/login/page.tsx`, `proxy.ts`,
+  `next.config.ts`, or `src/lib/auth.ts` (checksums before/after).
+- A second `init` exits with code 1 and does not overwrite anything.
+- `make:resource Customer` generates the resource; `doctor` reports 0 errors.
+- `/admin`, list, create, detail, and edit return 200; an unknown slug returns
+  404.
+- Removing `policy` from the resource returns 404; restoring it returns 200.
+- The generated runtime (`src/dashild/runtime.ts`) creates, lists, updates, and
+  deletes.
+- `next build` compiles and Tailwind includes the installed package classes.

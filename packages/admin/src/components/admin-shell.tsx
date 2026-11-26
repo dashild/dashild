@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+
 import { cn } from "cn";
 
 import type { Locale, PanelColor } from "@dashild/core";
@@ -8,6 +10,7 @@ import { SidebarInset, SidebarProvider } from "../ui/sidebar.js";
 import { Toaster } from "../ui/sonner.js";
 import { TooltipProvider } from "../ui/tooltip.js";
 import { AppSidebar } from "./app-sidebar.js";
+import { FlashToast } from "./flash-toast.js";
 import type { NavGroup } from "./nav-main.js";
 import { PanelTheme } from "./panel-theme.js";
 import { SiteHeader } from "./site-header.js";
@@ -101,6 +104,9 @@ export function AdminShell({
           </SidebarInset>
         </SidebarProvider>
       </TooltipProvider>
+      <Suspense fallback={null}>
+        <FlashToast locale={locale} />
+      </Suspense>
       <Toaster theme={theme} />
     </PanelTheme>
   );

@@ -25,5 +25,7 @@ export async function getThemeMode(
 ): Promise<ThemeMode> {
   const store = await cookies();
   const value = store.get(THEME_COOKIE)?.value;
-  return value === "dark" || value === "light" ? value : fallback;
+  return value === "dark" || value === "light" || value === "system"
+    ? value
+    : fallback;
 }

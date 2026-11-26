@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Controller, useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -98,6 +98,42 @@ function formValue(field: FieldDefinition, value: unknown): unknown {
   }
 
   return String(value);
+}
+
+function ListField({
+  id,
+  value,
+  onChange,
+  onBlur,
+}: {
+  id: string;
+  value: unknown;
+  onChange: (value: unknown) => void;
+  onBlur: () => void;
+}) {
+  const [text, setText] = useState(() =>
+    JSON.stringify(Array.isArray(value) ? value : [], null, 2),
+  );
+
+  return (
+    <Textarea
+      id={id}
+      value={text}
+      onChange={(event) => {
+        const next = event.target.value;
+        setText(next);
+        try {
+          const parsed = JSON.parse(next);
+          if (Array.isArray(parsed)) onChange(parsed);
+        } catch {
+          // Keep the last valid array in the form until the JSON is fixed.
+        }
+      }}
+      onBlur={onBlur}
+      rows={4}
+      className="font-mono text-xs"
+    />
+  );
 }
 
 export function ResourceForm({
@@ -346,6 +382,16 @@ function renderControl(
           onBlur={control.onBlur}
           rows={6}
           className="font-mono text-xs"
+        />
+      );
+
+    case "list":
+      return (
+        <ListField
+          id={id}
+          value={control.value}
+          onChange={control.onChange}
+          onBlur={control.onBlur}
         />
       );
 

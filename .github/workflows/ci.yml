@@ -57,10 +57,16 @@ jobs:
         include:
           - pm: npm
             database: sqlite
+            url: ""
           - pm: pnpm
             database: sqlite
+            url: ""
           - pm: npm
             database: postgresql
+            url: postgresql://postgres:lerd@127.0.0.1:5432/dashild_ci
+          - pm: npm
+            database: mysql
+            url: mysql://root:lerd@127.0.0.1:3306/dashild_ci
     services:
       postgres:
         image: postgres:16
@@ -75,6 +81,18 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: lerd
+          MYSQL_DATABASE: dashild_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -plerd"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v7
 
@@ -100,7 +118,5 @@ jobs:
           path: artifacts
 
       - name: Scaffold smoke
-        run: node scripts/smoke-scaffold.mjs --pm ${{ matrix.pm }} --database ${{ matrix.database }}
-        env:
-          DATABASE_URL: postgresql://postgres:lerd@127.0.0.1:5432/dashild_ci
+        run: node scripts/smoke-scaffold.mjs --pm ${{ matrix.pm }} --database ${{ matrix.database }} --url "${{ matrix.url }}"
 

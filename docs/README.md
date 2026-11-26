@@ -1,8 +1,8 @@
 # docs
 
-Documentación pública de Dashild.
+Public Dashild documentation.
 
-- [Instalación y primer recurso](install.md)
+- [Installation and first resource](install.md)
 
-La planificación interna (visión, arquitectura y spike) **no vive aquí**: está
-en `internal/`, que no se commitea.
+Internal planning (vision, architecture, and spike) **does not live here**: it is
+in `internal/`, which is not committed.

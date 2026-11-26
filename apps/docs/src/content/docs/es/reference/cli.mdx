@@ -53,6 +53,16 @@ archivo es write-once: nunca sobrescribe un recurso existente.
 - `--no-register` deja `panel.ts` y `policies.ts` intactos.
 - También acepta `--dir`, `--metadata`, `--cwd` y `--dry-run`.
 
+## `make:action`
+
+```bash
+pnpm dashild make:action Customer export
+```
+
+Añade un stub tipado a `src/dashild/actions/index.ts`. No edita el recurso:
+declara la acción en `table.actions` o `form.actions`. Ejecutarlo dos veces no
+duplica el handler.
+
 ## `doctor`
 
 ```bash

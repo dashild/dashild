@@ -66,8 +66,10 @@ and `group` groups resources in the sidebar. `icon` is resolved by the shell
 - `pageSize`: optional page size.
 - `actions`: header or row actions (see below).
 
-`format` covers dates, numbers, booleans, and `badge`; `tone` maps badge values
-to a color. `cell` points to a component registered with `registerCell` (see
+`format` covers dates, numbers, currency, booleans, JSON, and `badge`; `tone`
+maps badge values to a color. For `Decimal` money, use
+`format: "currency", currency: "EUR"`. Scalar lists render and edit as a JSON
+array. `cell` points to a component registered with `registerCell` (see
 [Customization](/guides/customization/)).
 
 For relations, set `field` to the relation name and `display` to the related
