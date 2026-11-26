@@ -1,8 +1,9 @@
 ---
-title: Dashild
+title: The application admin layer for Next.js
 description: The application admin layer for Next.js.
 template: splash
 hero:
+  title: Dashild
   tagline: Build products, not dashboards. One resource file, server-enforced security, and shadcn UI.
   actions:
     - text: Get started
@@ -35,9 +36,64 @@ import { Card, CardGrid } from "@astrojs/starlight/components";
   </Card>
 </CardGrid>
 
-## Start here
+## One resource file
 
-New to Dashild? [Create your first app](/getting-started/installation/) and
-generate a resource in a few minutes. Then read
-[Resources](/guides/resources/) to see what a resource file can describe, and
-[Policies and security](/guides/policies/) to lock it down.
+```ts
+// src/dashild/resources/customer.ts
+import { defineResource } from "@dashild/core";
+
+export const customerResource = defineResource({
+  model: "Customer",
+  navigation: { label: "Customers", slug: "customers" },
+  table: {
+    searchable: ["name", "email"],
+    columns: [
+      { field: "name", sortable: true },
+      { field: "email" },
+    ],
+  },
+  form: {
+    fields: [
+      { field: "name", type: "text", rules: { required: true } },
+      { field: "email", type: "email", rules: { required: true } },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+```
+
+Dashild derives the table, form, detail page, filters, and route from this
+data. There is no codegen to run and no page per resource. The server applies
+the policy scope to every read and write.
+
+## Quick start
+
+```bash
+pnpm create dashild@latest my-app --template demo
+cd my-app
+pnpm dev
+```
+
+Open `http://localhost:3000/admin`. The demo seeds
+`ana@acme.test` / `dashild123`.
+
+## What you get
+
+- **Tables** with TanStack: server pagination, sorting, filters, and search.
+- **Relations**: o2m/m2m managers with create, edit, delete, attach, and detach.
+- **Custom cells and fields** registered in the app, plus `dashild ui:add` to
+  copy templates.
+- **Policies**: scoping, per-action permissions, and roles with `hasRole`.
+- **Better Auth**: login, signup gates, email verification, password reset, and
+  Resend support.
+- **CLI**: `init`, `make:resource`, `doctor`, `ui:add`, and `eject`.
+- **Databases**: PostgreSQL, MySQL/MariaDB, and SQLite.
+
+## Alpha
+
+Dashild is alpha. The API may change between `alpha` releases; the stack is
+versioned together and `create-dashild` can move ahead for scaffolder fixes.
+
+[Read the installation guide](./getting-started/installation/) to create your
+first app, or browse the [resources guide](./guides/resources/) to see what a
+resource can describe.
