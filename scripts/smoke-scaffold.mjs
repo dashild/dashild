@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Generates a real app from the packed tarballs and takes it to a production
- * build. This is the guard against broken releases: missing tarballs, missing
- * exports, native bindings built for the wrong ABI, or generated code that
- * does not compile.
+ * Generates a real app with create-dashild, using this checkout's tarballs,
+ * and takes it to a production build. This is the guard against broken
+ * releases: missing tarballs, missing exports, native bindings built for the
+ * wrong ABI, or generated code that does not compile.
  *
  * Usage:
  *   pnpm build && pnpm pack:all
@@ -11,14 +11,7 @@
  *   node scripts/smoke-scaffold.mjs --pm npm --database postgresql --url postgresql://...
  */
 import { spawnSync } from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -44,9 +37,15 @@ const template = args.template ?? "demo";
 const databaseUrl =
   args.url ??
   (database === "postgresql" ? process.env.DATABASE_URL : undefined);
+// dotenv does not override an existing DATABASE_URL. CI sets a Postgres URL at
+// job level, so pin the app's own URL for every command.
+const appDatabaseUrl =
+  database === "sqlite" ? "file:./prisma/dev.db" : databaseUrl;
 
 if (!["npm", "pnpm"].includes(packageManager)) {
-  throw new Error(`Unsupported package manager for the smoke test: ${packageManager}`);
+  throw new Error(
+    `Unsupported package manager for the smoke test: ${packageManager}`,
+  );
 }
 
 function run(command, commandArgs, cwd, env = {}) {
@@ -63,40 +62,6 @@ function run(command, commandArgs, cwd, env = {}) {
   }
 }
 
-function installCommand() {
-  return packageManager === "pnpm"
-    ? { command: "pnpm", args: ["install"] }
-    : { command: "npm", args: ["install"] };
-}
-
-function execCommand(bin, binArgs) {
-  return packageManager === "pnpm"
-    ? { command: "pnpm", args: ["exec", bin, ...binArgs] }
-    : { command: "npx", args: [bin, ...binArgs] };
-}
-
-function buildCommand() {
-  return packageManager === "pnpm"
-    ? { command: "pnpm", args: ["build"] }
-    : { command: "npm", args: ["run", "build"] };
-}
-
-const artifacts = join(root, "artifacts");
-const tarballs = readdirSync(artifacts).filter((file) => file.endsWith(".tgz"));
-const packages = {
-  "@dashild/core": "dashild-core",
-  "@dashild/prisma": "dashild-prisma",
-  "@dashild/admin": "dashild-admin",
-  "@dashild/cli": "dashild-cli",
-};
-
-const specs = new Map();
-for (const [name, prefix] of Object.entries(packages)) {
-  const file = tarballs.find((candidate) => candidate.startsWith(`${prefix}-`));
-  if (!file) throw new Error(`No tarball for ${name} in ${artifacts}`);
-  specs.set(name, `file:${join(artifacts, file)}`);
-}
-
 const workdir = mkdtempSync(join(tmpdir(), "dashild-smoke-"));
 const project = join(workdir, "app");
 const nodeEnv = {
@@ -104,6 +69,9 @@ const nodeEnv = {
   npm_config_target: process.versions.node,
   npm_config_arch: process.arch,
   NEXT_TELEMETRY_DISABLED: "1",
+  // create-dashild resolves the four packages from this folder instead of npm.
+  DASHILD_PACKAGES_FROM: join(root, "artifacts"),
+  ...(appDatabaseUrl ? { DATABASE_URL: appDatabaseUrl } : {}),
 };
 
 try {
@@ -120,65 +88,28 @@ try {
     database,
     "--pm",
     packageManager,
-    "--no-install",
     "--no-git",
     "--yes",
   ];
-  if (databaseUrl) scaffoldArgs.push("--database-url", databaseUrl);
+  if (database === "postgresql" && databaseUrl) {
+    scaffoldArgs.push("--database-url", databaseUrl);
+  }
   run(process.execPath, scaffoldArgs, workdir, nodeEnv);
 
-  // Point the generated app at this checkout's packages, not at npm.
-  const packageJsonPath = join(project, "package.json");
-  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
-  for (const section of ["dependencies", "devDependencies"]) {
-    const entries = packageJson[section];
-    if (!entries) continue;
-    for (const [name, spec] of specs) {
-      if (entries[name]) entries[name] = spec;
-    }
-  }
-
-  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
-
-  if (packageManager === "pnpm") {
-    // pnpm 12 ignores `pnpm.overrides` in package.json. Its workspace file
-    // already carries allowBuilds from create-dashild; append the overrides
-    // without dropping it.
-    const workspacePath = join(project, "pnpm-workspace.yaml");
-    const existing = existsSync(workspacePath)
-      ? readFileSync(workspacePath, "utf8").trimEnd()
-      : "";
-    if (!existing.includes("overrides:")) {
-      const overrides = [
-        "overrides:",
-        ...[...specs].map(
-          ([name, spec]) => `  ${JSON.stringify(name)}: ${JSON.stringify(spec)}`,
-        ),
-      ].join("\n");
-      writeFileSync(
-        workspacePath,
-        `${existing}${existing ? "\n" : ""}${overrides}\n`,
-      );
-    }
-  }
-
-  run(installCommand().command, installCommand().args, project, nodeEnv);
-
-  const migrate = execCommand("prisma", ["migrate", "dev", "--name", "init"]);
-  run(migrate.command, migrate.args, project, nodeEnv);
-
-  if (template === "demo") {
-    const seed = execCommand("tsx", ["prisma/seed.ts"]);
-    run(seed.command, seed.args, project, nodeEnv);
-  }
-
-  const build = buildCommand();
+  const build =
+    packageManager === "pnpm"
+      ? { command: "pnpm", args: ["build"] }
+      : { command: "npm", args: ["run", "build"] };
   run(build.command, build.args, project, nodeEnv);
 
-  console.log(`\nScaffold smoke passed: ${template} / ${packageManager} / ${database}`);
+  console.log(
+    `\nScaffold smoke passed: ${template} / ${packageManager} / ${database}`,
+  );
   rmSync(workdir, { recursive: true, force: true });
 } catch (error) {
-  console.error(`\nScaffold smoke failed: ${error instanceof Error ? error.message : error}`);
+  console.error(
+    `\nScaffold smoke failed: ${error instanceof Error ? error.message : error}`,
+  );
   console.error(`Generated app kept at ${project}`);
   process.exitCode = 1;
 }

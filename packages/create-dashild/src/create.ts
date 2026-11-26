@@ -219,7 +219,12 @@ export async function createProject(
           "--name",
           "init",
         ]),
-        { cwd: options.dir },
+        {
+          cwd: options.dir,
+          // dotenv never overrides an exported variable: keep the generated
+          // .env authoritative even if the shell has another DATABASE_URL.
+          env: { DATABASE_URL: options.databaseUrl },
+        },
       );
       migrated = true;
     } catch (error) {
@@ -241,7 +246,7 @@ export async function createProject(
       try {
         await runCommand(
           execCommand(options.packageManager, "tsx", ["prisma/seed.ts"]),
-          { cwd: options.dir },
+          { cwd: options.dir, env: { DATABASE_URL: options.databaseUrl } },
         );
         seeded = true;
       } catch (error) {

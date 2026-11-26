@@ -89,3 +89,13 @@ node packages/create-dashild/dist/index.js mi-app --dry-run
 `package.json` `dashildPackages` fija la versión de `@dashild/*` que instalan
 las apps generadas. Permite publicar un arreglo del scaffolder sin
 republicar el resto del stack.
+
+Para probar el scaffolder completo antes de publicar:
+
+```bash
+pnpm build && pnpm pack:all
+DASHILD_PACKAGES_FROM=$PWD/artifacts pnpm smoke:scaffold -- --pm pnpm --database sqlite
+```
+
+`DASHILD_PACKAGES_FROM` hace que las dependencias se resuelvan desde esos
+tarballs en lugar de npm.

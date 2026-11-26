@@ -493,6 +493,18 @@ export function writeScaffold(options: CreateOptions): string {
   );
 
   if (options.packageManager === "pnpm") {
+    const overrides = process.env.DASHILD_PACKAGES_FROM
+      ? [
+          "overrides:",
+          ...["@dashild/core", "@dashild/admin", "@dashild/cli", "@dashild/prisma"].map(
+            (name) =>
+              `  ${JSON.stringify(name)}: ${JSON.stringify(
+                packageSpec(name, DASHILD_VERSION),
+              )}`,
+          ),
+        ].join("\n") + "\n"
+      : "";
+
     write(
       resolve(options.dir, "pnpm-workspace.yaml"),
       `allowBuilds:
@@ -500,7 +512,7 @@ export function writeScaffold(options: CreateOptions): string {
   "@prisma/engines": true
   esbuild: true
   better-sqlite3: true
-`,
+${overrides}`,
     );
   }
 
@@ -541,6 +553,18 @@ function adapterDependencies(provider: DatabaseProvider): {
   };
 }
 
+/**
+ * Test hook: install the workspace packages from a folder of tarballs.
+ * `pnpm smoke:scaffold` uses it to exercise the real create path before the
+ * version exists on npm.
+ */
+function packageSpec(name: string, version: string): string {
+  const from = process.env.DASHILD_PACKAGES_FROM;
+  if (!from) return version;
+  const base = name.split("/").at(-1);
+  return `file:${resolve(from, `dashild-${base}-${version}.tgz`)}`;
+}
+
 export function addDependencies(
   packageJsonPath: string,
   options: CreateOptions,
@@ -554,8 +578,8 @@ export function addDependencies(
 
   const adapters = adapterDependencies(options.database);
   const dependencies: Record<string, string> = {
-    "@dashild/admin": DASHILD_VERSION,
-    "@dashild/core": DASHILD_VERSION,
+    "@dashild/admin": packageSpec("@dashild/admin", DASHILD_VERSION),
+    "@dashild/core": packageSpec("@dashild/core", DASHILD_VERSION),
     "@prisma/client": PRISMA_VERSION,
     shadcn: "^4.23.0",
     "tw-animate-css": "^1.4.0",
@@ -566,8 +590,8 @@ export function addDependencies(
   }
 
   const devDependencies: Record<string, string> = {
-    "@dashild/cli": DASHILD_VERSION,
-    "@dashild/prisma": DASHILD_VERSION,
+    "@dashild/cli": packageSpec("@dashild/cli", DASHILD_VERSION),
+    "@dashild/prisma": packageSpec("@dashild/prisma", DASHILD_VERSION),
     // next.config.ts routes CSS through this loader; create-next-app already
     // adds it, and this keeps the config valid if that ever changes.
     "@tailwindcss/turbopack": "^4.3.3",
