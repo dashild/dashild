@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.9 — 2026-11-26
 
 Documentation audit fixes and the code gaps behind them.
 
