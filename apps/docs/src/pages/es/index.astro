@@ -1,0 +1,15 @@
+---
+import Landing from "../../components/landing/Landing.astro";
+import { copy } from "../../landing/copy";
+import LandingLayout from "../../layouts/LandingLayout.astro";
+
+const t = copy.es;
+---
+
+<LandingLayout
+  title={t.meta.title}
+  description={t.meta.description}
+  locale="es"
+>
+  <Landing copy={t} locale="es" />
+</LandingLayout>

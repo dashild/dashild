@@ -1,0 +1,22 @@
+---
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+---
+
+<span class:list={["brand", className]} aria-label="Dashild">
+  <svg
+    class="brand-mark"
+    viewBox="0 0 32 32"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <!-- Monochrome mark. Replace this path with the final logo; currentColor
+         lets it inherit and be tinted with CSS. -->
+    <path
+      d="M5 3h10c8.5 0 13 5.2 13 13s-4.5 13-13 13H5V3Zm7 6v14h3c4.8 0 7.5-2.7 7.5-7S19.8 9 15 9h-3Z"
+      fill="currentColor"></path>
+  </svg>
+  <span class="brand-name">dashild</span>
+</span>

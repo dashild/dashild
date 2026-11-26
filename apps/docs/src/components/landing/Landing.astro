@@ -1,0 +1,334 @@
+---
+import { Code } from "astro:components";
+
+import type { LandingCopy } from "../../landing/copy";
+import Icon from "./Icon.astro";
+import Logo from "./Logo.astro";
+
+interface Props {
+  copy: LandingCopy;
+  locale: "en" | "es";
+}
+
+const { copy: t, locale } = Astro.props;
+const home = locale === "es" ? "/es/" : "/";
+const docs =
+  locale === "es"
+    ? "/es/getting-started/installation/"
+    : "/getting-started/installation/";
+const guides =
+  locale === "es" ? "/es/guides/resources/" : "/guides/resources/";
+const other = locale === "es" ? "/" : "/es/";
+const github = "https://github.com/dashild/dashild";
+
+const resourceCode = `import { defineResource } from "@dashild/core";
+
+export const customerResource = defineResource({
+  model: "Customer",
+  navigation: { label: "Customers", slug: "customers" },
+  table: {
+    searchable: ["name", "email"],
+    columns: [
+      { field: "name", sortable: true },
+      { field: "email" },
+    ],
+  },
+  form: {
+    fields: [
+      { field: "name", type: "text" },
+      { field: "email", type: "email" },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+`;
+---
+
+<header class="site-header">
+  <div class="container nav-inner">
+    <a class="brand-link" href={home} aria-label="Dashild">
+      <Logo />
+    </a>
+
+    <nav class="nav-links" aria-label="Main">
+      <a class="nav-link" href={docs}>{t.nav.docs}</a>
+      <a class="nav-link" href={guides}>{t.nav.guides}</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a
+        class="icon-link"
+        href={github}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="GitHub"
+      >
+        <Icon name="github" size={18} />
+      </a>
+      <a class="lang-link" href={other} aria-label={t.nav.otherAria}>
+        {t.nav.otherLabel}
+      </a>
+      <a class="btn btn-light btn-sm" href={docs}>{t.nav.cta}</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="badge">
+          <span class="badge-dot" aria-hidden="true"></span>
+          {t.hero.badge}
+        </p>
+        <h1>
+          {t.hero.before}<br />
+          <span class="accent">{t.hero.accent}</span>
+        </h1>
+        <p class="hero-lead">{t.hero.lead}</p>
+        <div class="hero-actions">
+          <a class="btn btn-light" href={docs}>{t.hero.primary}</a>
+          <a
+            class="btn btn-ghost"
+            href={github}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t.hero.secondary}
+          </a>
+        </div>
+        <p class="hero-note">{t.hero.note}</p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="window">
+          <div class="window-bar">
+            <span class="window-dot" aria-hidden="true"></span>
+            <span class="window-dot" aria-hidden="true"></span>
+            <span class="window-dot" aria-hidden="true"></span>
+            <span class="window-title">{t.terminal.title}</span>
+            <button
+              class="copy window-copy"
+              type="button"
+              data-copy={t.terminal.command}
+              data-copied={t.copiedLabel}
+            >
+              {t.copyLabel}
+            </button>
+          </div>
+          <pre class="terminal"><code><span class="term-prompt">$</span> <span class="term-command">{t.terminal.command}</span><br />{t.terminal.lines.map((line) => (<span class="term-line"><span class="term-ok">◇</span> {line}<br /></span>))}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="stack">
+        {t.hero.stack.map((item) => <span>{item}</span>)}
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">{t.features.eyebrow}</p>
+        <h2>{t.features.title}</h2>
+        <p class="section-lead">{t.features.lead}</p>
+      </div>
+
+      <div class="feature-grid">
+        {
+          t.features.items.map((feature) => (
+            <article class="feature">
+              <div class="feature-icon">
+                <Icon name={feature.icon} size={20} />
+              </div>
+              <h3>{feature.title}</h3>
+              <p>{feature.body}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container code-grid">
+      <div>
+        <p class="eyebrow">{t.code.eyebrow}</p>
+        <h2>{t.code.title}</h2>
+        <p class="section-lead">{t.code.body}</p>
+        <ul class="checklist">
+          {
+            t.code.checklist.map((item) => (
+              <li>
+                <Icon name="check" size={16} />
+                {item}
+              </li>
+            ))
+          }
+        </ul>
+        <p class="code-note">{t.code.note}</p>
+      </div>
+
+      <div class="window code-window">
+        <div class="window-bar">
+          <span class="window-dot" aria-hidden="true"></span>
+          <span class="window-dot" aria-hidden="true"></span>
+          <span class="window-dot" aria-hidden="true"></span>
+          <span class="window-title">{t.code.filename}</span>
+          <span class="window-tag">resource</span>
+        </div>
+        <Code code={resourceCode} lang="ts" theme="css-variables" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">{t.steps.eyebrow}</p>
+        <h2>{t.steps.title}</h2>
+        <p class="section-lead">{t.steps.lead}</p>
+      </div>
+
+      <div class="steps-grid">
+        {
+          t.steps.items.map((step, index) => (
+            <article class="step">
+              <p class="step-number">
+                {String(index + 1).padStart(2, "0")}
+              </p>
+              <h3>{step.title}</h3>
+              <p>{step.body}</p>
+              <div class="command">
+                <code>{step.command}</code>
+                <button
+                  class="copy"
+                  type="button"
+                  data-copy={step.command}
+                  data-copied={t.copiedLabel}
+                >
+                  {t.copyLabel}
+                </button>
+              </div>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head">
+        <p class="eyebrow">{t.contrast.newLabel}</p>
+        <h2>{t.contrast.title}</h2>
+        <p class="section-lead">{t.contrast.lead}</p>
+      </div>
+
+      <div class="contrast-grid">
+        <article class="contrast-card contrast-old">
+          <p class="contrast-label">{t.contrast.oldLabel}</p>
+          <ul class="contrast-list">
+            {
+              t.contrast.oldItems.map((item) => (
+                <li>
+                  <Icon name="x" size={16} />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </article>
+        <article class="contrast-card contrast-new">
+          <p class="contrast-label">{t.contrast.newLabel}</p>
+          <ul class="contrast-list">
+            {
+              t.contrast.newItems.map((item) => (
+                <li>
+                  <Icon name="check" size={16} />
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="container cta-inner">
+      <h2>{t.cta.title}</h2>
+      <p>{t.cta.body}</p>
+      <div class="cta-actions">
+        <a class="btn btn-light" href={docs}>{t.cta.primary}</a>
+        <a
+          class="btn btn-ghost"
+          href={github}
+          target="_blank"
+          rel="noreferrer"
+        >
+          {t.cta.secondary}
+        </a>
+      </div>
+      <div class="cta-command">
+        <code>{t.cta.command}</code>
+        <button
+          class="copy"
+          type="button"
+          data-copy={t.cta.command}
+          data-copied={t.copiedLabel}
+        >
+          {t.copyLabel}
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <a class="brand-link" href={home} aria-label="Dashild">
+          <Logo />
+        </a>
+        <p class="footer-tagline">{t.footer.tagline}</p>
+      </div>
+      <div>
+        <nav class="footer-links" aria-label="Footer">
+          <a href={docs}>{t.footer.docs}</a>
+          <a href={guides}>{t.footer.guides}</a>
+          <a href={github} target="_blank" rel="noreferrer">{t.footer.github}</a>
+        </nav>
+        <p class="footer-note">
+          {t.footer.license} · {t.footer.note}
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll("[data-copy]").forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) return;
+
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copy;
+      if (!value) return;
+
+      try {
+        await navigator.clipboard.writeText(value);
+        const original = button.textContent;
+        button.textContent = button.dataset.copied ?? "Copied";
+        window.setTimeout(() => {
+          button.textContent = original;
+        }, 1600);
+      } catch {
+        // Clipboard permissions are not guaranteed; leave the label alone.
+      }
+    });
+  });
+</script>

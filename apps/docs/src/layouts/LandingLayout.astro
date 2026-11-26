@@ -1,0 +1,42 @@
+---
+import "@fontsource-variable/geist";
+import "@fontsource-variable/jetbrains-mono";
+import "../styles/landing.css";
+
+interface Props {
+  title: string;
+  description: string;
+  locale: "en" | "es";
+}
+
+const { title, description, locale } = Astro.props;
+const site = Astro.site ?? new URL("https://dashild.vercel.app");
+const canonical = new URL(Astro.url.pathname, site);
+const english = new URL("/", site);
+const spanish = new URL("/es/", site);
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="en" href={english} />
+    <link rel="alternate" hreflang="es" href={spanish} />
+    <link rel="alternate" hreflang="x-default" href={english} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={locale === "es" ? "es_ES" : "en_US"} />
+    <meta name="theme-color" content="#050505" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
