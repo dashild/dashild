@@ -150,6 +150,10 @@ export interface CurrentUser {
   id: string;
   email?: string;
   name?: string;
+  /** Active organization, when the adapter resolves it directly. */
+  organizationId?: string | null;
+  /** Roles for `hasRole` and policy predicates. */
+  roles?: string[];
 }
 
 /** Nombre de una paleta de Tailwind que el panel puede usar como primario. */
@@ -233,6 +237,14 @@ export interface PolicyContext<TUser extends CurrentUser = CurrentUser> {
   user: TUser;
   organizationId: string | null;
   roles: string[];
+}
+
+/** True when the context carries at least one of the given roles. */
+export function hasRole(
+  ctx: Pick<PolicyContext, "roles">,
+  ...roles: string[]
+): boolean {
+  return roles.some((role) => ctx.roles.includes(role));
 }
 
 export type PolicyPredicate<TUser extends CurrentUser = CurrentUser> = (

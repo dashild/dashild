@@ -253,17 +253,22 @@ function betterAuthFile(
   authPath: string,
   prismaPath: string,
   provider: string,
+  emailPath: string,
 ): string {
   return `import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 
+import { sendEmail } from ${quote(importPath(authPath, emailPath))};
 import { prisma } from ${quote(importPath(authPath, prismaPath))};
 
 /**
  * Better Auth with the app's Prisma client.
  *
- * The auth models are in prisma/schema.prisma. Keep BETTER_AUTH_SECRET out of
+ * Auth models live in prisma/schema.prisma. Keep BETTER_AUTH_SECRET out of
  * version control; see .env.example.
+ *
+ * ALLOW_SIGNUP=false closes public sign-up; create users yourself.
+ * REQUIRE_EMAIL_VERIFICATION=true needs a real sendEmail implementation.
  */
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -273,12 +278,69 @@ export const auth = betterAuth({
   trustedOrigins: process.env.BETTER_AUTH_URL
     ? [process.env.BETTER_AUTH_URL]
     : [],
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+  },
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
-    requireEmailVerification: false,
+    disableSignUp: process.env.ALLOW_SIGNUP === "false",
+    requireEmailVerification:
+      process.env.REQUIRE_EMAIL_VERIFICATION === "true",
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Reset your password",
+        text: "Open this link to reset your password: " + url,
+      });
+    },
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: "Verify your email",
+        text: "Open this link to verify your email: " + url,
+      });
+    },
   },
 });
+`;
+}
+
+function emailFile(): string {
+  return `interface EmailMessage {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+/**
+ * Development email sink.
+ *
+ * Replace this with Resend, Postmark, SES or your own transport. Production
+ * throws, so enabling password reset or email verification without a real
+ * provider fails loudly instead of losing emails.
+ */
+export async function sendEmail(message: EmailMessage): Promise<void> {
+  if (process.env.NODE_ENV !== "production") {
+    console.info(
+      "[dashild] email to " +
+        message.to +
+        ": " +
+        message.subject +
+        "\\n" +
+        message.text,
+    );
+    return;
+  }
+
+  throw new Error(
+    "No email provider configured. Implement sendEmail in src/lib/email.ts.",
+  );
+}
 `;
 }
 
@@ -424,6 +486,9 @@ export function LoginForm({ next }: { next?: string }) {
             {pending ? "Signing in…" : "Sign in"}
           </Button>
           <FieldDescription className="text-center">
+            <Link href="/forgot-password">Forgot password?</Link>
+          </FieldDescription>
+          <FieldDescription className="text-center">
             No account? <Link href="/signup">Create one</Link>
           </FieldDescription>
         </Field>
@@ -555,6 +620,293 @@ export function SignupForm() {
 `;
 }
 
+function forgotPasswordFormFile(
+  formPath: string,
+  authClientPath: string,
+): string {
+  return `"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+import { Button } from "@dashild/admin/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@dashild/admin/ui/field";
+import { Input } from "@dashild/admin/ui/input";
+import { Spinner } from "@dashild/admin/ui/spinner";
+
+import { authClient } from ${quote(importPath(formPath, authClientPath))};
+
+export function ForgotPasswordForm() {
+  const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setPending(true);
+
+    const data = new FormData(event.currentTarget);
+    const result = await authClient.requestPasswordReset({
+      email: String(data.get("email") ?? "").trim(),
+      redirectTo: window.location.origin + "/reset-password",
+    });
+
+    setPending(false);
+    if (result.error) {
+      setError(result.error.message ?? "Could not send the reset link.");
+      return;
+    }
+    setSent(true);
+  }
+
+  if (sent) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          If that email exists, we sent a reset link.
+        </p>
+        <Link className="text-sm underline underline-offset-4" href="/login">
+          Back to sign in
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+          />
+          <FieldDescription>
+            We will send a link to reset your password.
+          </FieldDescription>
+        </Field>
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <Field>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            {pending ? "Sending…" : "Send reset link"}
+          </Button>
+          <FieldDescription className="text-center">
+            <Link href="/login">Back to sign in</Link>
+          </FieldDescription>
+        </Field>
+      </FieldGroup>
+    </form>
+  );
+}
+`;
+}
+
+function resetPasswordFormFile(
+  formPath: string,
+  authClientPath: string,
+): string {
+  return `"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { Button } from "@dashild/admin/ui/button";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@dashild/admin/ui/field";
+import { Input } from "@dashild/admin/ui/input";
+import { Spinner } from "@dashild/admin/ui/spinner";
+
+import { authClient } from ${quote(importPath(formPath, authClientPath))};
+
+export function ResetPasswordForm({ token }: { token: string }) {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+
+    const data = new FormData(event.currentTarget);
+    const password = String(data.get("password") ?? "");
+    const confirm = String(data.get("confirmPassword") ?? "");
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setPending(true);
+    const result = await authClient.resetPassword({
+      newPassword: password,
+      token,
+    });
+
+    if (result.error) {
+      setError(result.error.message ?? "Could not reset the password.");
+      setPending(false);
+      return;
+    }
+
+    router.push("/login");
+    router.refresh();
+  }
+
+  if (!token) {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">
+          This link is invalid or expired.
+        </p>
+        <Link
+          className="text-sm underline underline-offset-4"
+          href="/forgot-password"
+        >
+          Request a new link
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-6">
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="password">New password</FieldLabel>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+          <FieldDescription>At least 8 characters.</FieldDescription>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="confirmPassword">Confirm password</FieldLabel>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
+        </Field>
+        {error ? (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        ) : null}
+        <Field>
+          <Button type="submit" disabled={pending} className="w-full">
+            {pending ? <Spinner data-icon="inline-start" /> : null}
+            {pending ? "Saving…" : "Set new password"}
+          </Button>
+        </Field>
+      </FieldGroup>
+    </form>
+  );
+}
+`;
+}
+
+function forgotPasswordPageFile(
+  pagePath: string,
+  formPath: string,
+): string {
+  return `import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@dashild/admin/ui/card";
+
+import { ForgotPasswordForm } from ${quote(importPath(pagePath, formPath))};
+
+export default function ForgotPasswordPage() {
+  return (
+    <main className="flex min-h-svh items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Forgot password</CardTitle>
+          <CardDescription>
+            Enter your email and we will send you a reset link.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ForgotPasswordForm />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+`;
+}
+
+function resetPasswordPageFile(
+  pagePath: string,
+  formPath: string,
+): string {
+  return `import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@dashild/admin/ui/card";
+
+import { ResetPasswordForm } from ${quote(importPath(pagePath, formPath))};
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ token?: string }>;
+}) {
+  const { token } = await searchParams;
+
+  return (
+    <main className="flex min-h-svh items-center justify-center p-6">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Reset password</CardTitle>
+          <CardDescription>Choose a new password for your account.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResetPasswordForm token={token ?? ""} />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
+`;
+}
+
 function authPageFile(
   pagePath: string,
   formPath: string,
@@ -599,7 +951,9 @@ export default async function LoginPage({
 `;
   }
 
-  return `import {
+  return `import Link from "next/link";
+
+import {
   Card,
   CardContent,
   CardDescription,
@@ -609,18 +963,32 @@ export default async function LoginPage({
 
 import { SignupForm } from ${formImport};
 
+export const dynamic = "force-dynamic";
+
 export default function SignupPage() {
+  const disabled = process.env.ALLOW_SIGNUP === "false";
+
   return (
     <main className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Create account</CardTitle>
+          <CardTitle>
+            {disabled ? "Sign-up disabled" : "Create account"}
+          </CardTitle>
           <CardDescription>
-            Create your account. An administrator can grant access later.
+            {disabled
+              ? "Ask an administrator for an invitation."
+              : "Create your account. An administrator can grant access later."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SignupForm />
+          {disabled ? (
+            <p className="text-sm text-muted-foreground">
+              Already have an account? <Link href="/login">Sign in</Link>
+            </p>
+          ) : (
+            <SignupForm />
+          )}
         </CardContent>
       </Card>
     </main>
@@ -692,6 +1060,10 @@ function policiesFile(): string {
 
 /**
  * Server policies.
+ *
+ * getCurrentUser can supply organizationId and roles directly, or you can
+ * resolve them here with organizationOf/rolesOf. Use hasRole(ctx, "admin")
+ * for role checks.
  *
  * Fail closed: a resource without an entry here is denied, even if it exists
  * in Prisma. Add one entry per resource, with its scope and permissions.
@@ -1079,6 +1451,7 @@ export function planInit(options: InitOptions): InitPlan {
     const authClientPath = resolve(libDir, "auth-client.ts");
     const sessionPath = resolve(libDir, "session.ts");
     const authActionsPath = resolve(libDir, "auth-actions.ts");
+    const emailPath = resolve(libDir, "email.ts");
     const apiRoutePath = resolve(appDir, "api/auth/[...all]/route.ts");
     const loginFormPath = resolve(
       componentsDir,
@@ -1088,8 +1461,21 @@ export function planInit(options: InitOptions): InitPlan {
       componentsDir,
       "dashild/signup-form.tsx",
     );
+    const forgotPasswordFormPath = resolve(
+      componentsDir,
+      "dashild/forgot-password-form.tsx",
+    );
+    const resetPasswordFormPath = resolve(
+      componentsDir,
+      "dashild/reset-password-form.tsx",
+    );
     const loginPagePath = resolve(appDir, "login/page.tsx");
     const signupPagePath = resolve(appDir, "signup/page.tsx");
+    const forgotPasswordPagePath = resolve(
+      appDir,
+      "forgot-password/page.tsx",
+    );
+    const resetPasswordPagePath = resolve(appDir, "reset-password/page.tsx");
 
     files[0] = {
       path: panelFilePath,
@@ -1105,8 +1491,9 @@ export function planInit(options: InitOptions): InitPlan {
     files.push(
       {
         path: authPath,
-        content: betterAuthFile(authPath, prisma.path, provider),
+        content: betterAuthFile(authPath, prisma.path, provider, emailPath),
       },
+      { path: emailPath, content: emailFile() },
       { path: authClientPath, content: authClientFile() },
       { path: sessionPath, content: sessionFile(sessionPath, authPath) },
       {
@@ -1126,12 +1513,37 @@ export function planInit(options: InitOptions): InitPlan {
         content: signupFormFile(signupFormPath, authClientPath, panelPath),
       },
       {
+        path: forgotPasswordFormPath,
+        content: forgotPasswordFormFile(
+          forgotPasswordFormPath,
+          authClientPath,
+        ),
+      },
+      {
+        path: resetPasswordFormPath,
+        content: resetPasswordFormFile(resetPasswordFormPath, authClientPath),
+      },
+      {
         path: loginPagePath,
         content: authPageFile(loginPagePath, loginFormPath, "login"),
       },
       {
         path: signupPagePath,
         content: authPageFile(signupPagePath, signupFormPath, "signup"),
+      },
+      {
+        path: forgotPasswordPagePath,
+        content: forgotPasswordPageFile(
+          forgotPasswordPagePath,
+          forgotPasswordFormPath,
+        ),
+      },
+      {
+        path: resetPasswordPagePath,
+        content: resetPasswordPageFile(
+          resetPasswordPagePath,
+          resetPasswordFormPath,
+        ),
       },
     );
 
@@ -1156,14 +1568,19 @@ export function planInit(options: InitOptions): InitPlan {
 
     const envPath = resolve(cwd, ".env.example");
     const env = existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
-    const envKeys = ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL"].filter(
-      (key) => !new RegExp(`^${key}=`, "m").test(env),
-    );
+    const envKeys = [
+      "BETTER_AUTH_SECRET",
+      "BETTER_AUTH_URL",
+      "ALLOW_SIGNUP",
+      "REQUIRE_EMAIL_VERIFICATION",
+    ].filter((key) => !new RegExp(`^${key}=`, "m").test(env));
 
     if (envKeys.length > 0) {
       const lines = [
         "BETTER_AUTH_SECRET=\"\"",
         "BETTER_AUTH_URL=\"http://localhost:3000\"",
+        "ALLOW_SIGNUP=\"true\"",
+        "REQUIRE_EMAIL_VERIFICATION=\"false\"",
       ].filter((line) =>
         envKeys.some((key) => line.startsWith(`${key}=`)),
       );

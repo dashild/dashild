@@ -6,6 +6,7 @@ import type {
   PoliciesDefinition,
   ResourceDefinition,
 } from "../src/index.js";
+import { hasRole } from "../src/index.js";
 import {
   canPerform,
   resolvePolicy,
@@ -103,6 +104,30 @@ test("can: explicit create predicate wins", async () => {
     await canPerform(result.policy, "create", { organization: "org-2" }),
     false,
   );
+});
+
+test("policy: roles and organization fall back to the user", async () => {
+  const direct: PoliciesDefinition = {
+    resources: { User: { scope: () => ({}) } },
+  };
+  const scopedUser: CurrentUser = {
+    id: "user-2",
+    organizationId: "org-2",
+    roles: ["ADMIN"],
+  };
+
+  const result = await resolvePolicy(resource(), direct, scopedUser);
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+
+  assert.equal(result.policy.context.organizationId, "org-2");
+  assert.deepEqual(result.policy.context.roles, ["ADMIN"]);
+});
+
+test("hasRole checks any of the given roles", () => {
+  assert.equal(hasRole({ roles: ["ADMIN"] }, "ADMIN"), true);
+  assert.equal(hasRole({ roles: ["USER"] }, "ADMIN", "USER"), true);
+  assert.equal(hasRole({ roles: ["USER"] }, "ADMIN"), false);
 });
 
 test("withScope merges without losing either side", () => {

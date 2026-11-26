@@ -2,8 +2,8 @@
 /**
  * Dashild CLI.
  *
- * `make:resource` is the first real command. The others stay visible so the
- * roadmap is discoverable, but they explicitly say they are not implemented.
+ * The commands cover the install lifecycle: init, make:resource, doctor,
+ * ui:add and eject.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -13,6 +13,7 @@ import type { Locale } from "@dashild/core";
 import { Command } from "commander";
 
 import { formatDoctor, runDoctor } from "./doctor.js";
+import { eject } from "./eject.js";
 import { generateResourceFile } from "./generate.js";
 import { applyInit, formatInitPlan, planInit } from "./init.js";
 import { cliMessage, resolveCliLocale } from "./messages.js";
@@ -132,13 +133,6 @@ program
       process.exitCode = 1;
     }
   });
-
-function pending(name: string, block: string) {
-  console.error(
-    `dashild: ${cliMessage(locale(), "command.pending", { name, block })}`,
-  );
-  process.exitCode = 1;
-}
 
 program
   .command("init")
@@ -300,7 +294,43 @@ program
 
 program
   .command("eject")
-  .description("Remove what init wrote")
-  .action(() => pending("eject", "phase 2"));
+  .description("Remove the files written by dashild init")
+  .option("--cwd <dir>", "project root", process.cwd())
+  .option("--path <route>", "panel route when it cannot be read from panel.ts")
+  .option("--yes", "apply the removal")
+  .option("--dry-run", "show the files without removing them")
+  .action(
+    (options: {
+      cwd: string;
+      path?: string;
+      yes?: boolean;
+      dryRun?: boolean;
+    }) => {
+      const result = eject({
+        cwd: resolve(options.cwd),
+        path: options.path,
+        yes: options.yes,
+        dryRun: options.dryRun,
+      });
+
+      const verb = result.applied ? "Removed" : "Would remove";
+      for (const file of result.removed) console.log(`${verb} ${file}`);
+      if (result.removed.length === 0) {
+        console.log("Nothing from dashild init was found.");
+      }
+
+      if (result.kept.length > 0) {
+        console.log("\nKept (app-owned):");
+        for (const file of result.kept) console.log(`  ${file}`);
+        console.log(
+          "\nRemove @dashild/* dependencies and the dashild Prisma generator by hand if you no longer need them.",
+        );
+      }
+
+      if (!result.applied) {
+        console.log("\nNothing was removed. Re-run with --yes to apply.");
+      }
+    },
+  );
 
 program.parse();

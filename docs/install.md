@@ -1,29 +1,65 @@
 # Instalación de Dashild (alpha)
 
-Versión de esta guía: `0.1.0-alpha.4`.
+Versión de esta guía: `0.1.0-alpha.6`.
 
 Dashild es un panel administrativo para Next.js + Prisma. Un recurso es un
 archivo de datos; no hay páginas que generar ni archivos que sincronizar.
 
-## App nueva
+## 1. App nueva
 
 ```bash
 pnpm create dashild@latest mi-app
 ```
 
-El scaffold elige starter, autenticación y base de datos, y deja el panel en
-`/admin`. El resto de esta guía es la instalación manual sobre una app existente.
+El scaffolder reutiliza `create-next-app` y pregunta:
 
-## Requisitos
+1. Nombre y carpeta.
+2. Starter: `basic` (solo el panel) o `demo` (usuarios, posts y etiquetas).
+3. Autenticación: Better Auth (email + contraseña) o ninguna.
+4. Base de datos: PostgreSQL, MySQL o SQLite, y su `DATABASE_URL`.
+5. Instalar, inicializar git, migrar y sembrar.
+
+También acepta flags:
+
+```bash
+npx create-dashild@latest mi-app \
+  --template demo \
+  --database postgresql \
+  --database-url "$DATABASE_URL" \
+  --pm pnpm \
+  --yes
+```
+
+| Flag | Valores |
+| --- | --- |
+| `--template` | `basic`, `demo`, `local:<ruta>`, `github:<owner>/<repo>#<ref>` |
+| `--auth` | `better-auth`, `none` |
+| `--database` | `postgresql`, `mysql`, `sqlite` |
+| `--database-url` | URL de conexión |
+| `--direct-url` | URL sin pooler para migraciones |
+| `--pm` | `pnpm`, `npm`, `yarn`, `bun` |
+| `--path` | Ruta del panel (por defecto `/admin`) |
+| `--no-install` | No instala dependencias |
+| `--no-git` | No inicializa git |
+| `--no-migrate` | No aplica el esquema |
+| `--no-seed` | No carga los datos del starter |
+| `--dry-run` | Imprime el plan sin escribir |
+| `--list-templates` | Lista los starters incluidos |
+
+Si la base de datos no está disponible, el proyecto se crea igual y deja las
+migraciones y el seed como pasos pendientes. El resto de esta guía es la
+instalación manual sobre una app existente.
+
+## 2. Requisitos
 
 - Node.js 22 o superior.
 - Next.js 15 o 16 con App Router.
 - Prisma 7.10 o superior y un cliente Prisma generado con `prisma-client`.
-- PostgreSQL, MySQL o MariaDB, o SQLite para desarrollo local. La alpha está
-  probada con PostgreSQL.
+- PostgreSQL, MySQL/MariaDB o SQLite. PostgreSQL y SQLite están verificados
+  end-to-end en esta alpha; MySQL/MariaDB está soportado por el adapter.
 - Tailwind CSS v4 y shadcn/ui para el shell.
 
-## 1. Instalar los paquetes
+## 3. Instalar los paquetes
 
 ```bash
 pnpm add @dashild/core@alpha @dashild/admin@alpha @dashild/prisma@alpha
@@ -33,7 +69,7 @@ pnpm add -D @dashild/cli@alpha
 Los paquetes se publican con el tag `alpha`. No uses `latest` hasta que exista
 una versión estable.
 
-## 2. Configurar Prisma
+## 4. Configurar Prisma
 
 Añade los dos generadores a `prisma/schema.prisma`:
 
@@ -67,11 +103,6 @@ export default defineConfig({
 });
 ```
 
-```bash
-pnpm prisma generate
-pnpm prisma db push
-```
-
 Asegúrate de que tu app exporta un cliente Prisma. Por defecto, `init` busca
 `src/lib/prisma.ts` o `lib/prisma.ts` con una exportación `prisma`:
 
@@ -84,10 +115,17 @@ export const prisma = new PrismaClient({
 });
 ```
 
-Prisma 7 también funciona con SQLite o MySQL cambiando el adapter; la alpha
-solo está verificada con PostgreSQL.
+Para SQLite usa `@prisma/adapter-better-sqlite3` y `better-sqlite3`; para
+MySQL/MariaDB, `@prisma/adapter-mariadb`. El scaffolder elige el correcto.
 
-## 3. Montar el panel
+### SQLite
+
+`DATABASE_URL="file:./prisma/dev.db"`. El CLI de Prisma y el adapter resuelven
+la ruta desde la raíz del proyecto. El scaffolder instala `better-sqlite3` con
+el Node que ejecuta la app (fija `PATH` y `npm_config_target`) porque pnpm no
+incluye `node-gyp`.
+
+## 5. Montar el panel
 
 Para una app nueva, o una que aún no tiene autenticación, usa Better Auth:
 
@@ -117,27 +155,34 @@ src/dashild/actions/index.ts
 src/dashild/icons.tsx
 src/dashild/runtime.ts
 src/dashild/server.ts
+src/dashild/registry.tsx
 src/app/<ruta>/[[...dashild]]/page.tsx
 ```
 
 Con `--auth better-auth` añade además:
 
 ```text
-lib/auth.ts
-lib/auth-client.ts
-lib/session.ts
-lib/auth-actions.ts
-app/api/auth/[...all]/route.ts
-app/login/page.tsx
-app/signup/page.tsx
-components/dashild/login-form.tsx
-components/dashild/signup-form.tsx
+src/lib/auth.ts
+src/lib/auth-client.ts
+src/lib/session.ts
+src/lib/auth-actions.ts
+src/lib/email.ts
+src/app/api/auth/[...all]/route.ts
+src/app/login/page.tsx
+src/app/signup/page.tsx
+src/app/forgot-password/page.tsx
+src/app/reset-password/page.tsx
+src/components/dashild/login-form.tsx
+src/components/dashild/signup-form.tsx
+src/components/dashild/forgot-password-form.tsx
+src/components/dashild/reset-password-form.tsx
 ```
 
 y, si el schema no tiene ya modelos de autenticación, añade `User`, `Session`,
 `Account` y `Verification` a `prisma/schema.prisma`. También añade
-`BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` a `.env.example` y la dependencia
-`better-auth` a `package.json`.
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP` y
+`REQUIRE_EMAIL_VERIFICATION` a `.env.example`, y `better-auth` a
+`package.json`.
 
 No toca `middleware.ts`/`proxy.ts`, el layout raíz, `next.config` ni `.env`.
 Después de `--auth better-auth` ejecuta otra vez:
@@ -157,11 +202,22 @@ Si ya existe `app/admin/page.tsx`, `init` elige `/panel`, `/admin-panel` o
 `/dashild`. Usa `--path /otra-ruta` para forzarla y `--dry-run` para revisar el
 plan.
 
-## 4. Completar la autenticación
+## 6. Autenticación
 
 Con `--auth better-auth`, `src/dashild/panel.ts` ya queda conectado a la sesión
-real y `/login` y `/signup` funcionan. No tienes que hacer nada más que
-configurar el secreto y la URL.
+real y `/login` y `/signup` funcionan. La configuración generada incluye:
+
+- **Rate limiting**: 100 peticiones por minuto.
+- **Cierre de signup público**: `ALLOW_SIGNUP="false"` desactiva el alta y la
+  página de signup muestra “Sign-up disabled”. El API también la rechaza.
+- **Verificación de email**: `REQUIRE_EMAIL_VERIFICATION="true"` la exige. Antes
+  de activarla, implementa un proveedor real en `src/lib/email.ts`.
+- **Reset de contraseña**: `/forgot-password` envía el enlace y
+  `/reset-password?token=...` fija la nueva contraseña.
+
+`sendEmail` es un stub: en desarrollo imprime el correo en la consola; en
+producción lanza un error para que no se pierdan emails en silencio. Sustitúyelo
+por Resend, Postmark, SES o tu transporte.
 
 Con `--auth none`, `init` deja un adaptador vacío:
 
@@ -181,28 +237,31 @@ export const panel = definePanel({
 
 Devuelve el usuario de **tu** autenticación. Dashild no impone Better Auth ni
 toca tus cookies. `CurrentUser` necesita al menos `id`; `email`, `name`,
-`organizationId` y `roles` son opcionales.
+`organizationId` y `roles` son opcionales. Si devuelves `organizationId` y
+`roles`, las políticas los reciben sin configurar nada más.
 
 Si el schema ya tenía un modelo `User` o alguno de los modelos de sesión,
 `init --auth better-auth` **no lo modifica**: avisa y deja la adaptación en tus
-manos. Es la vía para no romper una autenticación existente.
+manos.
 
-## 5. Tailwind
+## 7. Tailwind
 
 El shell vive en `@dashild/admin`. Tailwind debe escanear su build. Añade esto a
-tu CSS global:
+tu CSS global (ajusta la ruta según tu estructura):
 
 ```css
-@source "../node_modules/@dashild/admin/dist";
+@source "../../node_modules/@dashild/admin/dist";
 ```
 
 También necesitas las variables de tema de shadcn (`--background`,
-`--foreground`, `--primary`, `--sidebar`, etc.) y las clases de tema. Puedes
-partir de `apps/playground/app/globals.css` de este repositorio.
+`--foreground`, `--primary`, `--sidebar`, etc.) y las clases de tema. El
+scaffolder escribe un `globals.css` completo; para una instalación manual puedes
+partir de `apps/playground/src/app/globals.css`.
 
-`init` no escribe CSS: el tema es decisión de la app.
+Define una pila de fuentes real en `--font-sans`; una variable autoreferenciada
+deja la app en Times New Roman.
 
-## 6. Crear el primer recurso
+## 8. Crear el primer recurso
 
 ```bash
 pnpm dashild make:resource Customer
@@ -219,36 +278,53 @@ La entrada de política es **fail-closed**: el recurso devuelve 404 hasta que
 definas el ámbito y los permisos. Edita `policies.ts`:
 
 ```ts
-Customer: {
-  scope: () => ({}),
-  can: {
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
+
+export const policies = definePolicies<CurrentUser>({
+  Customer: {
+    scope: (ctx) => ({ organizationId: ctx.organizationId }),
+    can: {
+      create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+      delete: (ctx) => hasRole(ctx, "ADMIN"),
+    },
   },
-},
+});
 ```
 
 Sin `policy` y sin entrada en `policies.ts`, el runtime **falla cerrado**. Es
-intencionado.
+intencionado. Los roles salen de `getCurrentUser().roles` o de `rolesOf`; la
+organización de `getCurrentUser().organizationId` o de `organizationOf`.
 
 Si no quieres que `make:resource` toque `panel.ts`/`policies.ts`, usa
 `--no-register`.
 
-## 7. Celdas y campos propios
+## 9. Relaciones, archivos y componentes propios
 
-Opcional. Crea `src/dashild/registry.tsx` en el cliente:
+- **o2m/m2m**: el detalle del padre monta un `RelationManager` para crear,
+  editar y eliminar hijos; si la FK es opcional permite desasociar y en m2m
+  attach/detach. El modelo hijo necesita un recurso en `panel.resources`.
+- **Bytes**: se edita con un selector de archivo y viaja como base64.
+- **Celdas y campos propios**: crea `src/dashild/registry.tsx` en el cliente:
 
 ```tsx
 "use client";
 
-import { registerCell, registerField, registeredCells, registeredFields } from "@dashild/core";
+import {
+  registerCell,
+  registerField,
+  registeredCells,
+  registeredFields,
+} from "@dashild/core";
 import { RegistryProvider } from "@dashild/admin";
 
 registerCell("avatar", AvatarCell);
 registerField("email", EmailField);
 
-export function AppRegistryProvider({ children }: { children: React.ReactNode }) {
+export function AppRegistryProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <RegistryProvider cells={registeredCells()} fields={registeredFields()}>
       {children}
@@ -265,30 +341,52 @@ table: { columns: [{ field: "name", cell: "avatar" }] }
 form: { fields: [{ field: "email", type: "email", component: "email" }] }
 ```
 
-Los renderers reciben `CellRendererProps`/`FieldRendererProps` de
-`@dashild/admin`.
+`dashild ui:add avatar email` copia las plantillas a
+`components/dashild/` y te recuerda cómo registrarlas.
 
-## 8. Arrancar
+## 10. Doctor y eject
+
+`dashild doctor` valida recursos, campos, relaciones, políticas y handlers de
+acciones contra los metadatos, con archivo y línea, `--json` y exit 1.
+
+`dashild eject` retira los archivos que escribió `init` (panel, políticas,
+acciones, iconos, runtime, server, registry y la ruta de montaje) y elimina el
+script `dashild`. No toca recursos, autenticación, schema ni dependencias; los
+lista como “Kept” para que decidas qué borrar. Sin `--yes` solo muestra el plan;
+`--dry-run` hace lo mismo de forma explícita.
+
+## 11. Arrancar
 
 ```bash
 pnpm dev
 ```
 
 El panel queda en `http://localhost:3000/admin` (o la ruta que hayas elegido).
+En desarrollo usa `localhost`, no `127.0.0.1`: Next 16 bloquea los assets y la
+hidratación desde orígenes no permitidos. El scaffold añade
+`allowedDevOrigins: ["127.0.0.1", "localhost"]`; si usas otro dominio, añádelo.
+
+## 12. Problemas comunes
+
+- **El panel no hidrata en `127.0.0.1`**: usa `localhost` o añade el origen a
+  `allowedDevOrigins`.
+- **`better-sqlite3` con ABI incorrecta**: reinstala con el Node que ejecuta la
+  app y `npm_config_target` igual a `node -v`. pnpm no trae `node-gyp`, así que
+  el prebuild debe coincidir.
+- **Login con error de origen**: `BETTER_AUTH_URL` debe coincidir con el origen
+  real (`http://localhost:3000` por defecto).
+- **Prisma no conecta**: si usas lerd, comprueba que el servicio PostgreSQL está
+  arrancado; el idle puede suspenderlo.
 
 ## Limitaciones conocidas de la alpha
 
-- `create-dashild` todavía no está publicado; usa `@dashild/cli` manualmente.
-- `init --auth better-auth` añade modelos de autenticación si el schema está
-  vacío; si ya existen, solo avisa y no los duplica.
-- El ámbito se aplica en el runtime y en la extensión `withDashildScope` de
-  Prisma. Las relaciones incluidas dentro de una consulta no son consultas
-  separadas; para cargas personalizadas usa `runtime.client(user)` o el cliente
-  extendido.
-- Relaciones o2m/m2m: relation manager en el detalle del padre. Necesita que el
-  modelo hijo tenga un recurso en `panel.resources`. o2m con FK obligatoria no
-  ofrece desasociar; solo crear/editar/eliminar. m2m permite attach/detach.
-- `Bytes`: se edita con un selector de archivo y viaja como base64.
-- El sistema de acciones y el mapa de iconos están documentados en los README
-  de los paquetes, pero la documentación pública todavía es mínima.
+- MySQL/MariaDB está soportado por el adapter pero no tiene E2E en CI todavía.
+- `DateTime` sin `@db.Date` se trata como fecha y hora; el recurso puede forzar
+  `format: "date"`.
+- Las listas escalares (`String[]`) quedan fuera de tabla y formulario en v1.
+- El tema `system` no está implementado; hay `light`/`dark` por cookie.
+- El registro manual de handlers de acciones (`actions/index.ts`) sigue siendo
+  manual.
+- La documentación pública está en español; la traducción al inglés está
+  pendiente.
 - Las APIs pueden cambiar entre versiones `alpha`.

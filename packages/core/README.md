@@ -6,7 +6,8 @@ Declaraciones públicas y lógica isomorfa. **No puede importar React ni Prisma*
 
 ```ts
 // Declaraciones (datos serializables)
-export { defineResource, definePanel, definePolicies }
+export { defineResource, definePanel, definePolicies, hasRole }
+export type { CurrentUser, PolicyContext, PoliciesDefinition }
 
 // Registro de la app (componentes, no datos)
 export { registerCell, registerField }
@@ -64,6 +65,28 @@ Subpath con la superficie de servidor. Nunca se importa desde un componente clie
 - `canPerform`, `resolvePolicy`, `withScope` y la conversión a DTO.
 
 Mantenerlo como subpath (y no como paquete aparte) evita multiplicar nombres de paquete: el bundle no arrastra Prisma porque el cliente no importa `@dashild/core/server`.
+
+## Políticas y roles
+
+`PolicyContext` lleva `user`, `organizationId` y `roles`. La organización y los
+roles se resuelven con `organizationOf`/`rolesOf` si están definidos; si no, se
+usan `user.organizationId` y `user.roles`. Eso permite que `getCurrentUser`
+devuelva el contexto directamente:
+
+```ts
+export const policies = definePolicies<CurrentUser>({
+  Customer: {
+    scope: (ctx) => ({ organizationId: ctx.organizationId }),
+    can: {
+      create: (ctx) => hasRole(ctx, "ADMIN", "SALES"),
+      delete: (ctx) => hasRole(ctx, "ADMIN"),
+    },
+  },
+});
+```
+
+`hasRole(ctx, ...roles)` devuelve `true` si el contexto tiene al menos uno. Si no
+hay `scope` ni entrada en `policies.ts`, el runtime falla cerrado.
 
 ## Tests
 

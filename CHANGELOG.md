@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.0-alpha.6 — 2026-11-26
+
+- `@dashild/core`: `CurrentUser` acepta `organizationId` y `roles`; las
+  políticas los usan cuando no hay `organizationOf`/`rolesOf`. Nuevo `hasRole`.
+- `@dashild/cli`: `eject` implementado. `init --auth better-auth` añade rate
+  limiting, cierre de signup con `ALLOW_SIGNUP`, verificación por entorno y
+  reset de contraseña (`/forgot-password`, `/reset-password`) con un stub de
+  email.
+- `create-dashild` genera las nuevas páginas de auth y publica el stack
+  `0.1.0-alpha.6`.
+- CI: scaffold smoke con npm/pnpm y SQLite/PostgreSQL hasta `next build`;
+  `release:verify` comprueba los tarballs publicados.
+- READMEs y guía de instalación actualizados en español.
+
+
 ## 0.1.0-alpha.5 — 2026-11-25
 
 - `create-dashild` instala dependencias con el Node que ejecuta el CLI y con

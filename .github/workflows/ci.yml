@@ -44,3 +44,60 @@ jobs:
           name: dashild-alpha-tarballs
           path: artifacts/*.tgz
           if-no-files-found: error
+
+  scaffold:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - pm: npm
+            database: sqlite
+          - pm: pnpm
+            database: sqlite
+          - pm: npm
+            database: postgresql
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: lerd
+          POSTGRES_DB: dashild_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.21.0
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: dashild-alpha-tarballs
+          path: artifacts
+
+      - name: Scaffold smoke
+        run: node scripts/smoke-scaffold.mjs --pm ${{ matrix.pm }} --database ${{ matrix.database }}
+        env:
+          DATABASE_URL: postgresql://postgres:lerd@127.0.0.1:5432/dashild_ci
+

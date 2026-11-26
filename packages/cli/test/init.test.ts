@@ -218,11 +218,43 @@ test("init: better-auth plans the auth files, schema and env", () => {
     );
     assert.ok(paths.some((path) => path.endsWith("src/app/login/page.tsx")));
     assert.ok(paths.some((path) => path.endsWith("src/app/signup/page.tsx")));
+    assert.ok(paths.some((path) => path.endsWith("src/lib/email.ts")));
+    assert.ok(
+      paths.some((path) => path.endsWith("src/app/forgot-password/page.tsx")),
+    );
+    assert.ok(
+      paths.some((path) => path.endsWith("src/app/reset-password/page.tsx")),
+    );
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/components/dashild/forgot-password-form.tsx"),
+      ),
+    );
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/components/dashild/reset-password-form.tsx"),
+      ),
+    );
+
     assert.ok(
       paths.some((path) =>
         path.endsWith("src/components/dashild/login-form.tsx"),
       ),
     );
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/components/dashild/signup-form.tsx"),
+      ),
+    );
+
+    const auth = plan.files.find((file) =>
+      file.path.endsWith("src/lib/auth.ts"),
+    );
+    assert.ok(auth);
+    assert.match(auth.content, /disableSignUp/);
+    assert.match(auth.content, /rateLimit/);
+    assert.match(auth.content, /sendResetPassword/);
+    assert.match(auth.content, /sendVerificationEmail/);
 
     const panel = plan.files.find((file) =>
       file.path.endsWith("src/dashild/panel.ts"),

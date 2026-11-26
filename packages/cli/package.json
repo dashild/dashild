@@ -1,6 +1,6 @@
 {
   "name": "@dashild/cli",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.6",
   "type": "module",
   "description": "Dashild CLI: init, make:resource, doctor and ui:add",
   "license": "MIT",

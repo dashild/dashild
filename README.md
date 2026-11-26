@@ -18,8 +18,8 @@ Ese archivo describe la tabla, el formulario, los filtros y las acciones. No hay
 páginas que generar ni archivos que sincronizar. La seguridad (autorización y
 aislamiento de datos) no vive ahí: la aplica el servidor.
 
-**Estado: alpha.** Versión `0.1.0-alpha.4`, todavía no estable. La API puede
-cambiar entre versiones `alpha`.
+**Estado: alpha.** Versión `0.1.0-alpha.6`. Todavía no es estable y la API puede cambiar entre versiones
+`alpha`.
 
 ## Crear una app
 
@@ -27,8 +27,21 @@ cambiar entre versiones `alpha`.
 pnpm create dashild@latest mi-app
 ```
 
-Pregunta starter, autenticación, base de datos y si migrar y sembrar. Para CI
-acepta flags y `--yes`; añade `--dry-run` para ver el plan sin escribir nada.
+Pregunta starter (`basic` o `demo`), autenticación, base de datos y si migrar y
+sembrar. Para CI acepta flags y `--yes`:
+
+```bash
+npx create-dashild@latest mi-app \
+  --template demo \
+  --database postgresql \
+  --database-url "$DATABASE_URL" \
+  --pm pnpm \
+  --yes
+```
+
+Añade `--dry-run` para ver el plan sin escribir nada y `--list-templates` para
+listar los starters incluidos. La guía completa está en
+[`docs/install.md`](docs/install.md).
 
 ## Instalación manual
 
@@ -47,8 +60,31 @@ pnpm dashild make:resource User
 Si la app ya tiene autenticación propia, usa `dashild init --auth none` y conecta
 el adaptador de `src/dashild/panel.ts`.
 
-La guía completa, requisitos de Prisma 7, Tailwind y autenticación está en
-[`docs/install.md`](docs/install.md).
+## Qué incluye
+
+- **Recursos como datos**: columnas, formulario, búsqueda, filtros y acciones en
+  un solo archivo.
+- **Relaciones**: gestores o2m/m2m en el detalle (crear, editar, eliminar,
+  asociar/desasociar y attach/detach).
+- **Tabla TanStack**: paginación, ordenación y filtros en servidor.
+- **Campos y celdas propias**: `registerCell`/`registerField` y `dashild ui:add`
+  para copiar plantillas al proyecto.
+- **Bytes**: escritura en base64 con selector de archivo.
+- **Políticas en servidor**: `scope` (aislamiento), `can` por acción, roles con
+  `hasRole` y organización activa.
+- **Better Auth**: login y signup, rate limiting, cierre de signup público,
+  verificación de email y reset de contraseña (con tu proveedor de email).
+- **CLI**: `init`, `make:resource`, `doctor`, `ui:add` y `eject`.
+- **Bases de datos**: PostgreSQL, MySQL/MariaDB y SQLite para desarrollo.
+
+## Base de datos
+
+Dashild no levanta la base de datos en Docker: apunta `DATABASE_URL` a un
+PostgreSQL, MySQL o SQLite que ya exista (Neon, Supabase, PlanetScale, Turso o un
+archivo local). Si usas un pooler, añade `DIRECT_URL` para las migraciones.
+
+SQLite escribe en `prisma/dev.db` por defecto. El scaffolder instala el binding
+nativo con el Node que ejecuta la app para que funcione también con pnpm.
 
 ## Estructura
 
@@ -71,17 +107,21 @@ docs/              documentación pública: instalación y guías
 
 ## Requisitos
 
-- Node.js >= 22 (Node 20 está fuera de soporte y Prisma 7 lo rechaza)
-- pnpm
+- Node.js >= 22 (Node 20 está fuera de soporte y Prisma 7 lo rechaza).
+- pnpm, npm, yarn o bun para el proyecto.
+- PostgreSQL, MySQL/MariaDB o SQLite.
 
 ## Desarrollo
 
 ```bash
 pnpm install
-pnpm build        # compila los paquetes en orden topológico
-pnpm dev          # tsc --watch en todos los paquetes
+pnpm build             # compila los paquetes en orden topológico
+pnpm dev               # tsc --watch en todos los paquetes
 pnpm typecheck
-pnpm test         # especificación ejecutable de la tabla de mapeo
+pnpm test              # mapeo, políticas, acciones y CLI
+pnpm pack:all          # tarballs en artifacts/
+pnpm smoke:scaffold -- --pm pnpm --database sqlite
+pnpm release:verify    # comprueba que los tarballs publicados existen
 ```
 
 Los paquetes publican ESM compilado con `tsc` (`module: NodeNext`). Los imports
@@ -93,8 +133,20 @@ relativos llevan extensión `.js`, también en el código fuente.
 - Un paquete se justifica por una razón técnica o de distribución, no por
   estética. Hoy son cinco.
 - `internal/` está en `.gitignore`: la planificación no se publica.
-- Versionado lockstep: todos los paquetes comparten versión.
-- `@dashild/core`, `@dashild/admin`, `@dashild/prisma`, `@dashild/cli` y `create-dashild` comparten versión y se publican con tag `alpha`.
+- El stack `@dashild/*` comparte versión; `create-dashild` puede adelantarse para
+  publicar un arreglo del scaffolder sin republicar el resto.
+- Todo el stack se publica con el tag `alpha`.
+
+## Problemas comunes
+
+- **`127.0.0.1` no hidrata en desarrollo**: Next 16 solo acepta `localhost` por
+  defecto. El scaffold añade `allowedDevOrigins` para ambos; si usas otro dominio,
+  añádelo a `next.config.ts`.
+- **`better-sqlite3` con la ABI equivocada**: reinstala con el Node que ejecuta la
+  app (`node -v`) y `npm_config_target` igual a esa versión. El scaffolder ya lo
+  hace.
+- **`BETTER_AUTH_URL`**: debe coincidir con el origen real (`http://localhost:3000`
+  por defecto) o el login fallará por origen.
 
 ## Licencia
 

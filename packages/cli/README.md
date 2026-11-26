@@ -16,7 +16,7 @@ src/dashild/resources/organization.ts
 
 - **Write-once**: si el archivo existe, no se sobrescribe. El recurso es del desarrollador.
 - Omite `id`, `@updatedAt`, las FK que escribe una relación y listas escalares.
-- Incluye `Bytes` en el formulario y relaciones m2m como multiselect. o2m requiere un gestor de hijos y no se genera todavía.
+- Incluye `Bytes` en el formulario y relaciones m2m como multiselect. o2m no se genera como campo: se gestiona con el relation manager del padre, y el modelo hijo necesita su propio recurso.
 - Genera columnas, campos de formulario, búsqueda y filtros a partir de los metadatos.
 - Los campos de auditoría (`createdAt`, `updatedAt`, `deletedAt`) aparecen en la tabla pero no en el formulario.
 - Etiquetas y slugs se derivan del modelo (`BlogPost` → `blog-post.ts`, `Blog Posts`, `blog-posts`); se editan después.
@@ -60,20 +60,32 @@ src/app/<ruta>/[[...dashild]]/page.tsx
 Con `--auth better-auth` añade además:
 
 ```text
-lib/auth.ts
-lib/auth-client.ts
-lib/session.ts
-lib/auth-actions.ts
-app/api/auth/[...all]/route.ts
-app/login/page.tsx
-app/signup/page.tsx
-components/dashild/login-form.tsx
-components/dashild/signup-form.tsx
+src/lib/auth.ts
+src/lib/auth-client.ts
+src/lib/session.ts
+src/lib/auth-actions.ts
+src/lib/email.ts
+src/app/api/auth/[...all]/route.ts
+src/app/login/page.tsx
+src/app/signup/page.tsx
+src/app/forgot-password/page.tsx
+src/app/reset-password/page.tsx
+src/components/dashild/login-form.tsx
+src/components/dashild/signup-form.tsx
+src/components/dashild/forgot-password-form.tsx
+src/components/dashild/reset-password-form.tsx
 ```
 
 Añade `better-auth` a `package.json` y los modelos `User`, `Session`, `Account`
 y `Verification` a `prisma/schema.prisma` si no existen. También añade
-`BETTER_AUTH_SECRET` y `BETTER_AUTH_URL` a `.env.example`.
+`BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `ALLOW_SIGNUP` y
+`REQUIRE_EMAIL_VERIFICATION` a `.env.example`.
+
+La configuración generada activa rate limiting (100/minuto), permite cerrar el
+signup público con `ALLOW_SIGNUP="false"`, exige verificación con
+`REQUIRE_EMAIL_VERIFICATION="true"` y monta el flujo de reset de contraseña.
+`src/lib/email.ts` es un stub: registra el correo en desarrollo y falla en
+producción hasta que conectes Resend, Postmark, SES o tu transporte.
 
 Añade el script `dashild` a `package.json` si falta. **No toca** `middleware.ts`/`proxy.ts`, el layout raíz, `next.config`, `.env` ni los archivos de autenticación.
 
@@ -118,16 +130,30 @@ Parsea `src/dashild/resources/*.ts` (no los importa: `panel.ts` arrastra Next) y
 
 Indica archivo y línea, sugiere el arreglo y sale con código 1 si hay errores. `--json` es para CI.
 
-## Estado del resto de comandos
+## `eject`
+
+```bash
+pnpm dashild eject
+pnpm dashild eject --yes
+```
+
+Retira lo que escribió `init`: `panel.ts`, `policies.ts`, `actions/index.ts`,
+`icons.tsx`, `runtime.ts`, `server.ts`, `registry.tsx`, la ruta de montaje y el
+script `dashild` de `package.json`. No toca recursos, autenticación, schema ni
+dependencias; los lista como “Kept”.
+
+Sin `--yes` solo muestra el plan. Usa `--path` si no puede leer la ruta de
+`panel.ts` y `--dry-run` para forzar el modo simulación.
+
+## Comandos
 
 | Comando | Estado |
 | --- | --- |
 | `init` | Funcionando |
+| `make:resource` | Funcionando |
 | `doctor` | Funcionando |
-| `ui:add` | Pendiente (fase 2) |
-| `eject` | Pendiente (fase 2) |
-
-El CLI solo imprime ayuda y versión para los pendientes; no finge que funcionan.
+| `ui:add` | Funcionando |
+| `eject` | Funcionando |
 
 ## Tests
 
@@ -135,4 +161,4 @@ El CLI solo imprime ayuda y versión para los pendientes; no finge que funcionan
 pnpm --filter @dashild/cli test
 ```
 
-Verifican `make:resource`, `doctor` e `init` con proyectos y metadatos sintéticos: navegación, columnas, formulario, filtros, omisiones, nombres, plan de escritura, conflicto de ruta y fallo cerrado.
+Verifican `make:resource`, `doctor`, `init`, `ui:add`, `register` y `eject` con proyectos y metadatos sintéticos: navegación, columnas, formulario, filtros, omisiones, nombres, plan de escritura, conflicto de ruta, registro de recursos y fallo cerrado.

@@ -706,8 +706,10 @@ export async function resolvePolicy<TUser extends CurrentUser>(
 
   const organizationId = policies.organizationOf
     ? await policies.organizationOf(user)
-    : null;
-  const roles = policies.rolesOf ? await policies.rolesOf(user) : [];
+    : (user.organizationId ?? null);
+  const roles = policies.rolesOf
+    ? await policies.rolesOf(user)
+    : (user.roles ?? []);
 
   const context: PolicyContext<TUser> = { user, organizationId, roles };
   const scope = resourcePolicy.scope
