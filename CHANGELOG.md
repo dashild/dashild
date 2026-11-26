@@ -7,6 +7,7 @@
   y build en CI.
 - Contenido nuevo en ambos idiomas: instalación, recursos, políticas,
   autenticación, personalización, CLI, plantillas y troubleshooting.
+- Desplegado en Vercel: <https://dashild.vercel.app> (inglés) y `/es` (español).
 
 
 ## 0.1.0-alpha.6 — 2026-11-26

@@ -47,8 +47,8 @@ docs y en [`apps/docs`](apps/docs).
 
 El sitio vive en `apps/docs` con Astro + Starlight:
 
-- **English (principal)**: <https://docs.dashild.dev>
-- **Español (espejo)**: <https://docs.dashild.dev/es>
+- **English (principal)**: <https://dashild.vercel.app>
+- **Español (espejo)**: <https://dashild.vercel.app/es>
 
 ```bash
 pnpm docs:dev      # servidor local

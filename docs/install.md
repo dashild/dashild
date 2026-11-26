@@ -3,8 +3,8 @@
 The public documentation lives in `apps/docs` and is built with Astro +
 Starlight.
 
-- **English (primary)**: <https://docs.dashild.dev>
-- **Español (espejo)**: <https://docs.dashild.dev/es>
+- **English (primary)**: <https://dashild.vercel.app>
+- **Español (espejo)**: <https://dashild.vercel.app/es>
 
 Run it locally from the repository root:
 

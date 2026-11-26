@@ -13,8 +13,9 @@ pnpm docs:build
 pnpm docs:preview
 ```
 
-El despliegue es estático: `apps/docs/dist`. El dominio configurado es
-`https://docs.dashild.dev`; cámbialo en `astro.config.mjs` si usas otro.
+El despliegue es estático: `apps/docs/dist`. Producción:
+<https://dashild.vercel.app> (inglés) y <https://dashild.vercel.app/es>
+(español). Cuando haya dominio propio, define `SITE_URL` en Vercel.
 
 ## Versiones
 
