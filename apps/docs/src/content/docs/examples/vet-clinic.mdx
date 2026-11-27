@@ -468,11 +468,12 @@ has a `species` column, but `DOG`/`CAT` is not friendly in a table. A
 ships a few templates; copy one and adapt it instead of starting from scratch:
 
 ```bash
-pnpm dashild ui:add avatar-cell
+pnpm dashild ui:add avatar-cell --dir src/components/dashild
 ```
 
-`ui:add` copies the template to `components/dashild/` and prints the
-`registerCell(...)` line you need. It does not edit the registry for you: the
+`ui:add` copies the template to `src/components/dashild/` (the default folder is
+`components/dashild`, so `--dir` points it at the app's `src/` tree) and prints
+the `registerCell(...)` line you need. It does not edit the registry for you: the
 component name and import path are your decision.
 
 Rename the copied file to `species-cell.tsx` and replace its content:

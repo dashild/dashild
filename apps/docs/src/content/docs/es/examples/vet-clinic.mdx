@@ -471,11 +471,12 @@ una columna. El shell trae algunas plantillas; copia una y adáptala en vez de
 empezar de cero:
 
 ```bash
-pnpm dashild ui:add avatar-cell
+pnpm dashild ui:add avatar-cell --dir src/components/dashild
 ```
 
-`ui:add` copia la plantilla a `components/dashild/` e imprime la línea
-`registerCell(...)` que necesitas. No edita el registry por ti: el nombre del
+`ui:add` copia la plantilla a `src/components/dashild/` (la carpeta por defecto
+es `components/dashild`, así que `--dir` la apunta al árbol `src/` de la app) e
+imprime la línea `registerCell(...)` que necesitas. No edita el registry por ti: el nombre del
 componente y la ruta del import son decisión tuya.
 
 Renombra el fichero copiado a `species-cell.tsx` y sustituye su contenido:
