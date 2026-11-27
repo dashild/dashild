@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+- Filter bar: declared filters render as controls (enum, relation, boolean,
+  text, number, date) and submit a GET form; options are resolved per user.
+- Tenancy is a first-class option: `dashild init --tenancy` and
+  `create-dashild --tenancy` add the Organization model, `User.organizationId`
+  and `role`, an organization-aware session, the switch action, and the sidebar
+  switcher.
+- New `saas` starter: organizations, members, and projects isolated by tenant,
+  with a seed for two organizations.
+- Docs: Multi-tenancy guide and Server API reference (English and Spanish).
+- SQLite smoke now opens the seeded `dev.db` to prove the Prisma CLI and the
+  adapter resolved the same file.
+
 ## 0.1.0-alpha.10 — 2026-11-27
 
 - Docs logo split into three assets: `logo.svg` (currentColor, inline),
