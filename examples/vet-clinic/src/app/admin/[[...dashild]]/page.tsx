@@ -1,0 +1,72 @@
+import { cookies } from "next/headers";
+
+import { DEFAULT_THEME_MODE, type ThemeMode } from "@dashild/admin";
+import { AdminPage } from "@dashild/admin/server";
+
+import { AppIconProvider } from "../../../dashild/icons";
+import { AppRegistryProvider } from "../../../dashild/registry";
+import { panel } from "../../../dashild/panel";
+import { policies } from "../../../dashild/policies";
+import { runtime } from "../../../dashild/runtime";
+import {
+  deleteResource,
+  runRelationAction,
+  runResourceAction,
+  saveResource,
+  toggleTheme,
+} from "../../../dashild/server";
+import { getOrganizationContext } from "../../../lib/organization";
+import { switchOrganization } from "../../../dashild/organization-actions";
+
+/**
+ * Dashild mount route.
+ *
+ * Routing, policy and data loading live in @dashild/admin/server. This file
+ * only wires the app's session and server actions.
+ */
+
+export const dynamic = "force-dynamic";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+const THEME_COOKIE = "dashild_theme";
+
+export default async function DashildPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ dashild?: string[] }>;
+  searchParams: Promise<SearchParams>;
+}) {
+  const store = await cookies();
+  const cookieTheme = store.get(THEME_COOKIE)?.value;
+  const theme: ThemeMode =
+    cookieTheme === "light" || cookieTheme === "dark" || cookieTheme === "system"
+      ? cookieTheme
+      : panel.theme?.defaultMode ?? DEFAULT_THEME_MODE;
+  const user = await panel.auth.getCurrentUser();
+  const organization = user ? await getOrganizationContext(user) : null;
+
+  return (
+    <AppRegistryProvider>
+      <AdminPage
+        panel={panel}
+        policies={policies}
+        runtime={runtime}
+        saveAction={saveResource}
+        deleteAction={deleteResource}
+        runAction={runResourceAction}
+        relationAction={runRelationAction}
+        IconProvider={AppIconProvider}
+        params={params}
+        searchParams={searchParams}
+        theme={theme}
+        themeToggle={panel.theme?.toggle ?? false}
+        themeAction={toggleTheme}
+        organizations={organization?.organizations}
+        activeOrganizationId={organization?.activeOrganizationId}
+        switchOrganization={switchOrganization}
+      />
+    </AppRegistryProvider>
+  );
+}

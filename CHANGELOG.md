@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.11 — 2026-11-27
 
 - Filter bar: declared filters render as controls (enum, relation, boolean,
   text, number, date) and submit a GET form; options are resolved per user.

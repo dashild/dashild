@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "template": {
+    "name": "basic",
+    "version": "0.0.0",
+    "source": "bundled"
+  },
+  "auth": "better-auth",
+  "database": "sqlite",
+  "panelPath": "/admin",
+  "createdAt": "2026-11-27T14:32:56.643Z"
+}

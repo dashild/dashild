@@ -1,0 +1,10 @@
+allowBuilds:
+  prisma: true
+  "@prisma/engines": true
+  esbuild: true
+  better-sqlite3: true
+overrides:
+  "@dashild/core": "file:../../artifacts/dashild-core-0.1.0-alpha.10.tgz"
+  "@dashild/admin": "file:../../artifacts/dashild-admin-0.1.0-alpha.10.tgz"
+  "@dashild/cli": "file:../../artifacts/dashild-cli-0.1.0-alpha.10.tgz"
+  "@dashild/prisma": "file:../../artifacts/dashild-prisma-0.1.0-alpha.10.tgz"
