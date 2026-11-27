@@ -8,8 +8,17 @@ un pequeño SaaS para clínicas veterinarias. Cada clínica es un tenant; el
 personal, los dueños, las mascotas, las citas, las visitas y las vacunas están
 aislados por clínica.
 
-Cubre tenencia, roles, relaciones, acciones, filtros, una celda custom y una
-base de datos sembrada. La app terminada está en el repositorio para comparar.
+Está escrito para alguien que sabe JavaScript o TypeScript y es nuevo en
+Dashild. Cada paso explica qué hace el comando o el fichero, no solo qué pegar.
+
+Qué vas a aprender:
+
+- Cómo un modelo de Prisma se convierte en un recurso de Dashild.
+- Cómo funciona el aislamiento por tenant en el servidor.
+- Cómo los roles deciden qué acciones aparecen.
+- Cómo encajan relaciones, filtros, celdas custom y handlers de acciones.
+
+La app terminada está en el repositorio para comparar.
 
 ## 1. Crear la app
 
@@ -18,21 +27,34 @@ pnpm create dashild@latest vet-clinic --tenancy --database sqlite --yes
 cd vet-clinic
 ```
 
-`--tenancy` implica Better Auth y un schema sin modelos de auth. Escribe el
-modelo `Organization`, `User.organizationId`/`role`, `src/lib/organization.ts`,
-un `src/lib/session.ts` con organización, `src/dashild/organization-actions.ts`
-y cablea el selector en la ruta de montaje.
+El scaffolder crea una app Next.js, instala Dashild y prepara el panel.
+`--tenancy` añade las piezas multi-tenant:
 
-Configura `BETTER_AUTH_URL` con la URL que abres en el navegador (por defecto
-`http://localhost:3000`).
+- Un modelo `Organization` (una fila por clínica).
+- `User.organizationId` y `User.role`.
+- `src/lib/organization.ts`: qué clínicas ve el usuario y cuál está activa.
+- `src/lib/session.ts`: `getCurrentUser()` devuelve la clínica activa.
+- `src/dashild/organization-actions.ts`: la server action del selector.
+- La ruta de montaje pasa las clínicas y el selector al panel.
+
+`--database sqlite` mantiene el ejemplo autocontenido: la base de datos es un
+fichero (`prisma/dev.db`), así que no necesitas un servidor.
+
+`BETTER_AUTH_URL` debe coincidir con la URL que abres en el navegador. El
+scaffold pone `http://localhost:3000`.
+
+En este punto `pnpm dev` ya funciona, con el panel vacío. Lo vamos a llenar.
 
 ## 2. Modelar la clínica
 
-Añade los modelos de dominio a `prisma/schema.prisma`. La tenencia ya creó
-`Organization` y el enum `Role`; añade `VET` y `RECEPTION` al enum y las
-relaciones inversas en `User` y `Organization`.
+`prisma/schema.prisma` describe las tablas de la base de datos. Prisma lee este
+fichero y genera un cliente tipado; Dashild lee los metadatos generados para
+saber qué campos tiene cada modelo.
 
-```prisma
+La tenencia ya creó `Organization` y el enum `Role`. Añade `VET` y `RECEPTION`
+al enum y las relaciones inversas que Prisma necesita para las tablas nuevas:
+
+```prisma title="prisma/schema.prisma"
 enum Role {
   ADMIN
   VET
@@ -41,7 +63,7 @@ enum Role {
 }
 
 model User {
-  // ...campos de Better Auth...
+  // ...los campos de Better Auth...
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   role           Role      @default(USER)
@@ -64,7 +86,7 @@ model Organization {
 
 Después añade los modelos de dominio:
 
-```prisma
+```prisma title="prisma/schema.prisma"
 enum Species {
   DOG
   CAT
@@ -168,16 +190,29 @@ model Vaccination {
 }
 ```
 
-## 3. Migrar y sembrar
+Fíjate en varias cosas:
+
+- `organizationId` se repite en los datos de la clínica. Parece redundante, pero
+  hace que los filtros por tenant y los índices sean simples y rápidos.
+- `Pet.owner` es una relación con `Owner`; `Appointment.pet` es una relación con
+  `Pet`. Dashild usa esas relaciones para columnas, formularios y relation
+  managers.
+- `photo Bytes?` guarda la imagen en la base de datos en este ejemplo. En una
+  app real normalmente guardarías una URL.
+
+## 3. Crear la base de datos y sembrarla
+
+`migrate dev` compara el schema con la base de datos, escribe una migración y la
+aplica. También regenera el cliente de Prisma y los metadatos de Dashild.
 
 ```bash
 pnpm prisma migrate dev --name vet_schema
 ```
 
-Crea `prisma/seed.ts` y añade `"db:seed": "tsx prisma/seed.ts"` a
-`package.json`. El ejemplo siembra dos clínicas para poder probar el cambio:
+Ahora crea `prisma/seed.ts`. Un seed inserta datos de demo para que el panel no
+esté vacío. Esta versión crea dos clínicas, para probar el cambio:
 
-```ts
+```ts title="prisma/seed.ts"
 import "dotenv/config";
 
 import { auth } from "../src/lib/auth";
@@ -329,15 +364,52 @@ main()
     process.exit(1);
   });
 ```
-Ejecútalo:
+
+Añade el script a `package.json` y ejecútalo:
+
+```json title="package.json"
+{
+  "scripts": {
+    "db:seed": "tsx prisma/seed.ts"
+  }
+}
+```
 
 ```bash
 pnpm db:seed
 ```
 
-## 4. Dueños: el primer recurso
+El seed completo del ejemplo tiene más dueños, mascotas, visitas y vacunas; está
+enlazado al final.
 
-```ts
+## 4. Generar el primer recurso (Owners)
+
+Un recurso es un fichero de datos. Dice qué modelo mostrar, qué columnas y
+campos de formulario usar y qué política lo protege. Dashild tiene una ruta para
+todos los recursos; no hay páginas que generar.
+
+```bash
+pnpm dashild make:resource Owner
+```
+
+El comando recibe el nombre del modelo de Prisma, en singular: `Owner`, no
+`Owners`.
+
+`make:resource` lee `dashild-metadata.json`, el fichero que escribe el generador
+de Prisma, y:
+
+1. Escribe `src/dashild/resources/owner.ts` con columnas y campos de formulario
+   inferidos del modelo.
+2. Registra el recurso en `src/dashild/panel.ts`.
+3. Añade una entrada **fail-closed** en `src/dashild/policies.ts`
+   (`scope: () => null`), así que no se ve nada hasta que definas la política.
+
+El fichero es write-once: si ejecutas el comando otra vez, no sobrescribe tu
+trabajo.
+
+Abre el fichero generado y ajústalo hasta que quede así:
+
+```ts title="src/dashild/resources/owner.ts"
 import { defineResource } from "@dashild/core";
 
 export const ownerResource = defineResource({
@@ -364,15 +436,51 @@ export const ownerResource = defineResource({
 });
 ```
 
-Se aplican las convenciones de `make:resource`: el fichero es dato y el scope
-vive en la política.
+`searchable` lista los campos del buscador. `policy: { scope: "organization" }`
+es un marcador: el filtro real vive en `policies.ts`, que escribimos en el paso 8.
 
-## 5. Mascotas y una celda custom
+## 5. Generar el resto de recursos
 
-Las mascotas necesitan una columna de especie con un render más amable. Crea
-`src/components/dashild/species-cell.tsx`:
+Los demás siguen el mismo comando. Ejecútalos ahora:
 
-```tsx
+```bash
+pnpm dashild make:resource Pet
+pnpm dashild make:resource Appointment
+pnpm dashild make:resource Visit
+pnpm dashild make:resource Vaccination
+pnpm dashild make:resource User
+```
+
+Luego personaliza cada fichero. `Pet` y `Appointment` se explican abajo;
+`Visit`, `Vaccination` y `User` siguen la misma forma y están enlazados al
+final. La versión generada es un punto de partida; las columnas, filtros y
+campos son datos tuyos.
+
+:::note
+`make:resource User` escribe `user.ts`. El ejemplo lo renombra a `staff.ts`
+porque solo edita personal (nombre y rol), y actualiza el import en `panel.ts`.
+Renombrar un fichero es válido si el panel importa la ruta nueva.
+:::
+
+## 6. Mascotas y una celda custom
+
+El recurso de mascotas que generaste en el paso 5 necesita una celda custom. El
+modelo `Pet` tiene una columna `species`, pero `DOG`/`CAT` no es amable en una
+tabla. Una **celda** es un componente React pequeño que renderiza el valor de
+una columna. El shell trae algunas plantillas; copia una y adáptala en vez de
+empezar de cero:
+
+```bash
+pnpm dashild ui:add avatar-cell
+```
+
+`ui:add` copia la plantilla a `components/dashild/` e imprime la línea
+`registerCell(...)` que necesitas. No edita el registry por ti: el nombre del
+componente y la ruta del import son decisión tuya.
+
+Renombra el fichero copiado a `species-cell.tsx` y sustituye su contenido:
+
+```tsx title="src/components/dashild/species-cell.tsx"
 "use client";
 
 import type { CellRendererProps } from "@dashild/admin";
@@ -401,9 +509,10 @@ export function SpeciesCell({ value }: CellRendererProps) {
 }
 ```
 
-Regístrala en `src/dashild/registry.tsx`:
+Regístrala. El registro ocurre en cliente, porque los componentes son funciones
+y no pueden viajar como props desde un componente de servidor:
 
-```tsx
+```tsx title="src/dashild/registry.tsx"
 "use client";
 
 import {
@@ -429,9 +538,10 @@ export function AppRegistryProvider({ children }: { children: React.ReactNode })
 }
 ```
 
-Y usa `cell: "species"` en el recurso de mascotas:
+Por último, usa `cell: "species"` en el recurso de mascotas e incluye el campo
+de foto:
 
-```ts
+```ts title="src/dashild/resources/pet.ts"
 import { defineResource } from "@dashild/core";
 
 export const petResource = defineResource({
@@ -472,12 +582,14 @@ export const petResource = defineResource({
 });
 ```
 
-El formulario incluye `{ field: "photo", type: "bytes" }`, así que el panel
-renderiza un selector de fichero y envía base64.
+`{ field: "photo", type: "bytes" }` indica al formulario que renderice un
+selector de fichero y lo envíe en base64.
 
-## 6. Citas, filtros y acciones
+## 7. Citas, filtros y acciones
 
-```ts
+El recurso de citas añade filtros y acciones:
+
+```ts title="src/dashild/resources/appointment.ts"
 import { defineResource } from "@dashild/core";
 
 export const appointmentResource = defineResource({
@@ -555,14 +667,22 @@ export const appointmentResource = defineResource({
 
 Dos reglas importan aquí:
 
-- Declarar `table.actions` sustituye las acciones integradas create/view/edit/delete,
-  así que el recurso las lista explícitamente.
+- Declarar `table.actions` **sustituye** las acciones integradas
+  create/view/edit/delete, así que el recurso las lista explícitamente y luego
+  añade las suyas.
 - No llames `cancel` a una acción propia: es una acción integrada de formulario
-  y el panel la ignoraría. Usa `cancelAppointment`, como arriba.
+  y el panel ignoraría la tuya. El ejemplo usa `cancelAppointment`.
 
-## 7. Políticas y roles
+`filters` renderiza la barra sobre la tabla. Las opciones de `status` vienen del
+enum de Prisma; las de `pet` y `vet` se cargan en el servidor y se filtran por la
+clínica activa.
 
-```ts
+## 8. Políticas y roles
+
+`make:resource` añadió una entrada fail-closed por cada modelo. Sustituye
+`policies.ts` por las reglas reales:
+
+```ts title="src/dashild/policies.ts"
 import {
   definePolicies,
   hasRole,
@@ -618,13 +738,21 @@ export const policies = definePolicies<CurrentUser>({
 });
 ```
 
-Cada recurso devuelve `null` sin organización activa, así que una sesión sin
-clínica no ve nada. Recepción gestiona dueños y citas; los veterinarios escriben
-visitas y vacunas; solo los admin borran o editan personal.
+Cómo leerlo:
 
-## 8. Handlers de acciones
+- `scope` es un `where` de Prisma que se aplica en el servidor a cada lectura y
+  escritura. Devolver `null` deniega el recurso, así que una sesión sin clínica
+  no ve nada.
+- `can` decide los permisos. `ADMIN`, `VET` y `RECEPTION` son cadenas que vienen
+  de `User.role`; los nombres los define la app.
+- Las acciones declaradas (`attend`, `cancelAppointment`) son deny-by-default:
+  si falta el predicado, la acción se oculta y el servidor la rechaza.
 
-```ts
+## 9. Handlers de acciones
+
+El recurso declara la acción; el handler se ejecuta en el servidor:
+
+```ts title="src/dashild/actions/index.ts"
 import type { ActionHandler, CurrentUser } from "@dashild/core";
 
 type AppointmentStatus = "ATTENDED" | "CANCELLED";
@@ -680,54 +808,19 @@ export const resourceActions: Record<
 };
 ```
 
-Los handlers usan el `db` scopeado del contexto: una cita de otra clínica no es
-alcanzable, ni siquiera con un id adivinado.
+El `db` del contexto es Prisma extendido con el scope de la política. Una cita
+de otra clínica no es alcanzable aunque alguien adivine su id.
 
-## 9. Ejecutar
+## 10. Un icono custom
 
-```bash
-pnpm dev
-```
-
-Abre [http://localhost:3000/admin](http://localhost:3000/admin) e inicia sesión:
-
-| Email | Rol | Clínica |
-| --- | --- | --- |
-| `ana@acme.vet` | ADMIN | Clínica Acme |
-| `victor@acme.vet` | VET | Clínica Acme |
-| `rita@acme.vet` | RECEPTION | Clínica Acme |
-| `carla@beta.vet` | VET | Clínica Beta |
-
-Contraseña: `dashild123`.
-
-Qué comprobar:
-
-1. Como Ana, cambia entre Acme y Beta en el sidebar: listas, opciones de
-   formulario y relation managers siguen la clínica activa.
-2. Como Víctor (VET), “Mark attended” aparece en las citas; “Cancel” no.
-3. Como Rita (RECEPTION), “Cancel” aparece y pide confirmación.
-4. Como Carla, solo existe Beta.
-5. Filtra mascotas por especie y citas por estado.
-6. Abre un dueño para ver sus mascotas; abre una mascota para visitas y vacunas.
-
-## 10. El resto del ejemplo
-
-`visits`, `vaccinations` y `staff` siguen el mismo patrón. Cópialos del
-repositorio:
-
-- [visit.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/visit.ts)
-- [vaccination.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/vaccination.ts)
-- [staff.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/staff.ts)
-- [seed.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/prisma/seed.ts)
-
-El recurso de vacunas usa `icon: "shield"`, que no es uno de los iconos
-integrados del shell. Instala un set de iconos y regístralo:
+El shell tiene 19 iconos integrados. El recurso de vacunas usa `shield`, que no
+está entre ellos, así que instala un set de iconos y regístralo:
 
 ```bash
 pnpm add lucide-react
 ```
 
-```tsx
+```tsx title="src/dashild/icons.tsx"
 "use client";
 
 import type { ElementType } from "react";
@@ -749,6 +842,42 @@ export function AppIconProvider({ children }: { children: React.ReactNode }) {
   return <IconProvider icons={icons}>{children}</IconProvider>;
 }
 ```
+
+## 11. Ejecutar y probar los roles
+
+```bash
+pnpm dev
+```
+
+Abre [http://localhost:3000/admin](http://localhost:3000/admin) e inicia sesión:
+
+| Email | Rol | Clínica |
+| --- | --- | --- |
+| `ana@acme.vet` | ADMIN | Clínica Acme |
+| `victor@acme.vet` | VET | Clínica Acme |
+| `rita@acme.vet` | RECEPTION | Clínica Acme |
+| `carla@beta.vet` | VET | Clínica Beta |
+
+Contraseña: `dashild123`.
+
+Qué comprobar:
+
+1. Como Ana, cambia entre Acme y Beta en el sidebar. Listas, opciones de
+   formulario y relation managers siguen la clínica activa.
+2. Como Víctor (VET), “Mark attended” aparece en las citas; “Cancel” no.
+3. Como Rita (RECEPTION), “Cancel” aparece y pide confirmación.
+4. Como Carla, solo existe Beta.
+5. Filtra mascotas por especie y citas por estado.
+6. Abre un dueño para ver sus mascotas; abre una mascota para visitas y vacunas.
+
+## 12. Terminar el ejemplo
+
+Los recursos que faltan se generan y editan igual. Cópialos del repositorio:
+
+- [visit.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/visit.ts)
+- [vaccination.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/vaccination.ts)
+- [staff.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/staff.ts)
+- [seed.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/prisma/seed.ts)
 
 ## Problemas frecuentes
 
