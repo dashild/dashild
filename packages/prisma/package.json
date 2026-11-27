@@ -1,6 +1,6 @@
 {
   "name": "@dashild/prisma",
-  "version": "0.1.0-alpha.9",
+  "version": "0.1.0-alpha.10",
   "type": "module",
   "description": "Official Prisma generator that extracts the metadata Dashild consumes",
   "license": "MIT",

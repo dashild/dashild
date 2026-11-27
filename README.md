@@ -18,7 +18,7 @@ That file describes the table, form, filters, and actions. There are no pages to
 generate and no files to keep in sync. Security (authorization and data
 isolation) does not live there: the server enforces it.
 
-**Status: alpha.** Version `0.1.0-alpha.9`. It is not stable yet and the API may
+**Status: alpha.** Version `0.1.0-alpha.10`. It is not stable yet and the API may
 change between `alpha` releases.
 
 ## Create an app

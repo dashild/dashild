@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.10 — 2026-11-27
 
 - Docs logo split into three assets: `logo.svg` (currentColor, inline),
   `logo-light.svg` and `logo-dark.svg` for `<img>` usage. The D is a cutout, so
