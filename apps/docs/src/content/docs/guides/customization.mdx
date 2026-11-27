@@ -16,6 +16,7 @@ export const panel = definePanel({
   title: "Acme",
   path: "/admin",
   locale: "en",
+  brand: { name: "Acme" },
   theme: { defaultMode: "dark", toggle: true, primary: "zinc" },
   sidebar: { collapsible: "icon" },
   maxContentWidth: "xl",
@@ -30,9 +31,10 @@ the browser-side messages of the form. `theme.defaultMode` accepts `light`,
 `dark`, or `system`; `system` follows `prefers-color-scheme` and reacts to
 changes.
 
-`definePanel` also accepts `brand` and `domain`, but the current shell does not
-render `brand` and does not consume `domain`: Next routes by host, so `domain`
-is declared metadata only.
+`brand.name` labels the sign-in pages and `brand.logo` replaces the panel mark
+in the sidebar. Without a logo, the shell renders the Dashild mark, which
+inherits the theme's text color. `domain` is declared metadata only: Next
+routes by host, so Dashild does not use it to route requests.
 
 ### Theme switch
 

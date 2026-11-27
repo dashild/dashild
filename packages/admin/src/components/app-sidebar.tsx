@@ -11,8 +11,9 @@ import {
   SidebarRail,
 } from "../ui/sidebar.js";
 
-import type { Locale } from "@dashild/core";
+import type { Locale, PanelBrand } from "@dashild/core";
 
+import { BrandMark } from "./brand-mark.js";
 import { NavMain, type NavGroup } from "./nav-main.js";
 import { NavUser } from "./nav-user.js";
 import {
@@ -32,6 +33,7 @@ export interface AppSidebarProps {
   switchOrganization?: OrganizationSwitcherProps["switchOrganization"];
   locale?: Locale;
   accountHref?: string;
+  brand?: PanelBrand;
 }
 
 export function AppSidebar({
@@ -46,7 +48,19 @@ export function AppSidebar({
   switchOrganization,
   locale,
   accountHref,
+  brand,
 }: AppSidebarProps) {
+  const brandLogo = brand?.logo ? (
+    <img
+      src={brand.logo}
+      alt=""
+      aria-hidden="true"
+      className="size-8 rounded-lg object-cover"
+    />
+  ) : (
+    <BrandMark className="size-8!" />
+  );
+
   return (
     <Sidebar collapsible={collapsible}>
       <SidebarHeader>
@@ -57,11 +71,13 @@ export function AppSidebar({
             title={title}
             switchOrganization={switchOrganization}
             locale={locale}
+            logo={brand?.logo}
           />
         ) : (
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" className="cursor-default">
+                {brandLogo}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{title}</span>
                 </div>

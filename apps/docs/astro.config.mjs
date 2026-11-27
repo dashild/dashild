@@ -19,7 +19,7 @@ export default defineConfig({
       title: "Dashild",
       description: "The application admin layer for Next.js.",
       logo: {
-        light: "./src/assets/logo.svg",
+        light: "./src/assets/logo-light.svg",
         dark: "./src/assets/logo-dark.svg",
         alt: "Dashild",
       },

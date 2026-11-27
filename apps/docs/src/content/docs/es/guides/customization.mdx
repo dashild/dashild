@@ -16,6 +16,7 @@ export const panel = definePanel({
   title: "Acme",
   path: "/admin",
   locale: "en",
+  brand: { name: "Acme" },
   theme: { defaultMode: "dark", toggle: true, primary: "zinc" },
   sidebar: { collapsible: "icon" },
   maxContentWidth: "xl",
@@ -30,9 +31,10 @@ validación del servidor y los mensajes del formulario en el navegador.
 `theme.defaultMode` acepta `light`, `dark` o `system`; `system` sigue
 `prefers-color-scheme` y reacciona a los cambios.
 
-`definePanel` también acepta `brand` y `domain`, pero el shell actual no
-renderiza `brand` ni consume `domain`: Next enruta por host, así que `domain` es
-metadata declarada y nada más.
+`brand.name` etiqueta las páginas de acceso y `brand.logo` sustituye la marca
+del panel en la barra lateral. Sin logo, el shell dibuja la marca de Dashild,
+que hereda el color de texto del tema. `domain` es metadata declarada y nada
+más: Next enruta por host, así que Dashild no lo usa para enrutar peticiones.
 
 ### Conmutador de tema
 

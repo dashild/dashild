@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import { translate, type Locale } from "@dashild/core";
 
@@ -18,6 +18,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../ui/sidebar.js";
+import { BrandMark } from "./brand-mark.js";
 
 interface OrganizationOption {
   id: string;
@@ -30,6 +31,8 @@ export interface OrganizationSwitcherProps {
   title: string;
   switchOrganization: (formData: FormData) => Promise<void>;
   locale?: Locale;
+  /** Panel logo; falls back to the Dashild mark. */
+  logo?: string;
 }
 
 export function OrganizationSwitcher({
@@ -38,6 +41,7 @@ export function OrganizationSwitcher({
   title,
   switchOrganization,
   locale,
+  logo,
 }: OrganizationSwitcherProps) {
   const active = organizations.find(
     (organization) => organization.id === activeId,
@@ -52,9 +56,16 @@ export function OrganizationSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent"
             >
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <Building2 />
-              </div>
+              {logo ? (
+                <img
+                  src={logo}
+                  alt=""
+                  aria-hidden="true"
+                  className="size-8 rounded-lg object-cover"
+                />
+              ) : (
+                <BrandMark className="size-8!" />
+              )}
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">
                   {active?.name ?? translate(locale, "shell.noOrganization")}

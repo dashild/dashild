@@ -1,6 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+  <title>Dashild Logo</title>
+  <!--
+    El cubo es la única forma con color: hereda currentColor cuando el SVG se
+    inserta en línea. La letra D es transparente, así que muestra el fondo que
+    haya detrás; la máscara recorta ese hueco en el cubo.
+  -->
+  <defs>
+    <mask id="dashild-letra-D">
+      <rect width="1000" height="1000" fill="#fff" />
+      <path d="M454.307 600.105v-426h147q103.8 0 159.6 55.5t55.8 158.1q0 102-54.9 157.2t-156.9 55.2Zm91.2-76.8h55.8q61.8 0 91.5-33.3t29.7-102.9-29.7-102.9-91.5-33.3h-55.8Z" fill="#000" />
+    </mask>
+  </defs>
   <path
-    d="M5 3h10c8.5 0 13 5.2 13 13s-4.5 13-13 13H5V3Zm7 6v14h3c4.8 0 7.5-2.7 7.5-7S19.8 9 15 9h-3Z"
-    fill="#0a0a0a"
+    id="cubo"
+    d="M355.273 103.001a100 100 0 0 1 67.678-26.381h445.563c55.228 0 100 44.772 100 100v378.819a100 100 0 0 1-32.323 73.619L644.727 896.999a100 100 0 0 1-67.678 26.381H131.486c-55.228 0-100-44.772-100-100V444.561a100 100 0 0 1 32.323-73.619Z"
+    fill="currentColor"
+    mask="url(#dashild-letra-D)"
   />
+  <path id="letra-D" d="M454.307 600.105v-426h147q103.8 0 159.6 55.5t55.8 158.1q0 102-54.9 157.2t-156.9 55.2Zm91.2-76.8h55.8q61.8 0 91.5-33.3t29.7-102.9-29.7-102.9-91.5-33.3h-55.8Z" fill="none" />
 </svg>

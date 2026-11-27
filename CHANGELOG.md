@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Docs logo split into three assets: `logo.svg` (currentColor, inline),
+  `logo-light.svg` and `logo-dark.svg` for `<img>` usage. The D is a cutout, so
+  it always takes the background color.
+- The panel renders `brand.logo` in the sidebar and falls back to the Dashild
+  mark, which inherits the theme text color.
+
 ## 0.1.0-alpha.9 — 2026-11-26
 
 Documentation audit fixes and the code gaps behind them.

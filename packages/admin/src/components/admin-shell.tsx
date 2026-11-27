@@ -4,7 +4,7 @@ import { Suspense } from "react";
 
 import { cn } from "cn";
 
-import type { Locale, PanelColor } from "@dashild/core";
+import type { Locale, PanelBrand, PanelColor } from "@dashild/core";
 
 import { SidebarInset, SidebarProvider } from "../ui/sidebar.js";
 import { Toaster } from "../ui/sonner.js";
@@ -35,6 +35,7 @@ export interface AdminShellProps {
   themeAction?: (formData: FormData) => Promise<void>;
   locale?: Locale;
   accountHref?: string;
+  brand?: PanelBrand;
   children: React.ReactNode;
 }
 
@@ -64,6 +65,7 @@ export function AdminShell({
   themeAction,
   locale,
   accountHref,
+  brand,
   children,
 }: AdminShellProps) {
   return (
@@ -82,6 +84,7 @@ export function AdminShell({
             switchOrganization={switchOrganization}
             locale={locale}
             accountHref={accountHref}
+            brand={brand}
           />
           <SidebarInset>
             <SiteHeader

@@ -151,6 +151,7 @@ export async function AdminPage<TUser extends CurrentUser>({
         themeAction={themeAction}
         locale={locale}
         accountHref={accountHref}
+        brand={panel.brand}
       >
         {!resource ? (
           <DashboardHome
