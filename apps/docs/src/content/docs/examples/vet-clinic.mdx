@@ -720,6 +720,36 @@ the repository:
 - [staff.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/staff.ts)
 - [seed.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/prisma/seed.ts)
 
+The vaccination resource uses `icon: "shield"`, which is not one of the shell's
+built-in icons. Install an icon set and register it:
+
+```bash
+pnpm add lucide-react
+```
+
+```tsx
+"use client";
+
+import type { ElementType } from "react";
+
+import { IconProvider } from "@dashild/admin";
+import { Shield } from "lucide-react";
+
+/**
+ * App icon registry.
+ *
+ * Add any React icon component here under the name used by
+ * `navigation.icon` or `action.icon`.
+ */
+export const icons: Record<string, ElementType> = {
+  shield: Shield,
+};
+
+export function AppIconProvider({ children }: { children: React.ReactNode }) {
+  return <IconProvider icons={icons}>{children}</IconProvider>;
+}
+```
+
 ## Troubleshooting
 
 - **`init` refuses tenancy**: it needs a schema without auth models. Start from
