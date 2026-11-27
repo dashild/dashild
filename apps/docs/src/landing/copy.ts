@@ -148,7 +148,7 @@ const en: LandingCopy = {
       {
         icon: "shield",
         title: "Security on the server",
-        body: "Scope, per-action permissions, and roles are enforced where the data lives.",
+        body: "Scope, permissions, roles, and tenant isolation are enforced where the data lives.",
       },
       {
         icon: "layers",
@@ -209,6 +209,7 @@ const en: LandingCopy = {
       "One route for every resource",
       "The resource is write-once data",
       "Policy enforced in one place",
+      "Tenant isolation built in",
       "shadcn UI you own",
     ],
   },
@@ -290,7 +291,7 @@ const es: LandingCopy = {
       {
         icon: "shield",
         title: "Seguridad en servidor",
-        body: "Ámbito, permisos por acción y roles se aplican donde viven los datos.",
+        body: "Ámbito, permisos, roles y aislamiento por tenant se aplican donde viven los datos.",
       },
       {
         icon: "layers",
@@ -351,6 +352,7 @@ const es: LandingCopy = {
       "Una ruta para todos los recursos",
       "El recurso es dato write-once",
       "La política se aplica en un sitio",
+      "Aislamiento por tenant incluido",
       "UI de shadcn que es tuya",
     ],
   },
