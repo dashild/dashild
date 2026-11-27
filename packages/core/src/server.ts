@@ -988,6 +988,11 @@ export interface DashboardRuntime<TUser extends CurrentUser> {
     user: TUser,
     recordId?: string,
   ): Promise<Record<string, FormOption[]>>;
+  /** Options for the resource's declared filters (enums and m2o relations). */
+  filterOptions(
+    resource: ResourceDefinition,
+    user: TUser,
+  ): Promise<Record<string, FormOption[]>>;
   save(
     input: { slug: string; id?: string; values: Record<string, unknown> },
     user: TUser,
@@ -1322,6 +1327,79 @@ export function createDashildRuntime<TUser extends CurrentUser>(
           value,
           label: value,
         }));
+      }
+    }
+
+    return result;
+  }
+
+  async function filterOptions(
+    resource: ResourceDefinition,
+    user: TUser,
+  ): Promise<Record<string, FormOption[]>> {
+    const client = scopedClient(user);
+    const model = modelFor(options.metadata, resource.model);
+    if (!model) return {};
+
+    const policy = await resolvePolicy(resource, options.policies, user);
+    if (!policy.ok) throw new PolicyDeniedError(resource.model);
+
+    const organizationId = policy.policy.context.organizationId;
+    const result: Record<string, FormOption[]> = {};
+
+    for (const definition of resource.table.filters ?? []) {
+      const field = model.fields.find(
+        (entry) => entry.name === definition.field,
+      );
+      if (!field) continue;
+
+      if (definition.type === "enum") {
+        const values =
+          options.metadata.enums.find((entry) => entry.name === field.type)
+            ?.values ?? [];
+        result[definition.field] = values.map((value) => ({
+          value,
+          label: value,
+        }));
+        continue;
+      }
+
+      if (definition.type !== "relation" || field.kind !== "object") continue;
+
+      const related = modelFor(options.metadata, field.type);
+      const delegate = runtimeDelegate(client, field.type);
+      if (!related || !delegate) continue;
+
+      const idField =
+        related.fields.find((entry) => entry.isId)?.name ?? "id";
+      const requested = definition.display;
+      const display =
+        requested && related.fields.some((entry) => entry.name === requested)
+          ? requested
+          : related.fields.some((entry) => entry.name === "name")
+            ? "name"
+            : idField;
+
+      const where =
+        organizationId &&
+        related.fields.some((entry) => entry.name === "organizationId")
+          ? { organizationId }
+          : {};
+
+      try {
+        const rows = (await delegate.findMany({
+          where,
+          select: { [idField]: true, [display]: true },
+          orderBy: { [display]: "asc" },
+          take: 200,
+        })) as Record<string, unknown>[];
+
+        result[definition.field] = rows.map((row) => ({
+          value: String(row[idField] ?? ""),
+          label: String(row[display] ?? row[idField] ?? ""),
+        }));
+      } catch {
+        result[definition.field] = [];
       }
     }
 
@@ -1743,6 +1821,7 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     list,
     record,
     formOptions,
+    filterOptions,
     save,
     remove,
     runAction,

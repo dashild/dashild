@@ -18,10 +18,11 @@ import {
   EmptyTitle,
 } from "../ui/empty.js";
 import { Input } from "../ui/input.js";
-import type { DeleteAction, RunAction } from "../types.js";
+import type { DeleteAction, FormOption, RunAction } from "../types.js";
 
 import { ActionButton } from "./action-button.js";
 import { DataTable } from "./data-table.js";
+import { FilterBar } from "./filter-bar.js";
 
 interface ResourceTableProps {
   resource: ResourceDefinition;
@@ -36,6 +37,8 @@ interface ResourceTableProps {
   canDelete?: boolean;
   /** Custom actions the server allowed for this user. */
   allowedActions?: string[];
+  /** Options for enum and relation filters, resolved on the server. */
+  filterOptions?: Record<string, FormOption[]>;
   deleteAction: DeleteAction;
   runAction: RunAction;
 }
@@ -52,6 +55,7 @@ export function ResourceTable({
   canUpdate = true,
   canDelete = true,
   allowedActions,
+  filterOptions,
   deleteAction,
   runAction,
 }: ResourceTableProps) {
@@ -179,6 +183,16 @@ export function ResourceTable({
           </form>
         </div>
       </div>
+
+      {resource.table.filters?.length ? (
+        <FilterBar
+          filters={resource.table.filters}
+          options={filterOptions ?? {}}
+          params={params}
+          basePath={basePath}
+          locale={locale}
+        />
+      ) : null}
 
       {rows.length === 0 ? (
         <Empty className="border border-dashed">

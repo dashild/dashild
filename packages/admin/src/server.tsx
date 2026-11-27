@@ -308,6 +308,10 @@ async function ResourceContent<TUser extends CurrentUser>({
     user,
   );
 
+  const filterOptions = resource.table.filters?.length
+    ? await runtime.filterOptions(resource, user)
+    : {};
+
   return (
     <ResourceTable
       resource={resource}
@@ -320,6 +324,7 @@ async function ResourceContent<TUser extends CurrentUser>({
       canUpdate={capabilities.canUpdate}
       canDelete={capabilities.canDelete}
       allowedActions={capabilities.allowedActions}
+      filterOptions={filterOptions}
       deleteAction={deleteAction}
       runAction={runAction}
       basePath={`${basePath}/${resource.navigation.slug}`}
