@@ -34,7 +34,7 @@ export const policies = definePolicies<CurrentUser>({
         update: staff,
         delete: admin,
         attend: clinical,
-        cancel: (ctx) => hasRole(ctx, "ADMIN", "RECEPTION"),
+        cancelAppointment: (ctx) => hasRole(ctx, "ADMIN", "RECEPTION"),
       },
     },
     Visit: {

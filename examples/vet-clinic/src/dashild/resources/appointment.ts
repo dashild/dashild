@@ -40,10 +40,10 @@ export const appointmentResource = defineResource({
         variant: "secondary",
       },
       {
-        name: "cancel",
+        name: "cancelAppointment",
         label: "Cancel",
         placement: "row",
-        requires: "cancel",
+        requires: "cancelAppointment",
         variant: "destructive",
         confirm: true,
       },

@@ -48,6 +48,6 @@ export const resourceActions: Record<
 > = {
   Appointment: {
     attend: (context) => setStatus(context, "ATTENDED"),
-    cancel: (context) => setStatus(context, "CANCELLED"),
+    cancelAppointment: (context) => setStatus(context, "CANCELLED"),
   },
 };

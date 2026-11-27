@@ -13,6 +13,9 @@
 - Docs: Multi-tenancy guide and Server API reference (English and Spanish).
 - SQLite smoke now opens the seeded `dev.db` to prove the Prisma CLI and the
   adapter resolved the same file.
+- Multi-tenant veterinary clinic example in `examples/vet-clinic`: two clinics,
+  roles, relations, actions, filters, and a custom cell, with a step-by-step
+  tutorial in the docs.
 
 ## 0.1.0-alpha.10 — 2026-11-27
 

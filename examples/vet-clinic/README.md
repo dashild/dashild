@@ -1,34 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vet clinic (multi-tenant example)
 
-## Getting Started
+A working admin for a small veterinary SaaS. Every clinic is a tenant; staff,
+owners, pets, appointments, visits, and vaccinations are scoped to the active
+clinic.
 
-First, run the development server:
+This example is **outside the workspace**: it installs `@dashild/*` from npm
+(`0.1.0-alpha.11`), never through `workspace:*`.
+
+## Run it
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+pnpm prisma migrate deploy
+pnpm db:seed
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open <http://localhost:3000/admin>. The database is a local SQLite file
+(`prisma/dev.db`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Sign in
 
-## Learn More
+| Email | Role | Clinic |
+| --- | --- | --- |
+| `ana@acme.vet` | ADMIN | Clínica Acme |
+| `victor@acme.vet` | VET | Clínica Acme |
+| `rita@acme.vet` | RECEPTION | Clínica Acme |
+| `carla@beta.vet` | VET | Clínica Beta |
 
-To learn more about Next.js, take a look at the following resources:
+Password for all: `dashild123`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## What to try
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Switch clinic** as Ana: the sidebar switcher lists Acme and Beta. Carla only
+  sees Beta, and every list and form option follows the active clinic.
+- **Roles**: Víctor sees “Mark attended” on appointments but not “Cancel”; Rita
+  sees “Cancel” but not “Mark attended”; only an admin sees delete.
+- **Relations**: open an owner to see their pets; open a pet for appointments,
+  visits, and vaccinations.
+- **Filters**: appointments by status/pet/vet, pets by species/owner.
+- **Custom cell**: pets render the species with an emoji (`species-cell.tsx`).
+- **Bytes**: a pet has an optional photo field (base64).
 
-## Deploy on Vercel
+## Layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```text
+prisma/schema.prisma                     clinics, staff, owners, pets, clinical data
+prisma/seed.ts                           two clinics with realistic data
+src/lib/organization.ts                  visible clinics + active one
+src/lib/session.ts                       tenant-aware getCurrentUser
+src/dashild/organization-actions.ts      switchOrganization
+src/dashild/resources/*.ts               one file per model
+src/dashild/policies.ts                  tenant scope + role permissions
+src/dashild/actions/index.ts             attend / cancel handlers
+src/components/dashild/species-cell.tsx  custom cell
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The step-by-step tutorial is in the docs: <https://dashild.vercel.app/examples/vet-clinic/>.

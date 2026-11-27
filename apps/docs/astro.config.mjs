@@ -93,6 +93,22 @@ export default defineConfig({
           ],
         },
         {
+          label: "Examples",
+          translations: { es: "Ejemplos" },
+          items: [
+            {
+              label: "Overview",
+              translations: { es: "Resumen" },
+              slug: "examples",
+            },
+            {
+              label: "Vet clinic",
+              translations: { es: "Clínica veterinaria" },
+              slug: "examples/vet-clinic",
+            },
+          ],
+        },
+        {
           label: "Reference",
           translations: { es: "Referencia" },
           items: [

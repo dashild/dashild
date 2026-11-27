@@ -1,0 +1,39 @@
+---
+title: Ejemplos
+description: Apps reales construidas con Dashild, con datos de ejemplo y tutorial paso a paso.
+---
+
+La carpeta `examples/` del repositorio contiene aplicaciones completas, no
+fixtures. Cada una vive fuera del workspace de pnpm e instala `@dashild/*` desde
+npm, así que prueba el mismo camino que sigue un usuario.
+
+| Ejemplo | Qué muestra |
+| --- | --- |
+| [Clínica veterinaria](/es/examples/vet-clinic/) | Multi-tenencia, roles, relaciones, acciones, filtros y una celda custom |
+
+Cada ejemplo incluye:
+
+- Base de datos SQLite sembrada y cuentas de demo.
+- Un fichero de recurso por modelo, con políticas y handlers de acciones.
+- Un README con los comandos y qué probar en la UI.
+
+## Ejecutar un ejemplo
+
+```bash
+cd examples/vet-clinic
+pnpm install
+pnpm prisma migrate deploy
+pnpm db:seed
+pnpm dev
+```
+
+El panel está en `/admin`. Las credenciales están en el README de cada ejemplo y
+el tutorial las repite.
+
+## Por qué están fuera del workspace
+
+Un ejemplo dentro del monorepo resolvería `workspace:*` y escondería los fallos
+que importan en una instalación real: exports que faltan, componentes de cliente
+dentro de `node_modules`, Tailwind sin escanear el build del paquete o un alias
+que solo existe en el workspace. Estas apps instalan los tarballs publicados, así
+que prueban lo que recibe el usuario.

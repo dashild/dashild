@@ -1,0 +1,732 @@
+---
+title: Clínica veterinaria (multi-tenant)
+description: Construye un panel aislado por clínica para una veterinaria, paso a paso.
+---
+
+Este tutorial construye [examples/vet-clinic](https://github.com/dashild/dashild/tree/main/examples/vet-clinic):
+un pequeño SaaS para clínicas veterinarias. Cada clínica es un tenant; el
+personal, los dueños, las mascotas, las citas, las visitas y las vacunas están
+aislados por clínica.
+
+Cubre tenencia, roles, relaciones, acciones, filtros, una celda custom y una
+base de datos sembrada. La app terminada está en el repositorio para comparar.
+
+## 1. Crear la app
+
+```bash
+pnpm create dashild@latest vet-clinic --tenancy --database sqlite --yes
+cd vet-clinic
+```
+
+`--tenancy` implica Better Auth y un schema sin modelos de auth. Escribe el
+modelo `Organization`, `User.organizationId`/`role`, `src/lib/organization.ts`,
+un `src/lib/session.ts` con organización, `src/dashild/organization-actions.ts`
+y cablea el selector en la ruta de montaje.
+
+Configura `BETTER_AUTH_URL` con la URL que abres en el navegador (por defecto
+`http://localhost:3000`).
+
+## 2. Modelar la clínica
+
+Añade los modelos de dominio a `prisma/schema.prisma`. La tenencia ya creó
+`Organization` y el enum `Role`; añade `VET` y `RECEPTION` al enum y las
+relaciones inversas en `User` y `Organization`.
+
+```prisma
+enum Role {
+  ADMIN
+  VET
+  RECEPTION
+  USER
+}
+
+model User {
+  // ...campos de Better Auth...
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  role           Role      @default(USER)
+  vetAppointments Appointment[] @relation("VetAppointments")
+  vetVisits       Visit[]       @relation("VetVisits")
+}
+
+model Organization {
+  id    String @id @default(uuid())
+  name  String
+  users User[]
+
+  owners       Owner[]
+  pets         Pet[]
+  appointments Appointment[]
+  visits       Visit[]
+  vaccinations Vaccination[]
+}
+```
+
+Después añade los modelos de dominio:
+
+```prisma
+enum Species {
+  DOG
+  CAT
+  RABBIT
+  BIRD
+  OTHER
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  ATTENDED
+  CANCELLED
+}
+
+model Owner {
+  id             String       @id @default(uuid())
+  name           String
+  email          String?
+  phone          String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pets           Pet[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId])
+}
+
+model Pet {
+  id             String        @id @default(uuid())
+  name           String
+  species        Species       @default(DOG)
+  breed          String?
+  birthDate      DateTime?
+  photo          Bytes?
+  ownerId        String
+  owner          Owner         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  appointments   Appointment[]
+  visits         Visit[]
+  vaccinations   Vaccination[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([ownerId])
+  @@index([organizationId])
+}
+
+model Appointment {
+  id             String            @id @default(uuid())
+  startsAt       DateTime
+  reason         String
+  status         AppointmentStatus @default(SCHEDULED)
+  petId          String
+  pet            Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vetId          String?
+  vet            User?             @relation("VetAppointments", fields: [vetId], references: [id], onDelete: SetNull)
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([petId])
+  @@index([organizationId])
+  @@index([startsAt])
+}
+
+model Visit {
+  id             String       @id @default(uuid())
+  visitedAt      DateTime     @default(now())
+  reason         String
+  diagnosis      String?
+  notes          String?
+  petId          String
+  pet            Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vetId          String?
+  vet            User?        @relation("VetVisits", fields: [vetId], references: [id], onDelete: SetNull)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([petId])
+  @@index([organizationId])
+}
+
+model Vaccination {
+  id             String       @id @default(uuid())
+  name           String
+  appliedAt      DateTime     @default(now())
+  nextDueAt      DateTime?
+  petId          String
+  pet            Pet          @relation(fields: [petId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([petId])
+  @@index([organizationId])
+}
+```
+
+## 3. Migrar y sembrar
+
+```bash
+pnpm prisma migrate dev --name vet_schema
+```
+
+Crea `prisma/seed.ts` y añade `"db:seed": "tsx prisma/seed.ts"` a
+`package.json`. El ejemplo siembra dos clínicas para poder probar el cambio:
+
+```ts
+import "dotenv/config";
+
+import { auth } from "../src/lib/auth";
+import { prisma } from "../src/lib/prisma";
+
+const PASSWORD = "dashild123";
+
+async function createUser(input: {
+  email: string;
+  name: string;
+  role: "ADMIN" | "VET" | "RECEPTION";
+  organizationId: string;
+}) {
+  const created = await auth.api.signUpEmail({
+    body: { email: input.email, password: PASSWORD, name: input.name },
+  });
+  if (!created.user) throw new Error(`Better Auth did not create ${input.email}`);
+
+  await prisma.user.update({
+    where: { id: created.user.id },
+    data: { role: input.role, organizationId: input.organizationId },
+  });
+  return created.user;
+}
+
+async function main() {
+  await prisma.vaccination.deleteMany();
+  await prisma.visit.deleteMany();
+  await prisma.appointment.deleteMany();
+  await prisma.pet.deleteMany();
+  await prisma.owner.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.account.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.organization.deleteMany();
+
+  const acme = await prisma.organization.create({ data: { name: "Clínica Acme" } });
+  const beta = await prisma.organization.create({ data: { name: "Clínica Beta" } });
+
+  const ana = await createUser({
+    email: "ana@acme.vet",
+    name: "Ana Torres",
+    role: "ADMIN",
+    organizationId: acme.id,
+  });
+  const victor = await createUser({
+    email: "victor@acme.vet",
+    name: "Víctor Salas",
+    role: "VET",
+    organizationId: acme.id,
+  });
+  await createUser({
+    email: "rita@acme.vet",
+    name: "Rita Gómez",
+    role: "RECEPTION",
+    organizationId: acme.id,
+  });
+  const carla = await createUser({
+    email: "carla@beta.vet",
+    name: "Carla Ruiz",
+    role: "VET",
+    organizationId: beta.id,
+  });
+
+  const lucia = await prisma.owner.create({
+    data: { name: "Lucía Fernández", organizationId: acme.id },
+  });
+  const nala = await prisma.pet.create({
+    data: {
+      name: "Nala",
+      species: "DOG",
+      ownerId: lucia.id,
+      organizationId: acme.id,
+    },
+  });
+  const milo = await prisma.pet.create({
+    data: {
+      name: "Milo",
+      species: "CAT",
+      ownerId: lucia.id,
+      organizationId: acme.id,
+    },
+  });
+  const hugo = await prisma.owner.create({
+    data: { name: "Hugo Santos", organizationId: beta.id },
+  });
+  const toby = await prisma.pet.create({
+    data: {
+      name: "Toby",
+      species: "DOG",
+      ownerId: hugo.id,
+      organizationId: beta.id,
+    },
+  });
+
+  await prisma.appointment.createMany({
+    data: [
+      {
+        startsAt: new Date(Date.now() + 86_400_000),
+        reason: "Revisión anual",
+        petId: nala.id,
+        vetId: victor.id,
+        organizationId: acme.id,
+      },
+      {
+        startsAt: new Date(Date.now() - 86_400_000),
+        reason: "Cojera leve",
+        status: "ATTENDED",
+        petId: milo.id,
+        vetId: victor.id,
+        organizationId: acme.id,
+      },
+      {
+        startsAt: new Date(Date.now() + 2 * 86_400_000),
+        reason: "Vacunación",
+        petId: toby.id,
+        vetId: carla.id,
+        organizationId: beta.id,
+      },
+    ],
+  });
+
+  await prisma.visit.create({
+    data: {
+      reason: "Cojera leve",
+      diagnosis: "Esguince leve",
+      petId: milo.id,
+      vetId: victor.id,
+      organizationId: acme.id,
+    },
+  });
+
+  await prisma.vaccination.create({
+    data: {
+      name: "Rabia",
+      petId: nala.id,
+      organizationId: acme.id,
+    },
+  });
+
+  console.log("seed ready. login: ana@acme.vet / " + PASSWORD);
+}
+
+main()
+  .then(() => prisma.$disconnect())
+  .catch(async (error) => {
+    console.error(error);
+    await prisma.$disconnect();
+    process.exit(1);
+  });
+```
+Ejecútalo:
+
+```bash
+pnpm db:seed
+```
+
+## 4. Dueños: el primer recurso
+
+```ts
+import { defineResource } from "@dashild/core";
+
+export const ownerResource = defineResource({
+  model: "Owner",
+  navigation: { label: "Owners", slug: "owners", group: "Clinic", icon: "users" },
+  table: {
+    searchable: ["name", "email", "phone"],
+    pageSize: 25,
+    columns: [
+      { field: "name", sortable: true },
+      { field: "email", sortable: true },
+      { field: "phone" },
+      { field: "createdAt", format: "datetime", sortable: true },
+    ],
+  },
+  form: {
+    fields: [
+      { field: "name", type: "text", rules: { required: true } },
+      { field: "email", type: "email" },
+      { field: "phone", type: "text" },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+```
+
+Se aplican las convenciones de `make:resource`: el fichero es dato y el scope
+vive en la política.
+
+## 5. Mascotas y una celda custom
+
+Las mascotas necesitan una columna de especie con un render más amable. Crea
+`src/components/dashild/species-cell.tsx`:
+
+```tsx
+"use client";
+
+import type { CellRendererProps } from "@dashild/admin";
+
+const SPECIES: Record<string, { label: string; emoji: string }> = {
+  DOG: { label: "Dog", emoji: "🐶" },
+  CAT: { label: "Cat", emoji: "🐱" },
+  RABBIT: { label: "Rabbit", emoji: "🐰" },
+  BIRD: { label: "Bird", emoji: "🐦" },
+  OTHER: { label: "Other", emoji: "🐾" },
+};
+
+/** Custom cell: species with an emoji instead of the raw enum value. */
+export function SpeciesCell({ value }: CellRendererProps) {
+  const species = SPECIES[String(value)] ?? {
+    label: String(value ?? ""),
+    emoji: "🐾",
+  };
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span aria-hidden="true">{species.emoji}</span>
+      {species.label}
+    </span>
+  );
+}
+```
+
+Regístrala en `src/dashild/registry.tsx`:
+
+```tsx
+"use client";
+
+import {
+  registerCell,
+  registeredCells,
+  registeredFields,
+} from "@dashild/core";
+import { RegistryProvider, type Registry } from "@dashild/admin";
+
+import { SpeciesCell } from "../components/dashild/species-cell";
+
+registerCell("species", SpeciesCell);
+
+export function AppRegistryProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <RegistryProvider
+      cells={registeredCells() as Registry["cells"]}
+      fields={registeredFields() as Registry["fields"]}
+    >
+      {children}
+    </RegistryProvider>
+  );
+}
+```
+
+Y usa `cell: "species"` en el recurso de mascotas:
+
+```ts
+import { defineResource } from "@dashild/core";
+
+export const petResource = defineResource({
+  model: "Pet",
+  navigation: { label: "Pets", slug: "pets", group: "Clinic", icon: "layers" },
+  table: {
+    searchable: ["name", "breed"],
+    pageSize: 25,
+    columns: [
+      { field: "name", sortable: true },
+      { field: "species", cell: "species" },
+      { field: "breed" },
+      { field: "owner", display: "name", sortable: true },
+      { field: "birthDate", format: "date", sortable: true },
+    ],
+    filters: [
+      { field: "species", type: "enum", label: "Species" },
+      { field: "owner", type: "relation", label: "Owner", display: "name" },
+    ],
+  },
+  form: {
+    fields: [
+      { field: "name", type: "text", rules: { required: true } },
+      { field: "species", type: "select" },
+      { field: "breed", type: "text" },
+      { field: "birthDate", type: "date" },
+      {
+        field: "owner",
+        type: "relation",
+        relation: "owner",
+        display: "name",
+        rules: { required: true },
+      },
+      { field: "photo", type: "bytes" },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+```
+
+El formulario incluye `{ field: "photo", type: "bytes" }`, así que el panel
+renderiza un selector de fichero y envía base64.
+
+## 6. Citas, filtros y acciones
+
+```ts
+import { defineResource } from "@dashild/core";
+
+export const appointmentResource = defineResource({
+  model: "Appointment",
+  navigation: {
+    label: "Appointments",
+    slug: "appointments",
+    group: "Clinic",
+    icon: "calendar",
+  },
+  table: {
+    searchable: ["reason"],
+    pageSize: 25,
+    columns: [
+      { field: "startsAt", format: "datetime", sortable: true },
+      { field: "pet", display: "name", sortable: true },
+      { field: "vet", display: "name" },
+      { field: "reason" },
+      {
+        field: "status",
+        format: "badge",
+        tone: { SCHEDULED: "accent", ATTENDED: "green", CANCELLED: "danger" },
+      },
+    ],
+    filters: [
+      { field: "status", type: "enum", label: "Status" },
+      { field: "pet", type: "relation", label: "Pet", display: "name" },
+      { field: "vet", type: "relation", label: "Vet", display: "name" },
+    ],
+    actions: [
+      { name: "create", placement: "header" },
+      { name: "view", placement: "row" },
+      { name: "edit", placement: "row" },
+      { name: "delete", placement: "row" },
+      {
+        name: "attend",
+        label: "Mark attended",
+        placement: "row",
+        requires: "attend",
+        variant: "secondary",
+      },
+      {
+        name: "cancelAppointment",
+        label: "Cancel",
+        placement: "row",
+        requires: "cancelAppointment",
+        variant: "destructive",
+        confirm: true,
+      },
+    ],
+  },
+  form: {
+    fields: [
+      { field: "startsAt", type: "datetime", rules: { required: true } },
+      {
+        field: "pet",
+        type: "relation",
+        relation: "pet",
+        display: "name",
+        rules: { required: true },
+      },
+      {
+        field: "vet",
+        type: "relation",
+        relation: "vet",
+        display: "name",
+      },
+      { field: "reason", type: "text", rules: { required: true } },
+      { field: "status", type: "select" },
+    ],
+  },
+  policy: { scope: "organization" },
+});
+```
+
+Dos reglas importan aquí:
+
+- Declarar `table.actions` sustituye las acciones integradas create/view/edit/delete,
+  así que el recurso las lista explícitamente.
+- No llames `cancel` a una acción propia: es una acción integrada de formulario
+  y el panel la ignoraría. Usa `cancelAppointment`, como arriba.
+
+## 7. Políticas y roles
+
+```ts
+import {
+  definePolicies,
+  hasRole,
+  type CurrentUser,
+} from "@dashild/core";
+
+const orgScope = (ctx: { organizationId: string | null }) =>
+  ctx.organizationId ? { organizationId: ctx.organizationId } : null;
+
+const admin = (ctx: { roles: string[] }) => hasRole(ctx, "ADMIN");
+const clinical = (ctx: { roles: string[] }) =>
+  hasRole(ctx, "ADMIN", "VET");
+const staff = (ctx: { roles: string[] }) =>
+  hasRole(ctx, "ADMIN", "VET", "RECEPTION");
+
+/**
+ * Every resource is scoped to the active clinic. A session without an
+ * organization (for example, right after sign-up) sees nothing.
+ */
+export const policies = definePolicies<CurrentUser>({
+  resources: {
+    Owner: {
+      scope: orgScope,
+      can: { create: staff, update: staff, delete: admin },
+    },
+    Pet: {
+      scope: orgScope,
+      can: { create: staff, update: staff, delete: admin },
+    },
+    Appointment: {
+      scope: orgScope,
+      can: {
+        create: staff,
+        update: staff,
+        delete: admin,
+        attend: clinical,
+        cancelAppointment: (ctx) => hasRole(ctx, "ADMIN", "RECEPTION"),
+      },
+    },
+    Visit: {
+      scope: orgScope,
+      can: { create: clinical, update: clinical, delete: admin },
+    },
+    Vaccination: {
+      scope: orgScope,
+      can: { create: clinical, update: clinical, delete: admin },
+    },
+    User: {
+      scope: orgScope,
+      can: { create: () => false, update: admin, delete: () => false },
+    },
+  },
+});
+```
+
+Cada recurso devuelve `null` sin organización activa, así que una sesión sin
+clínica no ve nada. Recepción gestiona dueños y citas; los veterinarios escriben
+visitas y vacunas; solo los admin borran o editan personal.
+
+## 8. Handlers de acciones
+
+```ts
+import type { ActionHandler, CurrentUser } from "@dashild/core";
+
+type AppointmentStatus = "ATTENDED" | "CANCELLED";
+
+interface ScopedAppointmentClient {
+  appointment: {
+    update(args: {
+      where: { id: string };
+      data: { status: AppointmentStatus };
+    }): Promise<unknown>;
+  };
+}
+
+async function setStatus(
+  context: Parameters<ActionHandler<CurrentUser>>[0],
+  status: AppointmentStatus,
+) {
+  if (!context.id) {
+    return { ok: false, message: "Missing appointment id." };
+  }
+
+  const db = context.db as ScopedAppointmentClient | undefined;
+  if (!db) {
+    return { ok: false, message: "Database client unavailable." };
+  }
+
+  await db.appointment.update({
+    where: { id: context.id },
+    data: { status },
+  });
+
+  return {
+    ok: true,
+    message:
+      status === "ATTENDED"
+        ? "Appointment marked as attended."
+        : "Appointment cancelled.",
+  };
+}
+
+/**
+ * Handlers run on the server with the scoped Prisma client, so an appointment
+ * from another clinic is not reachable even if the id is guessed.
+ */
+export const resourceActions: Record<
+  string,
+  Record<string, ActionHandler<CurrentUser>>
+> = {
+  Appointment: {
+    attend: (context) => setStatus(context, "ATTENDED"),
+    cancelAppointment: (context) => setStatus(context, "CANCELLED"),
+  },
+};
+```
+
+Los handlers usan el `db` scopeado del contexto: una cita de otra clínica no es
+alcanzable, ni siquiera con un id adivinado.
+
+## 9. Ejecutar
+
+```bash
+pnpm dev
+```
+
+Abre [http://localhost:3000/admin](http://localhost:3000/admin) e inicia sesión:
+
+| Email | Rol | Clínica |
+| --- | --- | --- |
+| `ana@acme.vet` | ADMIN | Clínica Acme |
+| `victor@acme.vet` | VET | Clínica Acme |
+| `rita@acme.vet` | RECEPTION | Clínica Acme |
+| `carla@beta.vet` | VET | Clínica Beta |
+
+Contraseña: `dashild123`.
+
+Qué comprobar:
+
+1. Como Ana, cambia entre Acme y Beta en el sidebar: listas, opciones de
+   formulario y relation managers siguen la clínica activa.
+2. Como Víctor (VET), “Mark attended” aparece en las citas; “Cancel” no.
+3. Como Rita (RECEPTION), “Cancel” aparece y pide confirmación.
+4. Como Carla, solo existe Beta.
+5. Filtra mascotas por especie y citas por estado.
+6. Abre un dueño para ver sus mascotas; abre una mascota para visitas y vacunas.
+
+## 10. El resto del ejemplo
+
+`visits`, `vaccinations` y `staff` siguen el mismo patrón. Cópialos del
+repositorio:
+
+- [visit.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/visit.ts)
+- [vaccination.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/vaccination.ts)
+- [staff.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/src/dashild/resources/staff.ts)
+- [seed.ts](https://github.com/dashild/dashild/blob/main/examples/vet-clinic/prisma/seed.ts)
+
+## Problemas frecuentes
+
+- **`init` rechaza la tenencia**: necesita un schema sin modelos de auth. Parte
+  de un scaffold nuevo o añade los campos de organización a mano.
+- **Listas vacías**: toda política devuelve `null` sin organización. Comprueba
+  que el usuario tiene una y que el selector muestra una clínica.
+- **Falta una acción propia**: el nombre choca con un integrado (`cancel`,
+  `delete`, `save`...). Renómbrala.
+- **Tipos de Prisma desactualizados**: ejecuta `pnpm prisma generate` después de
+  cada cambio de schema.
