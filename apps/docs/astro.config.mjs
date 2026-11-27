@@ -81,6 +81,11 @@ export default defineConfig({
               slug: "guides/authentication",
             },
             {
+              label: "Multi-tenancy",
+              translations: { es: "Multi-tenencia" },
+              slug: "guides/multi-tenancy",
+            },
+            {
               label: "Customization",
               translations: { es: "Personalización" },
               slug: "guides/customization",
@@ -100,6 +105,11 @@ export default defineConfig({
               label: "Templates",
               translations: { es: "Plantillas" },
               slug: "reference/templates",
+            },
+            {
+              label: "Server API",
+              translations: { es: "API del servidor" },
+              slug: "reference/server-api",
             },
           ],
         },

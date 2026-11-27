@@ -1,0 +1,104 @@
+---
+title: API del servidor
+description: El runtime, las políticas y los helpers de consulta que exporta @dashild/core/server.
+---
+
+Los componentes de cliente reciben datos serializables; todo lo que lee o
+escribe la base de datos vive en este entry point. `@dashild/core` nunca lo
+importa, así que el bundle de cliente se mantiene pequeño.
+
+```ts
+import {
+  createDashildRuntime,
+  resolvePolicy,
+  withDashildScope,
+} from "@dashild/core/server";
+```
+
+## Runtime
+
+`createDashildRuntime(options)` devuelve el objeto que usa el panel. Necesita el
+cliente Prisma de la app, los metadatos generados, los recursos, las políticas y
+(opcionalmente) los handlers de acciones:
+
+```ts
+export const runtime = createDashildRuntime({
+  prisma,
+  metadata,
+  resources: panel.resources,
+  policies,
+  locale: panel.locale,
+  actions: resourceActions,
+});
+```
+
+| Método | Qué hace |
+| --- | --- |
+| `list(resource, raw, user)` | Aplica whitelist, scope y DTO. Devuelve `{ rows, total, params }`. |
+| `record(resource, id, user)` | Una fila, scopeada y convertida, o `null`. |
+| `formOptions(resource, user, recordId?)` | Valores de enum y opciones de relación para el formulario. |
+| `filterOptions(resource, user)` | Valores de enum y etiquetas de relación para la barra de filtros. |
+| `save({ slug, id?, values }, user)` | Valida, escribe y traduce errores de Prisma. |
+| `remove({ slug, id }, user)` | Borra a través de la política. |
+| `runAction({ slug, name, id?, values?, data? }, user)` | Ejecuta un handler declarado. |
+| `relationManagers(parent, id, user)` | Carga las tablas hijas del detalle. |
+| `relationAction(input, user)` | Asociar, desasociar, attach, detach, borrar. |
+| `client(user)` | Prisma extendido con el scope del usuario; tipado `unknown`. |
+
+`client(user)` es `unknown` para que core no dependa de tu cliente generado.
+Haz el cast una vez en el código de la app:
+
+```ts
+const client = runtime.client(user) as typeof prisma;
+```
+
+## Políticas
+
+| Función | Resultado |
+| --- | --- |
+| `resolvePolicy(resource, policies, user)` | `{ ok: true, policy }` o `{ ok: false, reason }`. Motivos: `no-policy`, `no-policies`, `no-resource-policy`, `scope-denied`. |
+| `canPerform(policy, operation, values?)` | `create` exige predicado explícito cuando el scope no está vacío; el resto se permite sin predicado. |
+| `canRunAction(policy, action)` | Deniega por defecto si `requires` no tiene predicado. |
+| `PolicyDeniedError` | Lo lanza el runtime; el panel lo convierte en 404. |
+
+## Scopear Prisma
+
+```ts
+import { withDashildScope } from "@dashild/core/server";
+
+const client = prisma.$extends(
+  withDashildScope({ resources, policies, user }),
+);
+```
+
+Aplica el scope del recurso a lecturas, actualizaciones y borrados de primer
+nivel. Los inserts y los `include` de relaciones no están cubiertos; usa
+`runtime.client(user)` en código de servidor propio para aplicar la política una
+vez por petición.
+
+## Listados
+
+| Función | Para qué |
+| --- | --- |
+| `normalizeListParams(resource, raw)` | Whitelist de página, orden, búsqueda y filtros. |
+| `buildListQuery(resource, model, params)` | Construye `where`, `orderBy`, `skip`, `take` e `include` desde el recurso. |
+| `toDTO(row, model, resource, context)` | Aplica el `dto` de cada campo y aplana relaciones a `{ id, display }`. |
+| `listContext(metadata, locale)` | El contexto de mapeo que usa el DTO. |
+
+## Escrituras
+
+| Función | Para qué |
+| --- | --- |
+| `buildWriteSchema(resource, model, context, operation)` | Esquema Zod desde campos, reglas y metadatos. |
+| `parseWriteInput(resource, model, context, input, operation)` | Devuelve `{ ok: true, data }` o `{ ok: false, fieldErrors }`. |
+| `toPrismaData(resource, model, context, values, operation)` | Convierte valores (`BigInt`, `Decimal`, `DateTime`, `connect`/`disconnect`). |
+| `flattenZodError(error)` | Mensajes indexados por campo para el formulario. |
+| `coerceRecordId(field, value)` | Convierte el id de la ruta al tipo del modelo. |
+| `formatPrismaError(error, locale)` | P2002, P2003, P2025/P2007 → errores de campo o mensaje. |
+
+## Tipos
+
+`DashboardRuntimeOptions`, `DashboardRuntime`, `ResolvedPolicy`,
+`PolicyResolution`, `NormalizedListParams`, `ListQuery`, `FormOption`,
+`RelationManagerData`, `RelationActionInput`, `RuntimeSaveResult` y `WriteError`
+se exportan desde el mismo entry point.

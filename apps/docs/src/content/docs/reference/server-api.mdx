@@ -1,0 +1,103 @@
+---
+title: Server API
+description: The runtime, policies, and query helpers exported by @dashild/core/server.
+---
+
+Client components receive serializable data; everything that reads or writes
+the database lives in this entry point. `@dashild/core` never imports it, so
+the client bundle stays small.
+
+```ts
+import {
+  createDashildRuntime,
+  resolvePolicy,
+  withDashildScope,
+} from "@dashild/core/server";
+```
+
+## Runtime
+
+`createDashildRuntime(options)` returns the object the panel uses. It needs the
+app's Prisma client, the generated metadata, the resources, the policies, and
+(optionally) the action handlers:
+
+```ts
+export const runtime = createDashildRuntime({
+  prisma,
+  metadata,
+  resources: panel.resources,
+  policies,
+  locale: panel.locale,
+  actions: resourceActions,
+});
+```
+
+| Method | What it does |
+| --- | --- |
+| `list(resource, raw, user)` | Applies the whitelist, the scope, and the DTO. Returns `{ rows, total, params }`. |
+| `record(resource, id, user)` | One row, scoped and converted, or `null`. |
+| `formOptions(resource, user, recordId?)` | Enum values and relation options for the form. |
+| `filterOptions(resource, user)` | Enum values and relation labels for the filter bar. |
+| `save({ slug, id?, values }, user)` | Validates, writes, and maps Prisma errors. |
+| `remove({ slug, id }, user)` | Deletes through the policy. |
+| `runAction({ slug, name, id?, values?, data? }, user)` | Runs a declared action handler. |
+| `relationManagers(parent, id, user)` | Loads child tables for the detail page. |
+| `relationAction(input, user)` | Attach, detach, associate, dissociate, delete. |
+| `client(user)` | Prisma extended with the user's scope; typed `unknown`. |
+
+`client(user)` is `unknown` so core does not depend on your generated client.
+Cast it once in app code:
+
+```ts
+const client = runtime.client(user) as typeof prisma;
+```
+
+## Policies
+
+| Function | Result |
+| --- | --- |
+| `resolvePolicy(resource, policies, user)` | `{ ok: true, policy }` or `{ ok: false, reason }`. Reasons: `no-policy`, `no-policies`, `no-resource-policy`, `scope-denied`. |
+| `canPerform(policy, operation, values?)` | `create` needs an explicit predicate when the scope is not empty; other operations are allowed without one. |
+| `canRunAction(policy, action)` | Deny by default when `requires` has no matching predicate. |
+| `PolicyDeniedError` | Thrown by the runtime; the panel turns it into a 404. |
+
+## Scoping Prisma
+
+```ts
+import { withDashildScope } from "@dashild/core/server";
+
+const client = prisma.$extends(
+  withDashildScope({ resources, policies, user }),
+);
+```
+
+It applies the resource scope to top-level reads, updates, and deletes. Inserts
+and relation `include`s are not covered; use `runtime.client(user)` in custom
+server code so the policy is applied once per request.
+
+## Lists
+
+| Function | Purpose |
+| --- | --- |
+| `normalizeListParams(resource, raw)` | Whitelists page, sort, search, and filters. |
+| `buildListQuery(resource, model, params)` | Builds `where`, `orderBy`, `skip`, `take`, and `include` from the resource. |
+| `toDTO(row, model, resource, context)` | Applies each field's `dto` and flattens relations to `{ id, display }`. |
+| `listContext(metadata, locale)` | The mapping context used by the DTO. |
+
+## Writes
+
+| Function | Purpose |
+| --- | --- |
+| `buildWriteSchema(resource, model, context, operation)` | Zod schema from the form fields, rules, and metadata. |
+| `parseWriteInput(resource, model, context, input, operation)` | Returns `{ ok: true, data }` or `{ ok: false, fieldErrors }`. |
+| `toPrismaData(resource, model, context, values, operation)` | Converts values (`BigInt`, `Decimal`, `DateTime`, `connect`/`disconnect`). |
+| `flattenZodError(error)` | Field-indexed messages for the form. |
+| `coerceRecordId(field, value)` | Casts a route id to the model's id type. |
+| `formatPrismaError(error, locale)` | P2002, P2003, P2025/P2007 → field errors or a message. |
+
+## Types
+
+`DashboardRuntimeOptions`, `DashboardRuntime`, `ResolvedPolicy`,
+`PolicyResolution`, `NormalizedListParams`, `ListQuery`, `FormOption`,
+`RelationManagerData`, `RelationActionInput`, `RuntimeSaveResult`, and
+`WriteError` are exported from the same entry point.

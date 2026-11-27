@@ -9,6 +9,9 @@ description: Starters incluidos y el formato de template.json.
   `--auth better-auth` por defecto también tienes login, signup y reset.
 - `demo`: usuarios, posts y etiquetas, con políticas de demo permisivas y un
   seed (`ana@acme.test` / `dashild123`).
+- `saas`: organizaciones, miembros y proyectos, aislados por tenant. Activa la
+  tenencia por ti (`ana@acme.test` es admin, `carla@beta.test` es miembro de
+  otra organización; contraseña `dashild123`).
 
 ```bash
 pnpm create dashild@latest mi-app --template demo
@@ -48,6 +51,7 @@ Una plantilla es una carpeta con `template.json` y ficheros del proyecto:
 | `dashild` | Rango semver de Dashild soportado. |
 | `prisma.provider` | Proveedores de base de datos permitidos. |
 | `requires.auth` | Integración de auth requerida (array). |
+| `requires.tenancy` | El starter necesita el cableado de organizaciones (`--tenancy`). |
 | `extend` | Campos Prisma extra para un modelo existente. |
 | `dependencies`, `devDependencies` | Dependencias extra de la app. |
 | `env` | Claves de entorno añadidas a `.env.example` si faltan. |

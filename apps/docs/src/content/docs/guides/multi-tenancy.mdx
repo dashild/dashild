@@ -1,0 +1,120 @@
+---
+title: Multi-tenancy
+description: Isolate resources by organization, from the policy runtime to the sidebar switcher.
+---
+
+The tenant is part of the security context, not a filter you remember to add.
+`CurrentUser` carries `organizationId` and `roles`, the policy layer turns them
+into a Prisma `where`, and every scoped query applies it on the server.
+
+## What the runtime provides
+
+- `CurrentUser.organizationId` and `roles` (both optional).
+- `PolicyContext` with `user`, `organizationId`, and `roles`.
+- `scope` per resource, applied to list, count, detail, update, delete, and
+  relation managers.
+- Fail closed: a resource without a policy, without an entry in `policies.ts`,
+  or whose `scope` returns `null` is denied.
+- `OrganizationSwitcher` in the sidebar for admins.
+
+Tenancy is opt-in per resource: the runtime cannot guess which rows belong to a
+tenant. A resource is isolated when its policy returns a tenant `where`.
+
+## Scaffold a multi-tenant app
+
+```bash
+pnpm create dashild@latest my-app --template saas
+```
+
+The `saas` starter adds organizations, members, and projects, and enables
+tenancy for you. If you want the same wiring with another starter:
+
+```bash
+npx create-dashild@latest my-app --tenancy
+```
+
+`--tenancy` requires `better-auth` and a schema that does not have the auth
+models yet (a fresh scaffold). On an existing app:
+
+```bash
+pnpm dashild init --auth better-auth --tenancy --yes
+```
+
+`init` refuses to guess when auth models already exist: add the organization
+fields yourself and keep the generated `lib/organization.ts` and
+`dashild/organization-actions.ts`.
+
+### What it writes
+
+```text
+Organization model + User.organizationId/role in prisma/schema.prisma
+src/lib/organization.ts        # organizations the user sees, active one
+src/lib/session.ts             # org-aware getCurrentUser
+src/dashild/organization-actions.ts  # switchOrganization server action
+src/app/<route>/[[...dashild]]/page.tsx  # passes organizations + switchOrganization
+```
+
+The active organization is stored in the `dashild_organization` cookie. It is
+`httpOnly`, validated on every request, and an admin can only switch to an
+organization that exists; a member stays in their own.
+
+## Scope every resource
+
+```ts
+import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
+
+export const policies = definePolicies<CurrentUser>({
+  resources: {
+    Project: {
+      scope: (ctx) =>
+        ctx.organizationId ? { organizationId: ctx.organizationId } : null,
+      can: {
+        create: (ctx) => hasRole(ctx, "ADMIN", "USER"),
+        update: (ctx) => hasRole(ctx, "ADMIN", "USER"),
+        delete: (ctx) => hasRole(ctx, "ADMIN"),
+      },
+    },
+    Organization: {
+      scope: (ctx) => (ctx.organizationId ? { id: ctx.organizationId } : null),
+      can: {
+        create: () => false,
+        update: (ctx) => hasRole(ctx, "ADMIN"),
+        delete: () => false,
+      },
+    },
+  },
+});
+```
+
+Returning `null` denies the resource for a session without an organization,
+which is what you want before the first request resolves one.
+
+`create` is not constrained by a read scope: a scoped resource cannot create
+unless `can.create` is explicit. Rows loaded through `include` are not filtered
+by the related model's policy either; query the related model directly when
+that matters.
+
+## Custom auth
+
+If you do not use the generated session, return the tenant from
+`getCurrentUser`, or resolve it with `organizationOf` and `rolesOf` in
+`policies.ts`:
+
+```ts
+export const policies = definePolicies<CurrentUser>({
+  organizationOf: async (user) => user.activeOrganizationId ?? null,
+  rolesOf: async (user) => user.roles ?? [],
+  resources: {
+    // ...
+  },
+});
+```
+
+`organizationOf` and `rolesOf` replace the values from `user`; they are not a
+fallback chain.
+
+## Reference
+
+`apps/playground` in the repository is the end-to-end example: two
+organizations, an admin who can switch, a member pinned to their own, and
+policies that return `null` without a tenant.

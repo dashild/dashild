@@ -1,0 +1,121 @@
+---
+title: Multi-tenencia
+description: Aísla recursos por organización, desde el runtime de políticas hasta el selector del sidebar.
+---
+
+El tenant forma parte del contexto de seguridad, no es un filtro que se añade
+después. `CurrentUser` lleva `organizationId` y `roles`, la capa de políticas los
+convierte en un `where` de Prisma, y cada consulta scopeada lo aplica en el
+servidor.
+
+## Qué ofrece el runtime
+
+- `CurrentUser.organizationId` y `roles` (ambos opcionales).
+- `PolicyContext` con `user`, `organizationId` y `roles`.
+- `scope` por recurso, aplicado a listado, count, detalle, actualización,
+  borrado y relation managers.
+- Fail closed: un recurso sin política, sin entrada en `policies.ts` o cuyo
+  `scope` devuelve `null` queda denegado.
+- `OrganizationSwitcher` en el sidebar para administradores.
+
+La tenencia es opt-in por recurso: el runtime no puede adivinar qué filas
+pertenecen a un tenant. Un recurso queda aislado cuando su política devuelve un
+`where` con el tenant.
+
+## Crear una app multi-tenant
+
+```bash
+pnpm create dashild@latest mi-app --template saas
+```
+
+El starter `saas` añade organizaciones, miembros y proyectos, y activa la
+tenencia por ti. Si quieres el mismo cableado con otro starter:
+
+```bash
+npx create-dashild@latest mi-app --tenancy
+```
+
+`--tenancy` requiere `better-auth` y un schema que aún no tenga los modelos de
+auth (una app recién creada). En una app existente:
+
+```bash
+pnpm dashild init --auth better-auth --tenancy --yes
+```
+
+`init` se niega a adivinar si ya existen modelos de auth: añade los campos de
+organización a mano y conserva `lib/organization.ts` y
+`dashild/organization-actions.ts` generados.
+
+### Qué escribe
+
+```text
+Modelo Organization + User.organizationId/role en prisma/schema.prisma
+src/lib/organization.ts        # organizaciones visibles y la activa
+src/lib/session.ts             # getCurrentUser con organización
+src/dashild/organization-actions.ts  # server action switchOrganization
+src/app/<ruta>/[[...dashild]]/page.tsx  # pasa organizations + switchOrganization
+```
+
+La organización activa se guarda en la cookie `dashild_organization`. Es
+`httpOnly`, se valida en cada petición, y un admin solo puede cambiar a una
+organización que existe; un miembro se queda en la suya.
+
+## Scopea cada recurso
+
+```ts
+import { definePolicies, hasRole, type CurrentUser } from "@dashild/core";
+
+export const policies = definePolicies<CurrentUser>({
+  resources: {
+    Project: {
+      scope: (ctx) =>
+        ctx.organizationId ? { organizationId: ctx.organizationId } : null,
+      can: {
+        create: (ctx) => hasRole(ctx, "ADMIN", "USER"),
+        update: (ctx) => hasRole(ctx, "ADMIN", "USER"),
+        delete: (ctx) => hasRole(ctx, "ADMIN"),
+      },
+    },
+    Organization: {
+      scope: (ctx) => (ctx.organizationId ? { id: ctx.organizationId } : null),
+      can: {
+        create: () => false,
+        update: (ctx) => hasRole(ctx, "ADMIN"),
+        delete: () => false,
+      },
+    },
+  },
+});
+```
+
+Devolver `null` deniega el recurso para una sesión sin organización, que es lo
+que quieres antes de resolver la primera petición.
+
+`create` no queda limitado por un scope de lectura: un recurso scopeado no puede
+crear salvo que `can.create` sea explícito. Las filas cargadas con `include`
+tampoco se filtran por la política del modelo relacionado; consulta el modelo
+relacionado directamente cuando importe.
+
+## Auth propia
+
+Si no usas la sesión generada, devuelve el tenant desde `getCurrentUser`, o
+resuélvelo con `organizationOf` y `rolesOf` en `policies.ts`:
+
+```ts
+export const policies = definePolicies<CurrentUser>({
+  organizationOf: async (user) => user.activeOrganizationId ?? null,
+  rolesOf: async (user) => user.roles ?? [],
+  resources: {
+    // ...
+  },
+});
+```
+
+`organizationOf` y `rolesOf` sustituyen a los valores del usuario; no son una
+cadena de fallback.
+
+## Referencia
+
+`apps/playground` en el repositorio es el ejemplo completo: dos organizaciones,
+un admin que puede cambiar y un miembro fijado a la suya, con políticas que
+devuelven `null` sin tenant.

@@ -9,6 +9,9 @@ description: Bundled starters and the template.json format.
   default `--auth better-auth` you also get the login, signup, and reset pages.
 - `demo`: users, posts, and labels, with permissive demo policies and a seed
   (`ana@acme.test` / `dashild123`).
+- `saas`: organizations, members, and projects, isolated by tenant. It enables
+  tenancy for you (`ana@acme.test` is an admin, `carla@beta.test` a member of
+  another organization; password `dashild123`).
 
 ```bash
 pnpm create dashild@latest my-app --template demo
@@ -48,6 +51,7 @@ A template is a folder with `template.json` and project files:
 | `dashild` | Supported Dashild semver range. |
 | `prisma.provider` | Allowed database providers. |
 | `requires.auth` | Required auth integration (array). |
+| `requires.tenancy` | The starter needs the organization wiring (`--tenancy`). |
 | `extend` | Extra Prisma fields for an existing model. |
 | `dependencies`, `devDependencies` | Extra app dependencies. |
 | `env` | Env keys appended to `.env.example` when missing. |

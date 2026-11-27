@@ -11,7 +11,7 @@
  *   node scripts/smoke-scaffold.mjs --pm npm --database postgresql --url postgresql://...
  */
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +110,34 @@ try {
     if (!envExample.includes(key)) {
       throw new Error(`.env.example is missing ${key}`);
     }
+  }
+
+  // SQLite: the Prisma CLI migrated the file the app adapter seeded. Open it
+  // directly to prove both resolved the same `prisma/dev.db`.
+  if (database === "sqlite") {
+    const check = join(project, "dashild-sqlite-check.cjs");
+    writeFileSync(
+      check,
+      `const Database = require("better-sqlite3");
+const db = new Database("prisma/dev.db", { readonly: true });
+const tables = db
+  .prepare("select name from sqlite_master where type = 'table'")
+  .all()
+  .map((row) => row.name);
+const users = db.prepare('select count(*) as count from "User"').get().count;
+db.close();
+if (!tables.includes("User") || !users) {
+  console.error("sqlite: prisma/dev.db has no seeded User rows", tables);
+  process.exit(1);
+}
+console.log(
+  "sqlite: " + users + " users in prisma/dev.db (" + tables.length + " tables)",
+);
+`,
+      "utf8",
+    );
+    run(process.execPath, [check], project, nodeEnv);
+    rmSync(check, { force: true });
   }
 
   const build =

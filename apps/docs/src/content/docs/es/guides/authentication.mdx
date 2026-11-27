@@ -139,7 +139,8 @@ async function getCurrentUser(): Promise<CurrentUser | null> {
 
 `CurrentUser` exige `id`; `email`, `name`, `organizationId` y `roles` son
 opcionales. Devolver `organizationId` y `roles` basta para las
-[políticas](/es/guides/policies/).
+[políticas](/es/guides/policies/). Para el aislamiento por tenant de extremo a
+extremo, ver [Multi-tenencia](/es/guides/multi-tenancy/).
 
 Si el esquema ya tiene algún modelo de Better Auth, `init --auth better-auth` no
 modifica el esquema; avisa y deja la adaptación en tus manos.

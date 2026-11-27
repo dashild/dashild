@@ -136,7 +136,8 @@ async function getCurrentUser(): Promise<CurrentUser | null> {
 
 `CurrentUser` requires `id`; `email`, `name`, `organizationId`, and `roles` are
 optional. Returning `organizationId` and `roles` is enough for
-[policies](/guides/policies/).
+[policies](/guides/policies/). For tenant isolation end to end, see
+[Multi-tenancy](/guides/multi-tenancy/).
 
 If the schema already has any Better Auth model, `init --auth better-auth` does
 not modify the schema; it warns and leaves the adaptation to you.

@@ -36,7 +36,7 @@ export const customerResource = defineResource({
     fields: [
       { field: "name", type: "text", rules: { required: true } },
       { field: "email", type: "email", rules: { required: true } },
-      { field: "status", type: "enum" },
+      { field: "status", type: "select" },
     ],
   },
   policy: { scope: "organization" },
@@ -85,10 +85,12 @@ field:
 
 ### Filters
 
-Filters are not rendered as controls in the shell yet. The list page reads them
-from the query string and applies them on the server, so you can link to a
-filtered table (`?status=ACTIVE`) or build your own controls. `relation` filters
-support many-to-one relations only; `enum` and `text` compare exact values.
+Declared filters render as a bar above the table: selects for `enum`,
+`relation`, and `boolean`, inputs for `text`, `number`, and `date`. Applying
+them submits a GET form, so the values stay in the URL and you can link to a
+filtered table (`?status=ACTIVE`). The server applies them; `relation` filters
+support many-to-one relations only, and `enum`/`text` compare exact values.
+Relation and enum options are resolved per user and respect the active scope.
 
 ## Form
 
