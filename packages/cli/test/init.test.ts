@@ -358,3 +358,78 @@ test("init: rejects an unknown auth provider", () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("init: tenancy adds organizations, tenant session and switcher", () => {
+  const directory = project();
+
+  try {
+    const plan = planInit({
+      cwd: directory,
+      auth: "better-auth",
+      tenancy: true,
+    });
+
+    const paths = plan.files.map((file) => file.path);
+    assert.ok(paths.some((path) => path.endsWith("src/lib/organization.ts")));
+    assert.ok(
+      paths.some((path) =>
+        path.endsWith("src/dashild/organization-actions.ts"),
+      ),
+    );
+
+    const route = plan.files.find((file) =>
+      file.path.endsWith("page.tsx"),
+    )?.content;
+    assert.match(route ?? "", /getOrganizationContext/);
+    assert.match(route ?? "", /switchOrganization/);
+    assert.match(route ?? "", /organizations=\{organization\?\.organizations\}/);
+
+    const session = plan.files.find((file) =>
+      file.path.endsWith("session.ts"),
+    )?.content;
+    assert.match(session ?? "", /ORGANIZATION_COOKIE/);
+    assert.match(session ?? "", /organizationId/);
+
+    const schema = plan.appends.find((append) =>
+      append.path.endsWith("schema.prisma"),
+    )?.content;
+    assert.match(schema ?? "", /model Organization/);
+    assert.match(schema ?? "", /organizationId String\?/);
+    assert.match(schema ?? "", /role\s+Role/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: tenancy requires Better Auth", () => {
+  const directory = project();
+
+  try {
+    assert.throws(
+      () => planInit({ cwd: directory, auth: "none", tenancy: true }),
+      /better-auth|Better Auth/i,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("init: tenancy refuses a schema with existing auth models", () => {
+  const directory = project();
+
+  try {
+    writeFileSync(
+      join(directory, "prisma/schema.prisma"),
+      'datasource db {\n  provider = "postgresql"\n}\n\nmodel User {\n  id String @id\n}\n',
+      "utf8",
+    );
+
+    assert.throws(
+      () =>
+        planInit({ cwd: directory, auth: "better-auth", tenancy: true }),
+      /Tenancy|tenencia|auth models/i,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

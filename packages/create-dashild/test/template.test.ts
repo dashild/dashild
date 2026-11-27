@@ -314,3 +314,33 @@ test("a starter's env keys are appended to .env.example", async () => {
     rmSync(starter, { recursive: true, force: true });
   }
 });
+
+test("the saas starter requires tenancy", async () => {
+  const template = await loadTemplate("saas", "en");
+
+  assert.equal(template.manifest.requires?.tenancy, true);
+  assert.ok(template.files.has("src/dashild/resources/project.ts"));
+  assert.ok(template.files.has("src/dashild/policies.ts"));
+
+  assert.throws(
+    () =>
+      validateTemplate(template, {
+        auth: "better-auth",
+        database: "sqlite",
+        dashildVersion: DASHILD_VERSION,
+        locale: "en",
+        tenancy: false,
+      }),
+    /tenancy|tenencia/i,
+  );
+
+  assert.doesNotThrow(() =>
+    validateTemplate(template, {
+      auth: "better-auth",
+      database: "sqlite",
+      dashildVersion: DASHILD_VERSION,
+      locale: "en",
+      tenancy: true,
+    }),
+  );
+});

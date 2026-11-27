@@ -178,6 +178,7 @@ program
   .option("--metadata <path>", "path to dashild-metadata.json")
   .option("--path <route>", "mount route (default: /admin)")
   .option("--auth <provider>", "auth integration: none or better-auth", "none")
+  .option("--tenancy", "isolate resources by organization (requires Better Auth)")
   .option("--yes", "write the files")
   .option("--force", "overwrite the generated files")
   .option("--dry-run", "print the plan without writing")
@@ -187,6 +188,7 @@ program
       metadata?: string;
       path?: string;
       auth?: string;
+      tenancy?: boolean;
       yes?: boolean;
       force?: boolean;
       dryRun?: boolean;
@@ -198,6 +200,7 @@ program
           metadata: options.metadata,
           path: options.path,
           auth: options.auth,
+          tenancy: options.tenancy,
           locale: activeLocale,
           force: options.force,
         });

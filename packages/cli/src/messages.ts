@@ -50,6 +50,9 @@ const en = {
     "Could not find schema.prisma; Better Auth models were not added.",
   "init.auth.secret":
     "BETTER_AUTH_SECRET is empty. Generate one with `openssl rand -base64 32`.",
+  "init.tenancy.auth": "Tenancy requires `--auth better-auth`.",
+  "init.tenancy.models":
+    "Tenancy needs a schema without existing auth models; found {models}. Create the organization fields by hand.",
 } as const;
 
 type MessageKey = keyof typeof en;
@@ -97,6 +100,9 @@ const es: Record<MessageKey, string> = {
     "No encuentro schema.prisma; no se añadieron los modelos de Better Auth.",
   "init.auth.secret":
     "BETTER_AUTH_SECRET está vacío. Genera uno con `openssl rand -base64 32`.",
+  "init.tenancy.auth": "La tenencia requiere `--auth better-auth`.",
+  "init.tenancy.models":
+    "La tenencia necesita un schema sin modelos de auth existentes; encontrados {models}. Crea los campos de organización a mano.",
 };
 
 export function resolveCliLocale(value: string | undefined): Locale {

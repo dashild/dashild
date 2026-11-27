@@ -129,6 +129,10 @@ files.
 - `--path <route>` picks the mount route. If `/admin` already has a `page.tsx`,
   it proposes `/panel`, `/admin-panel`, or `/dashild`.
 - `--yes` writes; without it, it only prints the plan. `--dry-run` never writes.
+- `--tenancy` adds the `Organization` model, `User.organizationId`/`role`, an
+  organization-aware session, the switch action, and the sidebar switcher. It
+  requires `--auth better-auth` and a schema without auth models; see
+  [Multi-tenancy](https://dashild.vercel.app/guides/multi-tenancy/).
 - `--force` overwrites existing files. Without `--force`, it refuses to clobber
   manual work.
 - It warns when a Prisma client or a Dashild dependency is missing.

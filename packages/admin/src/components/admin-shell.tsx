@@ -85,6 +85,7 @@ export function AdminShell({
             locale={locale}
             accountHref={accountHref}
             brand={brand}
+            nextPath={nextPath}
           />
           <SidebarInset>
             <SiteHeader

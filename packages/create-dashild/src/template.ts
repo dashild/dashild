@@ -41,7 +41,10 @@ const manifestSchema = z
       .object({ provider: z.array(providerSchema).min(1).optional() })
       .optional(),
     requires: z
-      .object({ auth: z.array(authSchema).min(1).optional() })
+      .object({
+        auth: z.array(authSchema).min(1).optional(),
+        tenancy: z.boolean().optional(),
+      })
       .optional(),
     extend: z.record(z.string(), z.array(z.string())).optional(),
     dependencies: z.record(z.string(), z.string()).optional(),
@@ -265,6 +268,7 @@ export function validateTemplate(
     database: DatabaseProvider;
     dashildVersion: string;
     locale: Locale;
+    tenancy?: boolean;
   },
 ): void {
   const { manifest } = template;
@@ -275,6 +279,10 @@ export function validateTemplate(
     throw new Error(
       t(options.locale, "templateAuth", { auth: auth.join(" or ") }),
     );
+  }
+
+  if (manifest.requires?.tenancy && !options.tenancy) {
+    throw new Error(t(options.locale, "templateTenancy"));
   }
 
   const providers = manifest.prisma?.provider;

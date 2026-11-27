@@ -14,7 +14,8 @@ npx create-dashild@latest my-app
 Without flags it asks, in this order:
 
 1. Project name and folder.
-2. Starter: `basic` (panel only) or `demo` (users, posts, and labels).
+2. Starter: `basic` (panel only), `demo` (users, posts, and labels), or `saas`
+   (organizations and projects, isolated by tenant).
 3. Authentication: Better Auth (email + password) or none.
 4. Database: PostgreSQL, MySQL, or SQLite, and its `DATABASE_URL`.
 5. Install dependencies, initialize git, migrate, and seed.
@@ -34,7 +35,7 @@ npx create-dashild@latest my-app \
 
 | Flag | Values |
 | --- | --- |
-| `--template` | `basic`, `demo`, `local:<path>`, `github:<owner>/<repo>#<ref>` |
+| `--template` | `basic`, `demo`, `saas`, `local:<path>`, `github:<owner>/<repo>#<ref>` |
 | `--auth` | `better-auth`, `none` |
 | `--database` | `postgresql`, `mysql`, `sqlite` |
 | `--database-url` | Connection URL; the engine is inferred from it |
@@ -45,6 +46,7 @@ npx create-dashild@latest my-app \
 | `--no-git` | Skip git initialization |
 | `--no-migrate` | Do not apply the schema |
 | `--no-seed` | Do not load starter data |
+| `--tenancy` | Add organizations, a tenant-aware session, and the sidebar switcher (Better Auth) |
 | `--dry-run` | Print the plan without writing anything |
 | `--list-templates` | List the bundled starters |
 | `-y, --yes` | Accept the defaults |

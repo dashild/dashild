@@ -36,6 +36,8 @@ export interface InitOptions {
   auth?: string;
   locale?: Locale;
   force?: boolean;
+  /** Add an Organization model, tenant fields and the org-aware session. */
+  tenancy?: boolean;
 }
 
 export interface InitFile {
@@ -188,7 +190,7 @@ function authModelNames(schema: string): string[] {
   );
 }
 
-function betterAuthModels(): string {
+function betterAuthModels(tenancy = false): string {
   return `
 // Better Auth models. Added by \`dashild init --auth better-auth\`.
 model User {
@@ -201,7 +203,10 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
-}
+${tenancy ? `  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  role           Role      @default(USER)
+` : ""}}
 
 model Session {
   id        String   @id
@@ -246,7 +251,18 @@ model Verification {
 
   @@index([identifier])
 }
-`;
+${tenancy ? `
+enum Role {
+  ADMIN
+  USER
+}
+
+model Organization {
+  id    String @id @default(uuid())
+  name  String
+  users User[]
+}
+` : ""}`;
 }
 
 function betterAuthFile(
@@ -380,7 +396,60 @@ export const authClient = createAuthClient();
 `;
 }
 
-function sessionFile(sessionPath: string, authPath: string): string {
+function sessionFile(
+  sessionPath: string,
+  authPath: string,
+  tenancy?: { prismaModule: string; organizationModule: string },
+): string {
+  if (tenancy) {
+    return `import { cookies, headers } from "next/headers";
+
+import { auth } from ${quote(importPath(sessionPath, authPath))};
+import { ORGANIZATION_COOKIE } from ${quote(
+      importPath(sessionPath, tenancy.organizationModule),
+    )};
+import { prisma } from ${quote(
+      importPath(sessionPath, tenancy.prismaModule),
+    )};
+
+/** The signed-in app user, with the active organization resolved. */
+export async function getCurrentUser() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) return null;
+
+  const record = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { organizationId: true, role: true },
+  });
+
+  const store = await cookies();
+  const requested = store.get(ORGANIZATION_COOKIE)?.value;
+  const isAdmin = record?.role === "ADMIN";
+  let organizationId = record?.organizationId ?? null;
+
+  // An admin may switch to any organization; a member stays in their own.
+  if (requested && isAdmin) {
+    const target = await prisma.organization.findUnique({
+      where: { id: requested },
+      select: { id: true },
+    });
+    if (target) organizationId = target.id;
+  }
+
+  return {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    organizationId,
+    roles: record?.role ? [record.role] : [],
+  };
+}
+`;
+  }
+
   return `import { headers } from "next/headers";
 
 import { auth } from ${quote(importPath(sessionPath, authPath))};
@@ -1309,6 +1378,114 @@ export function AppRegistryProvider({ children }: { children: React.ReactNode })
 `;
 }
 
+function organizationFile(
+  organizationPath: string,
+  prismaModule: string,
+): string {
+  return `import { cookies } from "next/headers";
+
+import { prisma } from ${quote(importPath(organizationPath, prismaModule))};
+
+export const ORGANIZATION_COOKIE = "dashild_organization";
+
+export interface OrganizationOption {
+  id: string;
+  name: string;
+}
+
+/**
+ * Organizations the user may see and the active one for this request.
+ *
+ * Admins can switch to any organization; a member only sees their own.
+ */
+export async function getOrganizationContext(user: {
+  organizationId?: string | null;
+  roles?: string[];
+}): Promise<{
+  organizations: OrganizationOption[];
+  activeOrganizationId: string | null;
+}> {
+  const isAdmin = user.roles?.includes("ADMIN") ?? false;
+
+  const organizations = await prisma.organization.findMany({
+    where: isAdmin ? {} : { id: user.organizationId ?? "__none__" },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  const store = await cookies();
+  const requested = store.get(ORGANIZATION_COOKIE)?.value;
+  const allowed =
+    Boolean(requested) &&
+    organizations.some((organization) => organization.id === requested);
+  const active = allowed && requested
+    ? requested
+    : user.organizationId &&
+        organizations.some(
+          (organization) => organization.id === user.organizationId,
+        )
+      ? user.organizationId
+      : organizations[0]?.id ?? null;
+
+  return { organizations, activeOrganizationId: active };
+}
+`;
+}
+
+function organizationActionsFile(
+  actionsPath: string,
+  sessionModule: string,
+  organizationModule: string,
+  prismaModule: string,
+  panelPath: string,
+): string {
+  return `"use server";
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+
+import { prisma } from ${quote(importPath(actionsPath, prismaModule))};
+import { ORGANIZATION_COOKIE } from ${quote(
+    importPath(actionsPath, organizationModule),
+  )};
+import { getCurrentUser } from ${quote(importPath(actionsPath, sessionModule))};
+
+export async function switchOrganization(formData: FormData): Promise<void> {
+  const user = await getCurrentUser();
+  const target = formData.get("organizationId") ?? formData.get("organization");
+  const next = formData.get("next");
+  const safeNext =
+    typeof next === "string" && next.startsWith("/") && !next.startsWith("//")
+      ? next
+      : ${quote(panelPath)};
+
+  if (!user || typeof target !== "string") redirect(safeNext);
+
+  const isAdmin = user.roles?.includes("ADMIN") ?? false;
+
+  if (isAdmin) {
+    const exists = await prisma.organization.findUnique({
+      where: { id: target },
+      select: { id: true },
+    });
+    if (!exists) redirect(safeNext);
+  } else if (target !== user.organizationId) {
+    redirect(safeNext);
+  }
+
+  const store = await cookies();
+  store.set(ORGANIZATION_COOKIE, target, {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+
+  redirect(safeNext);
+}
+`;
+}
+
 function routeFile(
   routePath: string,
   panelModule: string,
@@ -1317,7 +1494,25 @@ function routeFile(
   serverModule: string,
   iconsModule: string,
   registryModule: string,
+  organization?: { contextModule: string; actionsModule: string },
 ): string {
+  const organizationImports = organization
+    ? `import { getOrganizationContext } from ${quote(importPath(routePath, organization.contextModule))};
+import { switchOrganization } from ${quote(importPath(routePath, organization.actionsModule))};
+`
+    : "";
+  const organizationBody = organization
+    ? `  const user = await panel.auth.getCurrentUser();
+  const organization = user ? await getOrganizationContext(user) : null;
+`
+    : "";
+  const organizationProps = organization
+    ? `        organizations={organization?.organizations}
+        activeOrganizationId={organization?.activeOrganizationId}
+        switchOrganization={switchOrganization}
+`
+    : "";
+
   return `import { cookies } from "next/headers";
 
 import { DEFAULT_THEME_MODE, type ThemeMode } from "@dashild/admin";
@@ -1335,7 +1530,7 @@ import {
   saveResource,
   toggleTheme,
 } from ${quote(importPath(routePath, serverModule))};
-
+${organizationImports}
 /**
  * Dashild mount route.
  *
@@ -1362,7 +1557,7 @@ export default async function DashildPage({
     cookieTheme === "light" || cookieTheme === "dark" || cookieTheme === "system"
       ? cookieTheme
       : panel.theme?.defaultMode ?? DEFAULT_THEME_MODE;
-
+${organizationBody}
   return (
     <AppRegistryProvider>
       <AdminPage
@@ -1379,7 +1574,7 @@ export default async function DashildPage({
         theme={theme}
         themeToggle={panel.theme?.toggle ?? false}
         themeAction={toggleTheme}
-      />
+${organizationProps}      />
     </AppRegistryProvider>
   );
 }
@@ -1400,6 +1595,10 @@ export function planInit(options: InitOptions): InitPlan {
   }
 
   const authProvider = requestedAuth as AuthProvider;
+  const tenancy = Boolean(options.tenancy);
+  if (tenancy && authProvider !== "better-auth") {
+    throw new Error(cliMessage(locale, "init.tenancy.auth"));
+  }
   const packageJsonPath = resolve(cwd, "package.json");
 
   if (!existsSync(packageJsonPath)) {
@@ -1461,10 +1660,29 @@ export function planInit(options: InitOptions): InitPlan {
   const schemaSource = schemaPath ? readFileSync(schemaPath, "utf8") : "";
   const provider = schemaSource ? prismaProvider(schemaSource) : "postgresql";
 
+  if (tenancy) {
+    const existing = authModelNames(schemaSource);
+    if (existing.length > 0) {
+      throw new Error(
+        cliMessage(locale, "init.tenancy.models", {
+          models: existing.join(", "),
+        }),
+      );
+    }
+  }
+
   const routePath = resolve(
     appDir,
     routeDirectory(panelPath),
     "[[...dashild]]/page.tsx",
+  );
+
+  const libDir = libDirectory(cwd, appDir);
+  const sessionPath = resolve(libDir, "session.ts");
+  const organizationPath = resolve(libDir, "organization.ts");
+  const organizationActionsPath = resolve(
+    dashildDir,
+    "organization-actions.ts",
   );
 
   const files: InitFile[] = [
@@ -1506,18 +1724,39 @@ export function planInit(options: InitOptions): InitPlan {
         resolve(dashildDir, "server.ts"),
         resolve(dashildDir, "icons.tsx"),
         resolve(dashildDir, "registry.tsx"),
+        tenancy
+          ? {
+              contextModule: organizationPath,
+              actionsModule: organizationActionsPath,
+            }
+          : undefined,
       ),
     },
   ];
 
+  if (tenancy) {
+    files.push({
+      path: organizationPath,
+      content: organizationFile(organizationPath, prisma.path),
+    });
+    files.push({
+      path: organizationActionsPath,
+      content: organizationActionsFile(
+        organizationActionsPath,
+        sessionPath,
+        organizationPath,
+        prisma.path,
+        panelPath,
+      ),
+    });
+  }
+
   const appends: InitAppend[] = [];
 
   if (authProvider === "better-auth") {
-    const libDir = libDirectory(cwd, appDir);
     const componentsDir = componentsDirectory(cwd, appDir);
     const authPath = resolve(libDir, "auth.ts");
     const authClientPath = resolve(libDir, "auth-client.ts");
-    const sessionPath = resolve(libDir, "session.ts");
     const authActionsPath = resolve(libDir, "auth-actions.ts");
     const emailPath = resolve(libDir, "email.ts");
     const apiRoutePath = resolve(appDir, "api/auth/[...all]/route.ts");
@@ -1563,7 +1802,16 @@ export function planInit(options: InitOptions): InitPlan {
       },
       { path: emailPath, content: emailFile() },
       { path: authClientPath, content: authClientFile() },
-      { path: sessionPath, content: sessionFile(sessionPath, authPath) },
+      {
+        path: sessionPath,
+        content: sessionFile(
+          sessionPath,
+          authPath,
+          tenancy
+            ? { prismaModule: prisma.path, organizationModule: organizationPath }
+            : undefined,
+        ),
+      },
       {
         path: authActionsPath,
         content: authActionsFile(authActionsPath, authPath),
@@ -1627,7 +1875,7 @@ export function planInit(options: InitOptions): InitPlan {
       } else {
         appends.push({
           path: schemaPath,
-          content: betterAuthModels(),
+          content: betterAuthModels(tenancy),
         });
       }
     } else {

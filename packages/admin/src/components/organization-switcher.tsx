@@ -33,6 +33,8 @@ export interface OrganizationSwitcherProps {
   locale?: Locale;
   /** Panel logo; falls back to the Dashild mark. */
   logo?: string;
+  /** Current page, so switching keeps the user where they were. */
+  nextPath?: string;
 }
 
 export function OrganizationSwitcher({
@@ -42,6 +44,7 @@ export function OrganizationSwitcher({
   switchOrganization,
   locale,
   logo,
+  nextPath,
 }: OrganizationSwitcherProps) {
   const active = organizations.find(
     (organization) => organization.id === activeId,
@@ -101,6 +104,9 @@ export function OrganizationSwitcher({
                         name="organizationId"
                         value={organization.id}
                       />
+                      {nextPath ? (
+                        <input type="hidden" name="next" value={nextPath} />
+                      ) : null}
                       <button
                         type="submit"
                         className="flex w-full cursor-pointer items-center gap-2"

@@ -22,6 +22,7 @@ function options(overrides: Partial<CreateOptions> = {}): CreateOptions {
     locale: "en",
     yes: false,
     dryRun: false,
+    tenancy: false,
     ...overrides,
   };
 }

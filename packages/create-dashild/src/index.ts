@@ -45,6 +45,7 @@ interface RawOptions {
   yes?: boolean;
   dryRun?: boolean;
   listTemplates?: boolean;
+  tenancy?: boolean;
 }
 
 function detectLocale(value: string | undefined): Locale {
@@ -90,6 +91,7 @@ function listTemplates(locale: Locale): void {
   const lines = [
     `basic — ${t(locale, "templateBasic")}`,
     `demo — ${t(locale, "templateDemo")}`,
+    `saas — ${t(locale, "templateSaas")}`,
     t(locale, "templateLocal"),
     t(locale, "templateGitHub"),
   ];
@@ -115,6 +117,7 @@ program
   .option("--no-git", "skip git init and the first commit")
   .option("--no-migrate", "do not apply the Prisma schema")
   .option("--no-seed", "do not load the starter data")
+  .option("--tenancy", "isolate resources by organization (Better Auth)")
   .option("--path <route>", "panel route (defaults to /admin)")
   .option("--locale <locale>", "en or es")
   .option("-y, --yes", "accept the defaults without prompting")
@@ -157,6 +160,7 @@ program
         panelPath: raw.path,
         locale,
         yes: Boolean(raw.yes),
+        tenancy: Boolean(raw.tenancy),
       };
 
       const options: CreateOptions = await promptOptions(flags);
@@ -168,6 +172,7 @@ program
           database: options.database,
           dashildVersion: DASHILD_VERSION,
           locale,
+          tenancy: options.tenancy,
         });
         p.note(
           formatPlan(options, template.source, locale).join("\n"),

@@ -31,6 +31,7 @@ const PANEL_FILES = [
   "runtime.ts",
   "server.ts",
   "registry.tsx",
+  "organization-actions.ts",
 ];
 
 const AUTH_FILES = [

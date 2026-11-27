@@ -34,6 +34,7 @@ export interface AppSidebarProps {
   locale?: Locale;
   accountHref?: string;
   brand?: PanelBrand;
+  nextPath?: string;
 }
 
 export function AppSidebar({
@@ -49,6 +50,7 @@ export function AppSidebar({
   locale,
   accountHref,
   brand,
+  nextPath,
 }: AppSidebarProps) {
   const brandLogo = brand?.logo ? (
     <img
@@ -72,6 +74,7 @@ export function AppSidebar({
             switchOrganization={switchOrganization}
             locale={locale}
             logo={brand?.logo}
+            nextPath={nextPath}
           />
         ) : (
           <SidebarMenu>

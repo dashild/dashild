@@ -101,6 +101,7 @@ export async function createProject(
     database: options.database,
     dashildVersion: DASHILD_VERSION,
     locale: options.locale,
+    tenancy: options.tenancy,
   });
 
   const state = directoryState(options.dir);
@@ -131,6 +132,7 @@ export async function createProject(
     locale: options.locale,
     metadataPath: "src/generated/dashild/dashild-metadata.json",
     schemaPath: "prisma/schema.prisma",
+    tenancy: options.tenancy,
   });
   applyInit(plan);
 
