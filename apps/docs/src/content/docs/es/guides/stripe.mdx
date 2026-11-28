@@ -1,0 +1,100 @@
+---
+title: Stripe
+description: Enlaza registros con el dashboard de Stripe sin clave de API ni webhook.
+---
+
+Dashild no llama a la API de Stripe. La integración es un helper pequeño que
+convierte un id de Stripe guardado en el registro en un enlace al dashboard y lo
+ejecuta como acción de fila. Sin clave secreta, sin webhook, sin petición de red.
+
+Úsala cuando tu checkout o facturación ya guarda ids `cus_...`, `sub_...` o
+`in_...` y el equipo quiere un atajo desde el admin a Stripe.
+
+## 1. Guarda el id
+
+Añade el campo al modelo:
+
+```prisma title="prisma/schema.prisma"
+model Customer {
+  id               String  @id @default(uuid())
+  name             String
+  stripeCustomerId String?
+}
+```
+
+`stripeActionHandler` usa `stripeCustomerId` por defecto; pasa `field` para otra
+columna.
+
+## 2. Declara la acción
+
+```ts title="src/dashild/resources/customer.ts"
+table: {
+  columns: [{ field: "name", sortable: true }],
+  actions: [
+    { name: "create", placement: "header" },
+    { name: "view", placement: "row" },
+    { name: "edit", placement: "row" },
+    { name: "delete", placement: "row" },
+    {
+      name: "openInStripe",
+      label: "Open in Stripe",
+      placement: "row",
+    },
+  ],
+},
+form: {
+  fields: [
+    { field: "name", type: "text", rules: { required: true } },
+    { field: "stripeCustomerId", type: "text" },
+  ],
+},
+```
+
+## 3. Registra el handler
+
+```ts title="src/dashild/actions/index.ts"
+import type { ActionHandler, CurrentUser } from "@dashild/core";
+import { stripeActionHandler } from "@dashild/core/server";
+
+export const resourceActions: Record<
+  string,
+  Record<string, ActionHandler<CurrentUser>>
+> = {
+  Customer: {
+    openInStripe: stripeActionHandler({
+      type: "customer",
+      field: "stripeCustomerId",
+      mode: "test",
+    }),
+  },
+};
+```
+
+El handler lee el registro con el cliente Prisma scopeado, así que un registro
+fuera del scope del usuario no es alcanzable. Si el campo está vacío, la acción
+devuelve un error en vez de un enlace roto.
+
+## URLs del dashboard
+
+`stripeDashboardUrl` es un helper puro, exportado desde `@dashild/core`:
+
+```ts
+import { stripeDashboardUrl } from "@dashild/core";
+
+stripeDashboardUrl({ type: "customer", id: "cus_123", mode: "test" });
+// https://dashboard.stripe.com/test/customers/cus_123
+```
+
+Tipos disponibles: `customer`, `subscription`, `invoice`, `payment`, `product`,
+`price`. `mode: "test"` añade `/test` a la ruta; por defecto es live.
+
+## Límites
+
+- **Sin sincronización**: los ids deben venir de tu propio checkout,
+  facturación o webhook. Este paquete no crea clientes ni suscripciones.
+- **Sin webhook**: nada se actualiza desde eventos de Stripe.
+- Un id falso produce una URL válida; Stripe muestra su propio 404. Guarda ids
+  reales antes de publicar.
+- La acción es un enlace (`href`), no una mutación de servidor.
+
+El starter `shop` incluye un ejemplo funcionando en clientes.

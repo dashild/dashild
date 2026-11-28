@@ -132,6 +132,11 @@ export default defineConfig({
               slug: "guides/multi-tenancy",
             },
             {
+              label: "Stripe",
+              translations: { es: "Stripe" },
+              slug: "guides/stripe",
+            },
+            {
               label: "Customization",
               translations: { es: "Personalización" },
               slug: "guides/customization",

@@ -1840,3 +1840,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     client: scopedClient,
   };
 }
+
+export {
+  stripeActionHandler,
+  type StripeActionOptions,
+} from "./stripe-action.js";
