@@ -96,6 +96,12 @@ crear salvo que `can.create` sea explícito. Las filas cargadas con `include`
 tampoco se filtran por la política del modelo relacionado; consulta el modelo
 relacionado directamente cuando importe.
 
+Una inserción debe recibir la pertenencia al tenant desde un contexto fiable del
+servidor. Dashild no copia `organizationId` del scope a los datos nuevos. Antes
+de habilitar la creación, asegúrate de que tu flujo de servidor establece la
+organización activa; no confíes en un campo oculto ni en un valor enviado por el
+navegador.
+
 ## Auth propia
 
 Si no usas la sesión generada, devuelve el tenant desde `getCurrentUser`, o

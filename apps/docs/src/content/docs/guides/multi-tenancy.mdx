@@ -94,6 +94,12 @@ unless `can.create` is explicit. Rows loaded through `include` are not filtered
 by the related model's policy either; query the related model directly when
 that matters.
 
+An insert must receive its tenant ownership from trusted server-side context.
+Dashild does not copy `organizationId` from the scope into new data. Before
+enabling create, make sure your server-side create flow sets the active
+organization itself; do not rely on a hidden form field or a value supplied by
+the browser.
+
 ## Custom auth
 
 If you do not use the generated session, return the tenant from

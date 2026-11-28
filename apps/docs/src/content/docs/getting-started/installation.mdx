@@ -29,6 +29,11 @@ The scaffolder runs `create-next-app` non-interactively (`--yes --empty`) and
 then asks its own questions: starter, auth, database, and whether to install,
 migrate, and seed. It also works with flags:
 
+`pnpm create` downloads and runs the project generator without installing it as
+a permanent dependency in your current project. `my-app` is the new directory
+name. The example below selects a starter and PostgreSQL, supplies the database
+URL, chooses pnpm, and accepts defaults so the command can run without prompts.
+
 ```bash
 npx create-dashild@latest my-app \
   --template demo \
@@ -144,14 +149,18 @@ app (pinning `PATH` and `npm_config_target`) because pnpm does not ship
 ## Mount the panel
 
 `dashild init` reads `dashild-metadata.json`, so generate the Prisma client and
-the metadata first:
+the metadata first. `prisma generate` runs both configured Prisma generators:
+the client generator makes the typed database API, and the Dashild generator
+makes metadata used to build the admin UI.
 
 ```bash
 pnpm prisma generate
 pnpm dashild init --auth better-auth
 ```
 
-The command prints the plan and writes nothing until you add `--yes`:
+`dashild init` plans the panel files and auth integration. It prints the plan
+first; without `--yes` it does not apply it. Review that plan before accepting
+it:
 
 ```bash
 pnpm dashild init --auth better-auth --yes
@@ -177,7 +186,10 @@ With `--auth better-auth` it also writes login, signup, session, password
 reset, and API route files, and appends the Better Auth models to the schema.
 See [Authentication](/guides/authentication/).
 
-Then regenerate if `init` changed the schema, and apply it:
+Then regenerate because `init --auth better-auth` may have changed the Prisma
+schema. `db push` synchronizes that schema with the configured database without
+creating a versioned migration. For a team or production workflow, use Prisma
+migrations instead:
 
 ```bash
 pnpm prisma generate
@@ -215,8 +227,12 @@ pnpm dashild make:resource Customer
 pnpm dashild doctor
 ```
 
-`make:resource` writes one file and never touches it again. It also registers
-the resource in `panel.ts` and adds a fail-closed entry to `policies.ts`.
+The first command takes a Prisma model name and creates a resource definition:
+the panel's instructions for displaying and editing that model. It registers
+the new file in `panel.ts` and adds a fail-closed policy entry. It never
+overwrites an existing resource file. The second command checks that resources,
+metadata, policies, and action handlers are wired consistently; it does not
+repair problems automatically.
 
 The policy entry starts as `scope: () => null`, so the resource returns 404
 until you define its scope and permissions. See
@@ -229,6 +245,7 @@ until you define its scope and permissions. See
 pnpm dev
 ```
 
+`pnpm dev` runs the development server defined by your app's `package.json`.
 The panel is at `http://localhost:3000/admin` (or the route you chose). In
 development use `localhost`, not `127.0.0.1`: Next 16 blocks assets and
 hydration from unlisted origins. The scaffold adds

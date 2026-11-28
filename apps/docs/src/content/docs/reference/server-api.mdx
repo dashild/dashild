@@ -57,9 +57,9 @@ const client = runtime.client(user) as typeof prisma;
 | Function | Result |
 | --- | --- |
 | `resolvePolicy(resource, policies, user)` | `{ ok: true, policy }` or `{ ok: false, reason }`. Reasons: `no-policy`, `no-policies`, `no-resource-policy`, `scope-denied`. |
-| `canPerform(policy, operation, values?)` | `create` needs an explicit predicate when the scope is not empty; other operations are allowed without one. |
+| `canPerform(policy, operation, values?)` | Permission-predicate defaults: `create` needs an explicit predicate when the scope is not empty; other operations are allowed without one. Authentication and policy resolution still apply. |
 | `canRunAction(policy, action)` | Deny by default when `requires` has no matching predicate. |
-| `PolicyDeniedError` | Thrown by the runtime; the panel turns it into a 404. |
+| `PolicyDeniedError` | Page-loading operations can throw this for denied resources; the panel turns it into a 404. Mutation/action methods may instead return `{ ok: false }`. |
 
 ## Scoping Prisma
 
@@ -93,7 +93,7 @@ server code so the policy is applied once per request.
 | `toPrismaData(resource, model, context, values, operation)` | Converts values (`BigInt`, `Decimal`, `DateTime`, `connect`/`disconnect`). |
 | `flattenZodError(error)` | Field-indexed messages for the form. |
 | `coerceRecordId(field, value)` | Casts a route id to the model's id type. |
-| `formatPrismaError(error, locale)` | P2002, P2003, P2025/P2007 → field errors or a message. |
+| `formatPrismaError(error, locale)` | Maps P2002 unique conflicts, P2003 relation conflicts, and P2025 missing records to field errors or a message; other codes use the generic write error. |
 
 ## Types
 

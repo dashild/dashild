@@ -91,8 +91,10 @@ Los filtros declarados se renderizan en una barra sobre la tabla: selects para
 aplicarlos se envía un formulario GET, así que los valores quedan en la URL y
 puedes enlazar a una tabla filtrada (`?status=ACTIVE`). Los aplica el servidor;
 `relation` solo soporta relaciones many-to-one, y `enum`/`text` comparan valores
-exactos. Las opciones de relación y enum se resuelven por usuario y respetan el
-scope activo.
+exactos. Las opciones `enum` salen de los valores de los metadatos de Prisma y
+son iguales para todos los usuarios. Las opciones de relación se cargan en el
+servidor para el usuario actual y respetan el scope activo cuando esa relación
+tiene scope.
 
 ## Formulario
 
@@ -144,6 +146,7 @@ table: {
 ```ts
 // src/dashild/actions/index.ts
 import type { ActionHandler, CurrentUser } from "@dashild/core";
+import { prisma } from "../../lib/prisma";
 
 export const resourceActions: Record<
   string,
@@ -153,6 +156,7 @@ export const resourceActions: Record<
     export: async ({ db, organizationId }) => {
       // `db` es el cliente Prisma scopeado, tipado como `unknown` en core.
       const client = db as typeof prisma;
+      // Usa `client.customer` aquí para consultar o exportar desde el servidor.
       return { ok: true, message: "Export started" };
     },
   },

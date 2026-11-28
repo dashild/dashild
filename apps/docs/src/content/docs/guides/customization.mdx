@@ -31,10 +31,11 @@ the browser-side messages of the form. `theme.defaultMode` accepts `light`,
 `dark`, or `system`; `system` follows `prefers-color-scheme` and reacts to
 changes.
 
-`brand.name` labels the sign-in pages and `brand.logo` replaces the panel mark
-in the sidebar. Without a logo, the shell renders the Dashild mark, which
-inherits the theme's text color. `domain` is declared metadata only: Next
-routes by host, so Dashild does not use it to route requests.
+`brand.logo` replaces the panel mark in the sidebar. Without a logo, the shell
+renders the Dashild mark, which inherits the theme's text color. `brand.name`
+is accepted in panel metadata but is not currently rendered by the generated
+sign-in pages. `domain` is declared metadata only: Next routes by host, so
+Dashild does not use it to route requests.
 
 ### Theme switch
 

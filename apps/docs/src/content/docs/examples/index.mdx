@@ -3,15 +3,15 @@ title: Examples
 description: Real apps built with Dashild, with seed data and a step-by-step tutorial.
 ---
 
-The `examples/` folder in the repository contains complete applications, not
-fixtures. Each one lives outside the pnpm workspace and installs `@dashild/*`
-from npm, so it proves the same path a user follows.
+The table below lists the example currently documented and maintained here.
+It is a runnable application, not a fixture, and lives outside the pnpm
+workspace so it installs the published `@dashild/*` packages like a user's app.
 
 | Example | What it shows |
 | --- | --- |
 | [Vet clinic](/examples/vet-clinic/) | Multi-tenancy, roles, relations, actions, filters, a custom cell |
 
-Every example ships with:
+The vet-clinic example includes:
 
 - A seeded SQLite database and demo accounts.
 - One resource file per model, with policies and action handlers.
@@ -27,8 +27,8 @@ pnpm db:seed
 pnpm dev
 ```
 
-The panel is at `/admin`. Credentials are in each example's README, and the
-tutorial repeats them.
+The panel is at `/admin`. The demo credentials are listed in the
+[tutorial](/examples/vet-clinic/).
 
 ## Why they are outside the workspace
 

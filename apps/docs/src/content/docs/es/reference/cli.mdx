@@ -10,6 +10,11 @@ pnpm add -D @dashild/cli@alpha
 pnpm dashild <comando>
 ```
 
+`pnpm add -D` instala el CLI como dependencia de desarrollo: es una herramienta
+para crear y revisar la app, no código que el servidor de producción necesite
+ejecutar. `pnpm dashild` usa el binario instalado localmente para mantener la
+versión del comando alineada con la del proyecto.
+
 `pnpm create dashild` es otro paquete (`create-dashild`) y solo scaffoldea apps
 nuevas.
 
@@ -27,6 +32,10 @@ Añade el panel a una app Next.js existente. Lee `dashild-metadata.json`, así q
 ejecuta antes `prisma generate` (o pasa `--metadata`). Imprime el plan primero;
 `--yes` escribe, `--dry-run` nunca escribe. Sin `--force` se niega a sobrescribir
 ficheros existentes.
+
+Usa `init` una vez para crear los puntos de conexión del panel: configuración,
+políticas, runtime de servidor y ruta Next.js. Es un comando de scaffolding, no
+ejecuta migraciones ni sustituye el layout o el middleware de tu app.
 
 | Opción | Para qué |
 | --- | --- |
@@ -60,6 +69,10 @@ pnpm dashild make:resource Customer
 Lee los metadatos de Prisma y escribe `src/dashild/resources/customer.ts`. El
 fichero es write-once: nunca sobrescribe un recurso existente.
 
+Úsalo después de añadir un modelo Prisma cuando quieras que Dashild cree la
+primera definición de tabla/formulario. Después edita el fichero generado para
+elegir los campos y permisos que necesita realmente tu app.
+
 - Omite `id`, `@updatedAt` y las claves foráneas escritas por una relación
   (Prisma las marca como de solo lectura).
 - Incluye campos `Bytes`, listas escalares como array JSON y relaciones m2m como
@@ -79,6 +92,10 @@ Añade un stub tipado a `src/dashild/actions/index.ts`. No edita el recurso:
 declara la acción en `table.actions` o `form.actions`. Ejecutarlo dos veces no
 duplica el handler, y `dashild doctor` reconoce la asignación generada.
 
+Úsalo cuando una acción necesite lógica de servidor que no sea el CRUD habitual.
+El stub es solo un punto de partida: implementa la operación y devuelve un
+resultado adecuado antes de mostrar la acción a los usuarios.
+
 Opciones: `--cwd`, `--dir` (carpeta de acciones).
 
 ## `doctor`
@@ -96,6 +113,10 @@ ante errores. Hallazgos como una columna sin campo de formulario son avisos y no
 cambian el código de salida. También sale con 1 cuando no hay ningún recurso.
 `--json` es para CI.
 
+Ejecuta `doctor` después de generar o editar recursos y antes de abrir una pull
+request. Informa de errores probables de conexión y metadatos; no ejecuta la app,
+no se conecta a la base de datos ni sustituye TypeScript y los tests.
+
 Opciones: `--cwd`, `--dir`, `--metadata`, `--policies`, `--actions`, `--json`.
 
 ## `ui:add`
@@ -112,6 +133,10 @@ Copia plantillas de celda y campo a `components/dashild/` (o `--dir`). No edita
 Plantillas disponibles: `avatar-cell`, `email-field`. Un nombre desconocido se
 avisa y el comando sigue saliendo con código 0.
 
+Usa `ui:add` para copiar un componente React inicial a la app. La línea de
+registro que imprime es un paso aparte: añádela a `registry.tsx` y luego usa ese
+nombre registrado en la definición del recurso.
+
 ## `eject`
 
 ```bash
@@ -124,6 +149,11 @@ montaje y el script `dashild`. Conserva los recursos, los ficheros de auth, el
 generador de Prisma y las dependencias, y lista los que puede detectar. Sin
 `--yes` solo imprime el plan. Opciones: `--cwd`, `--path` (cuando la ruta no se
 puede leer de `panel.ts`), `--dry-run`.
+
+Usa `eject` cuando quieras quitar intencionalmente el glue generado por Dashild.
+No desinstala paquetes, no elimina auth ni borra definiciones de recursos.
+Revisa la vista previa y guarda una copia o un punto de control en Git antes de
+confirmar.
 
 ## Códigos de salida
 

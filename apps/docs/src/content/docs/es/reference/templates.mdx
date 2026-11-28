@@ -3,7 +3,7 @@ title: Plantillas
 description: Starters incluidos y el formato de template.json.
 ---
 
-`create-dashild` incluye dos starters:
+`create-dashild` incluye tres starters:
 
 - `basic`: sin ficheros extra. El dashboard muestra el estado vacío; con el
   `--auth better-auth` por defecto también tienes login, signup y reset.
@@ -16,6 +16,10 @@ description: Starters incluidos y el formato de template.json.
 ```bash
 pnpm create dashild@latest mi-app --template demo
 ```
+
+Aquí, `--template demo` elige el starter con datos de demo, `mi-app` da nombre a
+la carpeta nueva y `pnpm create` ejecuta el generador publicado. Si omites
+`--template`, el generador te pregunta qué starter quieres.
 
 Un starter también puede ser una carpeta local o venir de GitHub:
 

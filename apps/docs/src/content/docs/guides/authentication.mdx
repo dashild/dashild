@@ -24,6 +24,11 @@ export const panel = definePanel({
 pnpm dashild init --auth better-auth --yes
 ```
 
+`init` creates the generated auth files and connects the app to Better Auth.
+`--auth better-auth` selects that integration; `--yes` applies the plan without
+asking for confirmation. Review the generated files and environment variables
+before using the app.
+
 This writes:
 
 ```text
@@ -118,6 +123,10 @@ Use the default mode and fill the adapter:
 ```bash
 pnpm dashild init --auth none --yes
 ```
+
+Here `--auth none` tells Dashild not to generate Better Auth. It still creates
+the panel integration; you then connect your existing authentication system by
+implementing `getCurrentUser`.
 
 ```ts
 async function getCurrentUser(): Promise<CurrentUser | null> {

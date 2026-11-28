@@ -59,6 +59,11 @@ managers del panel.
   que no se filtran por la política del modelo relacionado. Consulta el modelo
   relacionado directamente (o con `runtime.client(user)`) cuando importe.
 
+El runtime no copia el id del tenant del scope a los datos insertados. Tu flujo
+de creación en el servidor debe asignar la pertenencia al tenant desde el
+`PolicyContext` autenticado (u otra fuente fiable del servidor), nunca confiar
+en un id de tenant enviado por el navegador.
+
 ## Organización y roles
 
 `PolicyContext` lleva `user`, `organizationId` y `roles`. Los valores salen de
@@ -94,6 +99,11 @@ no puede inferir a qué organización pertenece la fila nueva.
 - `create` se deniega cuando el scope no está vacío y no hay `can.create`.
 - Una acción declarada con `requires` se deniega salvo que la política tenga un
   predicado con ese nombre.
+
+Estos son valores por defecto de los predicados de permisos; no sustituyen la
+autenticación, la resolución de la política del recurso, la validación de datos
+ni el scope del tenant. El scope limita qué filas existentes se encuentran o
+modifican; no elige la organización de una fila nueva.
 
 ## Acciones
 

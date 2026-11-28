@@ -3,15 +3,16 @@ title: Ejemplos
 description: Apps reales construidas con Dashild, con datos de ejemplo y tutorial paso a paso.
 ---
 
-La carpeta `examples/` del repositorio contiene aplicaciones completas, no
-fixtures. Cada una vive fuera del workspace de pnpm e instala `@dashild/*` desde
-npm, así que prueba el mismo camino que sigue un usuario.
+La tabla siguiente enumera el ejemplo documentado y mantenido actualmente. Es
+una aplicación ejecutable, no un fixture, y vive fuera del workspace de pnpm
+para instalar los paquetes `@dashild/*` publicados igual que la app de un
+usuario.
 
 | Ejemplo | Qué muestra |
 | --- | --- |
 | [Clínica veterinaria](/es/examples/vet-clinic/) | Multi-tenencia, roles, relaciones, acciones, filtros y una celda custom |
 
-Cada ejemplo incluye:
+El ejemplo de la clínica veterinaria incluye:
 
 - Base de datos SQLite sembrada y cuentas de demo.
 - Un fichero de recurso por modelo, con políticas y handlers de acciones.
@@ -27,8 +28,8 @@ pnpm db:seed
 pnpm dev
 ```
 
-El panel está en `/admin`. Las credenciales están en el README de cada ejemplo y
-el tutorial las repite.
+El panel está en `/admin`. Las credenciales de demo aparecen en el
+[tutorial](/es/examples/vet-clinic/).
 
 ## Por qué están fuera del workspace
 

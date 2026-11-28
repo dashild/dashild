@@ -31,10 +31,11 @@ validación del servidor y los mensajes del formulario en el navegador.
 `theme.defaultMode` acepta `light`, `dark` o `system`; `system` sigue
 `prefers-color-scheme` y reacciona a los cambios.
 
-`brand.name` etiqueta las páginas de acceso y `brand.logo` sustituye la marca
-del panel en la barra lateral. Sin logo, el shell dibuja la marca de Dashild,
-que hereda el color de texto del tema. `domain` es metadata declarada y nada
-más: Next enruta por host, así que Dashild no lo usa para enrutar peticiones.
+`brand.logo` sustituye la marca del panel en la barra lateral. Sin logo, el
+shell dibuja la marca de Dashild, que hereda el color de texto del tema.
+`brand.name` se acepta en los metadatos del panel, pero las páginas de acceso
+generadas todavía no lo muestran. `domain` es metadata declarada y nada más:
+Next enruta por host, así que Dashild no lo usa para enrutar peticiones.
 
 ### Conmutador de tema
 

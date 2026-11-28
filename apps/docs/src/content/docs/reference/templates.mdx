@@ -3,7 +3,7 @@ title: Templates
 description: Bundled starters and the template.json format.
 ---
 
-`create-dashild` ships two starters:
+`create-dashild` ships three starters:
 
 - `basic`: no extra files. The dashboard shows the empty state; with the
   default `--auth better-auth` you also get the login, signup, and reset pages.
@@ -16,6 +16,10 @@ description: Bundled starters and the template.json format.
 ```bash
 pnpm create dashild@latest my-app --template demo
 ```
+
+Here, `--template demo` chooses the seeded demo starter, `my-app` names the new
+folder, and `pnpm create` runs the published generator. Omitting `--template`
+lets the generator ask which starter to use.
 
 A starter can also be a local folder or come from GitHub:
 

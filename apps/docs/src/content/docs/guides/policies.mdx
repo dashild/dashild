@@ -58,6 +58,11 @@ It does **not** cover:
   they are not filtered by the related model's policy. Query the related model
   directly (or through `runtime.client(user)`) when that matters.
 
+The runtime does not copy a tenant id from the scope into inserted data. Your
+server-side create flow must set tenant ownership from the authenticated
+`PolicyContext` (or another trusted server-side source), and must not trust a
+tenant id sent by the browser.
+
 ## Organization and roles
 
 `PolicyContext` carries `user`, `organizationId`, and `roles`. The values come
@@ -94,6 +99,11 @@ which organization the new row belongs to.
 - `create` is denied when the scope is not empty and there is no `can.create`.
 - A declared action with `requires` is denied unless the policy has a predicate
   with that name.
+
+These are permission-predicate defaults, not a replacement for authentication,
+resource policy resolution, input validation, or the tenant scope. The scope
+limits which existing rows can be found or changed; it does not choose the
+organization for a newly inserted row.
 
 ## Actions
 

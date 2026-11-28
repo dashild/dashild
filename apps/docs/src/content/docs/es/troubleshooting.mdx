@@ -3,6 +3,25 @@ title: Solución de problemas
 description: Los problemas que aparecen más a menudo durante la configuración.
 ---
 
+Cuando algo falla, empieza por la salida exacta del comando e identifica qué
+fase falló: instalación de dependencias, generación/migración de Prisma,
+scaffolding de Dashild o servidor de desarrollo de Next.js. Son fases
+independientes; repite solo el paso que necesita atención, en vez de borrar
+ficheros generados o la base de datos.
+
+Comprobaciones útiles:
+
+```bash
+pnpm prisma generate
+pnpm dashild doctor
+pnpm dev
+```
+
+`prisma generate` actualiza el cliente generado y los metadatos de Dashild tras
+cambiar el esquema. `dashild doctor` comprueba la conexión entre recursos y
+políticas sin conectarse a la base de datos. `pnpm dev` inicia la app para
+reproducir un problema de ejecución o del navegador.
+
 ## El panel no hidrata en 127.0.0.1
 
 Next 16 solo permite `localhost` para assets y HMR de desarrollo por defecto.

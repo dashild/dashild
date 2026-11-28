@@ -3,6 +3,25 @@ title: Troubleshooting
 description: The problems that show up most often during setup.
 ---
 
+When something fails, start with the exact command output and identify which
+stage failed: dependency installation, Prisma generation/migration, Dashild
+scaffolding, or the Next.js dev server. These stages are separate; rerun only
+the step that needs attention rather than deleting generated files or the
+database.
+
+Useful checks:
+
+```bash
+pnpm prisma generate
+pnpm dashild doctor
+pnpm dev
+```
+
+`prisma generate` refreshes the generated client and Dashild metadata after a
+schema change. `dashild doctor` checks resource and policy wiring without
+connecting to the database. `pnpm dev` starts the app so you can reproduce a
+runtime or browser problem.
+
 ## The panel does not hydrate on 127.0.0.1
 
 Next 16 only allows `localhost` for dev assets and HMR by default. Open

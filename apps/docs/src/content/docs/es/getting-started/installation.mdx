@@ -30,6 +30,11 @@ El scaffolder ejecuta `create-next-app` sin preguntas (`--yes --empty`) y luego
 hace sus propias preguntas: starter, auth, base de datos y si instalar, migrar y
 sembrar. También acepta flags:
 
+`pnpm create` descarga y ejecuta el generador sin instalarlo como dependencia
+permanente del proyecto actual. `mi-app` es el nombre del nuevo directorio. El
+ejemplo siguiente elige un starter y PostgreSQL, facilita la URL de la base de
+datos, selecciona pnpm y acepta los valores por defecto para no preguntar.
+
 ```bash
 npx create-dashild@latest mi-app \
   --template demo \
@@ -145,14 +150,17 @@ migrar. El scaffolder instala `better-sqlite3` con el Node que ejecuta la app
 ## Montar el panel
 
 `dashild init` lee `dashild-metadata.json`, así que genera antes el cliente de
-Prisma y los metadatos:
+Prisma y los metadatos. `prisma generate` ejecuta los dos generadores
+configurados: el de Prisma crea la API tipada para la base de datos y el de
+Dashild crea metadatos que el panel usa para construir la interfaz.
 
 ```bash
 pnpm prisma generate
 pnpm dashild init --auth better-auth
 ```
 
-El comando imprime el plan y no escribe nada hasta que añades `--yes`:
+`dashild init` prepara los ficheros del panel y la integración de auth. Primero
+imprime el plan; sin `--yes` no lo aplica. Revisa el plan antes de aceptarlo:
 
 ```bash
 pnpm dashild init --auth better-auth --yes
@@ -178,7 +186,10 @@ Con `--auth better-auth` escribe además los ficheros de login, signup, sesión,
 reset de contraseña y la ruta de API, y añade los modelos de Better Auth al
 esquema. Ver [Autenticación](/es/guides/authentication/).
 
-Después regenera si `init` cambió el esquema y aplícalo:
+Después regenera porque `init --auth better-auth` puede haber cambiado el
+esquema Prisma. `db push` sincroniza ese esquema con la base de datos configurada
+sin crear una migración versionada. Para un equipo o producción, usa migraciones
+de Prisma:
 
 ```bash
 pnpm prisma generate
@@ -215,8 +226,12 @@ pnpm dashild make:resource Customer
 pnpm dashild doctor
 ```
 
-`make:resource` escribe un fichero y nunca lo vuelve a tocar. También registra
-el recurso en `panel.ts` y añade una entrada fail-closed en `policies.ts`.
+El primer comando recibe el nombre de un modelo Prisma y crea una definición de
+recurso: las instrucciones del panel para mostrar y editar ese modelo. Lo
+registra en `panel.ts` y añade una entrada de política fail-closed. Nunca
+sobrescribe un fichero de recurso existente. El segundo comando comprueba que
+recursos, metadatos, políticas y handlers de acciones estén conectados de forma
+coherente; no arregla los problemas automáticamente.
 
 La entrada empieza como `scope: () => null`, así que el recurso devuelve 404
 hasta que definas su scope y permisos. Ver
@@ -229,7 +244,8 @@ hasta que definas su scope y permisos. Ver
 pnpm dev
 ```
 
-El panel está en `http://localhost:3000/admin` (o la ruta que elegiste). En
+`pnpm dev` ejecuta el servidor de desarrollo definido en el `package.json` de la
+app. El panel está en `http://localhost:3000/admin` (o la ruta que elegiste). En
 desarrollo usa `localhost`, no `127.0.0.1`: Next 16 bloquea assets e hidratación
 desde orígenes no listados. El scaffold añade
 `allowedDevOrigins: ["127.0.0.1", "localhost"]`; añade cualquier otro dominio

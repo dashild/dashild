@@ -26,6 +26,11 @@ acción de cerrar sesión.
 pnpm dashild init --auth better-auth --yes
 ```
 
+`init` crea los ficheros de auth y conecta la app con Better Auth.
+`--auth better-auth` elige esa integración; `--yes` aplica el plan sin pedir
+confirmación. Revisa los ficheros generados y las variables de entorno antes de
+usar la app.
+
 Escribe:
 
 ```text
@@ -121,6 +126,10 @@ Usa el modo por defecto y rellena el adaptador:
 ```bash
 pnpm dashild init --auth none --yes
 ```
+
+Aquí `--auth none` indica a Dashild que no genere Better Auth. Aun así crea la
+integración del panel; después conectas tu sistema de autenticación
+implementando `getCurrentUser`.
 
 ```ts
 async function getCurrentUser(): Promise<CurrentUser | null> {

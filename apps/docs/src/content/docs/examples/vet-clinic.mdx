@@ -7,6 +7,11 @@ This tutorial builds [examples/vet-clinic](https://github.com/dashild/dashild/tr
 a small SaaS for veterinary clinics. Each clinic is a tenant; staff, owners,
 pets, appointments, visits, and vaccinations are isolated by clinic.
 
+We use `--tenancy` with a fresh starter instead of the ready-made `saas` template
+so you can see how to add the clinic-specific models and policies yourself. If
+you want a prebuilt organizations-and-projects demo instead, use the `saas`
+template described in [Templates](/reference/templates/).
+
 It is written for someone comfortable with JavaScript or TypeScript who is new
 to Dashild. Every step explains what the command or file does, not just what to
 paste.
@@ -44,6 +49,8 @@ The scaffolder creates a Next.js app, installs Dashild, and prepares the panel.
 `http://localhost:3000`.
 
 At this point `pnpm dev` already works, with an empty panel. We will fill it.
+The command starts Next.js in development mode. Keep that terminal open while
+you use the panel; stop the server with Ctrl+C.
 
 ## 2. Model the clinic
 
@@ -204,13 +211,17 @@ A few things to notice:
 
 `migrate dev` compares the schema with the database, writes a migration, and
 applies it. It also regenerates the Prisma client and the Dashild metadata.
+The migration is a checked-in record of how the schema changed; its name is a
+short label so teammates can understand the change later.
 
 ```bash
 pnpm prisma migrate dev --name vet_schema
 ```
 
-Now create `prisma/seed.ts`. A seed inserts demo data so the panel is not empty.
-This version creates two clinics, so you can test switching:
+Now create `prisma/seed.ts`. A seed is a script that inserts predictable demo
+data so the panel is not empty. This example's seed first deletes its existing
+demo rows, then creates two clinics and test users so you can test switching.
+Use it only with this local demo database, not a database containing real data.
 
 ```ts title="prisma/seed.ts"
 import "dotenv/config";
@@ -365,7 +376,8 @@ main()
   });
 ```
 
-Add the script to `package.json` and run it:
+Add the script to `package.json`. A package script gives the longer TypeScript
+command a short, repeatable name:
 
 ```json title="package.json"
 {
@@ -378,6 +390,9 @@ Add the script to `package.json` and run it:
 ```bash
 pnpm db:seed
 ```
+
+`pnpm db:seed` runs that script. It can be run again to reset the demo data to
+the same starting state.
 
 The example's full seed has more owners, pets, visits, and vaccinations; it is
 linked at the end.
@@ -736,13 +751,24 @@ export const policies = definePolicies<CurrentUser>({
 
 How to read it:
 
-- `scope` is a Prisma `where` applied on the server to every read and write.
-  Returning `null` denies the resource, so a session without a clinic sees
-  nothing.
+- `scope` is a Prisma `where` applied on the server to scoped reads, updates,
+  and deletes, plus the panel's relation managers. It does not constrain
+  `create`/`createMany`, and included relation rows are not filtered by their own
+  policy. Returning `null` denies the resource, so a session without a clinic
+  sees nothing. Create permissions and the new row's `organizationId` must be
+  handled explicitly.
 - `can` decides permissions. `ADMIN`, `VET`, and `RECEPTION` are strings that
   come from `User.role`; the app defines them.
 - Declared actions (`attend`, `cancelAppointment`) are deny-by-default: if the
   predicate is missing, the action is hidden and the server refuses it.
+
+**Important for tenant-owned inserts:** this policy grants `create` permission,
+but the generic resource form does not infer or fill `organizationId` from
+`scope`. In a real app, keep tenant-owned create disabled until you provide a
+server-side create flow that assigns the active clinic from the authenticated
+session. Never accept that ownership id from an editable browser field. The
+seeded records let you explore the rest of this tutorial without relying on
+that unfinished create flow.
 
 ## 9. Action handlers
 

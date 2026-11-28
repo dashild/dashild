@@ -8,6 +8,11 @@ un pequeño SaaS para clínicas veterinarias. Cada clínica es un tenant; el
 personal, los dueños, las mascotas, las citas, las visitas y las vacunas están
 aislados por clínica.
 
+Usamos `--tenancy` con un starter nuevo en vez de la plantilla `saas` ya
+preparada para que veas cómo añadir los modelos y las políticas propios de la
+clínica. Si prefieres una demo de organizaciones y proyectos ya montada, usa el
+starter `saas` descrito en [Plantillas](/es/reference/templates/).
+
 Está escrito para alguien que sabe JavaScript o TypeScript y es nuevo en
 Dashild. Cada paso explica qué hace el comando o el fichero, no solo qué pegar.
 
@@ -44,6 +49,8 @@ fichero (`prisma/dev.db`), así que no necesitas un servidor.
 scaffold pone `http://localhost:3000`.
 
 En este punto `pnpm dev` ya funciona, con el panel vacío. Lo vamos a llenar.
+El comando inicia Next.js en modo desarrollo. Deja esa terminal abierta mientras
+usas el panel; para el servidor con Ctrl+C.
 
 ## 2. Modelar la clínica
 
@@ -203,14 +210,19 @@ Fíjate en varias cosas:
 ## 3. Crear la base de datos y sembrarla
 
 `migrate dev` compara el schema con la base de datos, escribe una migración y la
-aplica. También regenera el cliente de Prisma y los metadatos de Dashild.
+aplica. También regenera el cliente de Prisma y los metadatos de Dashild. La
+migración es un registro versionado del cambio del esquema; ponle un nombre
+breve para que el equipo entienda después qué se cambió.
 
 ```bash
 pnpm prisma migrate dev --name vet_schema
 ```
 
-Ahora crea `prisma/seed.ts`. Un seed inserta datos de demo para que el panel no
-esté vacío. Esta versión crea dos clínicas, para probar el cambio:
+Ahora crea `prisma/seed.ts`. Un seed es un script que inserta datos de demo
+predecibles para que el panel no esté vacío. El seed de este ejemplo primero
+borra sus filas de demo existentes y luego crea dos clínicas y usuarios de
+prueba para que puedas probar el cambio. Úsalo solo con esta base local de demo,
+nunca con datos reales.
 
 ```ts title="prisma/seed.ts"
 import "dotenv/config";
@@ -365,7 +377,8 @@ main()
   });
 ```
 
-Añade el script a `package.json` y ejecútalo:
+Añade el script a `package.json`. Un script de paquete da un nombre corto y
+repetible al comando TypeScript más largo:
 
 ```json title="package.json"
 {
@@ -378,6 +391,9 @@ Añade el script a `package.json` y ejecútalo:
 ```bash
 pnpm db:seed
 ```
+
+`pnpm db:seed` ejecuta ese script. Puedes repetirlo para restablecer los datos
+de demo a su estado inicial.
 
 El seed completo del ejemplo tiene más dueños, mascotas, visitas y vacunas; está
 enlazado al final.
@@ -741,13 +757,24 @@ export const policies = definePolicies<CurrentUser>({
 
 Cómo leerlo:
 
-- `scope` es un `where` de Prisma que se aplica en el servidor a cada lectura y
-  escritura. Devolver `null` deniega el recurso, así que una sesión sin clínica
-  no ve nada.
+- `scope` es un `where` de Prisma que se aplica en el servidor a las lecturas,
+  actualizaciones y borrados scopeados, además de los relation managers del
+  panel. No limita `create`/`createMany`, y las filas cargadas con `include` no
+  se filtran por su propia política. Devolver `null` deniega el recurso, así que
+  una sesión sin clínica no ve nada. Los permisos de creación y el
+  `organizationId` de la fila nueva deben gestionarse explícitamente.
 - `can` decide los permisos. `ADMIN`, `VET` y `RECEPTION` son cadenas que vienen
   de `User.role`; los nombres los define la app.
 - Las acciones declaradas (`attend`, `cancelAppointment`) son deny-by-default:
   si falta el predicado, la acción se oculta y el servidor la rechaza.
+
+**Importante al insertar filas de un tenant:** esta política concede permiso de
+`create`, pero el formulario genérico del recurso no deduce ni rellena
+`organizationId` desde `scope`. En una app real, mantén desactivada la creación
+de filas con tenant hasta implementar un flujo de servidor que asigne la
+clínica activa desde la sesión autenticada. Nunca aceptes ese id desde un campo
+editable del navegador. Los registros sembrados permiten explorar el resto del
+tutorial sin depender de ese flujo de creación pendiente.
 
 ## 9. Handlers de acciones
 

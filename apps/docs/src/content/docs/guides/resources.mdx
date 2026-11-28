@@ -90,7 +90,9 @@ Declared filters render as a bar above the table: selects for `enum`,
 them submits a GET form, so the values stay in the URL and you can link to a
 filtered table (`?status=ACTIVE`). The server applies them; `relation` filters
 support many-to-one relations only, and `enum`/`text` compare exact values.
-Relation and enum options are resolved per user and respect the active scope.
+Enum options come from the values in Prisma metadata; they are the same for all
+users. Relation options are loaded on the server for the current user and
+respect the active scope where that relation is scoped.
 
 ## Form
 
@@ -140,6 +142,7 @@ table: {
 ```ts
 // src/dashild/actions/index.ts
 import type { ActionHandler, CurrentUser } from "@dashild/core";
+import { prisma } from "../../lib/prisma";
 
 export const resourceActions: Record<
   string,
@@ -149,6 +152,7 @@ export const resourceActions: Record<
     export: async ({ db, organizationId }) => {
       // `db` is the scoped Prisma client, typed as `unknown` in core.
       const client = db as typeof prisma;
+      // Use `client.customer` here for the server-side export/query.
       return { ok: true, message: "Export started" };
     },
   },
