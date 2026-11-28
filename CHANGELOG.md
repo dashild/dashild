@@ -13,7 +13,11 @@
   uses it for `session.ts` and `actions/index.ts`).
 - Fix: relation form options were empty in single-tenant apps.
 - Fix: successful row and form actions refresh the table without a reload.
-- Docs: Upgrading guide, `dashild upgrade` reference, and the blog starter.
+- Agent skill for Dashild (`pnpm dashild skill install`) that teaches coding
+  agents the resource/policy/action rules and the verification loop.
+- `llms.txt` and generated `llms-full.txt` on the docs site.
+- Docs: Upgrading guide, `dashild upgrade` reference, blog starter, and the AI
+  assistant page.
 
 ## 0.1.0-alpha.11 — 2026-11-27
 

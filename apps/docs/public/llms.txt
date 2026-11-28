@@ -1,0 +1,49 @@
+# Dashild
+
+> Dashild is an admin layer for Next.js and Prisma: one resource file per model,
+> server-enforced policies, and a shadcn UI you own.
+
+Install a new app:
+
+```bash
+pnpm create dashild@latest my-app
+```
+
+Add the agent skill to an existing project:
+
+```bash
+pnpm dashild skill install
+```
+
+Docs: https://dashild.vercel.app
+Full text for LLMs: https://dashild.vercel.app/llms-full.txt
+
+## Start
+
+- [Installation](https://dashild.vercel.app/getting-started/installation/): create an app or add the panel to an existing Next.js project.
+- [Upgrading](https://dashild.vercel.app/getting-started/upgrading/): `dashild upgrade`, version markers, what can break.
+- [AI assistant](https://dashild.vercel.app/getting-started/ai/): install the skill and verify generated code.
+
+## Guides
+
+- [Resources](https://dashild.vercel.app/guides/resources/): tables, forms, filters, relations, custom cells.
+- [Policies and security](https://dashild.vercel.app/guides/policies/): scope, roles, fail-closed, tenant isolation.
+- [Multi-tenancy](https://dashild.vercel.app/guides/multi-tenancy/): organizations, switcher, scoped creates.
+- [Authentication](https://dashild.vercel.app/guides/authentication/): Better Auth, sessions, email.
+- [Customization](https://dashild.vercel.app/guides/customization/): cells, fields, icons, eject.
+
+## Reference
+
+- [CLI](https://dashild.vercel.app/reference/cli/): init, make:resource, make:action, doctor, upgrade, ui:add, skill install, eject.
+- [Templates](https://dashild.vercel.app/reference/templates/): basic, blog, demo, saas, local and GitHub starters.
+- [Server API](https://dashild.vercel.app/reference/server-api/): runtime, policies, scopes, query and write helpers.
+
+## Examples
+
+- [Vet clinic (multi-tenant)](https://dashild.vercel.app/examples/vet-clinic/): full tutorial with roles, relations, actions and filters.
+- [Examples overview](https://dashild.vercel.app/examples/): runnable apps in the repository.
+
+## Source
+
+- Repository: https://github.com/dashild/dashild
+- Changelog: https://github.com/dashild/dashild/blob/main/CHANGELOG.md

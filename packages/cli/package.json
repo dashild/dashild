@@ -2,7 +2,7 @@
   "name": "@dashild/cli",
   "version": "0.1.0-alpha.11",
   "type": "module",
-  "description": "Dashild CLI: init, make:resource, doctor and ui:add",
+  "description": "Dashild CLI: init, make:resource, doctor, upgrade, ui:add and the agent skill",
   "license": "MIT",
   "bin": {
     "dashild": "./dist/index.js"
@@ -18,7 +18,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

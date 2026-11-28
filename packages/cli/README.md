@@ -137,6 +137,28 @@ files.
   manual work.
 - It warns when a Prisma client or a Dashild dependency is missing.
 
+## `upgrade`
+
+```bash
+pnpm dashild upgrade --check
+pnpm dashild upgrade --dry-run
+pnpm dashild upgrade
+```
+
+Updates the four `@dashild/*` packages, runs `prisma generate`, records the
+stack version in `dashild.json`, and lists the version marker of each generated
+glue file. It never rewrites the glue. See the Upgrading guide in the docs.
+
+## `skill install`
+
+```bash
+pnpm dashild skill install --agent claude
+```
+
+Copies the agent skill into `.claude/skills/dashild` and/or
+`.opencode/skills/dashild` and adds a pointer to `AGENTS.md`. Reinstalling
+replaces the skill and refreshes the block.
+
 ## `ui:add <component>`
 
 ```bash
@@ -198,6 +220,8 @@ from `panel.ts`, and `--dry-run` to force simulation.
 | `make:resource` | Working |
 | `make:action` | Working |
 | `doctor` | Working |
+| `upgrade` | Working |
+| `skill install` | Working |
 | `ui:add` | Working |
 | `eject` | Working |
 

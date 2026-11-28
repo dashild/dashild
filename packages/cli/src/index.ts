@@ -16,6 +16,7 @@ import { formatDoctor, runDoctor } from "./doctor.js";
 import { eject } from "./eject.js";
 import { generateResourceFile } from "./generate.js";
 import { makeAction } from "./make-action.js";
+import { skillInstall, type SkillAgentOption } from "./skill-install.js";
 import { DASHILD_PACKAGES, upgrade } from "./upgrade.js";
 import { applyInit, formatInitPlan, planInit } from "./init.js";
 import { cliMessage, resolveCliLocale } from "./messages.js";
@@ -50,6 +51,44 @@ program
 
 /** Resolved after `parse()`, so `--lang` and `DASHILD_LANG` are respected. */
 const locale = (): Locale => resolveCliLocale(program.opts().lang);
+
+const skill = program
+  .command("skill")
+  .description("Install the Dashild agent skill in a project");
+
+skill
+  .command("install")
+  .description("Copy the skill and add a pointer to AGENTS.md")
+  .option("--cwd <dir>", "project root", process.cwd())
+  .option("--agent <agent>", "claude, opencode or both", "both")
+  .action((options: { cwd: string; agent: string }) => {
+    try {
+      if (
+        options.agent !== "claude" &&
+        options.agent !== "opencode" &&
+        options.agent !== "both"
+      ) {
+        throw new Error("Use --agent claude, opencode or both.");
+      }
+
+      const result = skillInstall({
+        cwd: resolve(options.cwd),
+        agent: options.agent as SkillAgentOption,
+      });
+
+      console.log("Installed the Dashild skill:");
+      for (const file of result.files) console.log(`  ${file}`);
+      console.log(`Updated ${result.agentsFile}.`);
+      console.log(
+        "Read it from your agent, or open SKILL.md. Verify with `dashild doctor` and `pnpm build`.",
+      );
+    } catch (error) {
+      console.error(
+        `dashild: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      process.exitCode = 1;
+    }
+  });
 
 program
   .command("make:resource <model>")

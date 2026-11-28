@@ -1,6 +1,6 @@
 ---
 title: Referencia del CLI
-description: init, make:resource, make:action, doctor, ui:add y eject.
+description: init, make:resource, make:action, doctor, upgrade, skill install, ui:add y eject.
 ---
 
 El binario `dashild` vive en `@dashild/cli`, que se instala en el proyecto:
@@ -134,6 +134,17 @@ request. Informa de errores probables de conexión y metadatos; no ejecuta la ap
 no se conecta a la base de datos ni sustituye TypeScript y los tests.
 
 Opciones: `--cwd`, `--dir`, `--metadata`, `--policies`, `--actions`, `--json`.
+
+## `skill install`
+
+```bash
+pnpm dashild skill install
+pnpm dashild skill install --agent claude
+```
+
+Copia la skill de Dashild en `.claude/skills/dashild` y/o
+`.opencode/skills/dashild`, y añade un puntero corto a `AGENTS.md`. Reinstalar
+reemplaza la skill y refresca el bloque. Ver [Asistente IA](/es/getting-started/ai/).
 
 ## `ui:add`
 

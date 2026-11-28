@@ -35,3 +35,4 @@ apps/playground/AGENTS.md
 
 # Artefactos de release local
 artifacts/
+/apps/docs/public/llms-full.txt

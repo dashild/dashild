@@ -1,0 +1,71 @@
+---
+title: AI assistant
+description: Install the Dashild skill so your coding agent knows the framework.
+---
+
+Dashild ships a **skill** for coding agents (Claude Code, OpenCode, Cursor, and
+anything that reads `AGENTS.md`). It teaches the agent the framework's rules,
+the file layout, and how to verify its own work, so it can build a tailored
+dashboard instead of guessing the API.
+
+## Install
+
+```bash
+pnpm dashild skill install
+```
+
+It copies the skill into the project's agent folders and adds a pointer to
+`AGENTS.md`:
+
+```text
+.claude/skills/dashild/SKILL.md
+.claude/skills/dashild/references/*.md
+.opencode/skills/dashild/SKILL.md
+.opencode/skills/dashild/references/*.md
+AGENTS.md (a short Dashild block)
+```
+
+Choose one agent with `--agent claude` or `--agent opencode`. Reinstalling
+replaces the skill and refreshes the block; it does not duplicate it.
+
+## What the skill knows
+
+- A resource is data; there is one route and no page generator.
+- `make:resource` writes a resource and a fail-closed policy entry.
+- `type: "select"` for form enums; `type: "enum"` only for filters.
+- Built-in action names (`create`, `view`, `edit`, `delete`, `save`, `cancel`)
+  cannot be reused for custom actions.
+- Scope semantics: tenant, author, public; `null` denies; creates are not scoped.
+- Relations, filters, custom cells, and `ui:add`.
+- Verification: `dashild doctor` and `pnpm build` are mandatory.
+
+The skill links to four references (resources, policies, actions, verification)
+so the agent loads detail only when it needs it.
+
+## Ask it for a dashboard
+
+```text
+Build a Dashild admin for a small clinic: owners, pets, appointments and
+visits. Reception manages owners and appointments, vets write visits, and an
+admin manages staff. Single clinic for now.
+```
+
+The agent should propose the Prisma schema, generate the resources, write the
+policies and actions, seed the database, and run `dashild doctor` plus the
+build. Review the diff; the skill is a guide, not a substitute for review.
+
+## Machine-readable docs
+
+- [dashild.vercel.app/llms.txt](https://dashild.vercel.app/llms.txt): a short index for assistants.
+- [dashild.vercel.app/llms-full.txt](https://dashild.vercel.app/llms-full.txt): the English docs in one file.
+
+## Manual install
+
+If your agent uses another folder, copy `packages/cli/skills/dashild` from the
+[repository](https://github.com/dashild/dashild/tree/main/packages/cli/skills/dashild)
+and point the agent at `SKILL.md`.
+
+## Version
+
+The skill is tied to the CLI that installs it. After upgrading Dashild, run
+`pnpm dashild skill install` again so the skill matches the new version.

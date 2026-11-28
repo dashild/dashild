@@ -64,6 +64,11 @@ export default defineConfig({
               translations: { es: "Actualizar" },
               slug: "getting-started/upgrading",
             },
+            {
+              label: "AI assistant",
+              translations: { es: "Asistente IA" },
+              slug: "getting-started/ai",
+            },
           ],
         },
         {
