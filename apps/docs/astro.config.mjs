@@ -24,6 +24,42 @@ export default defineConfig({
         alt: "Dashild",
       },
       customCss: ["./src/styles/docs-theme.css"],
+      head: [
+        {
+          tag: "meta",
+          attrs: { property: "og:image", content: `${site}/og.png` },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:image:type", content: "image/png" },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:image:width", content: "1200" },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:image:height", content: "630" },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:alt",
+            content: "Dashild — the application admin layer for Next.js and Prisma",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:image", content: `${site}/og.png` },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image:alt",
+            content: "Dashild — the application admin layer for Next.js and Prisma",
+          },
+        },
+      ],
       expressiveCode: {
         // Editor colors; Starlight keeps them in sync with the site theme.
         themes: ["github-dark", "github-light"],

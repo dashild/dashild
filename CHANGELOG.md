@@ -18,6 +18,8 @@
 - `llms.txt` and generated `llms-full.txt` on the docs site.
 - Docs: Upgrading guide, `dashild upgrade` reference, blog starter, and the AI
   assistant page.
+- Landing SEO: Open Graph and Twitter images (English and Spanish), absolute
+  URLs, canonical alternates, structured data, and `robots.txt`.
 
 ## 0.1.0-alpha.11 — 2026-11-27
 

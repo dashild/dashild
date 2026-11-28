@@ -14,6 +14,24 @@ const site = Astro.site ?? new URL("https://dashild.vercel.app");
 const canonical = new URL(Astro.url.pathname, site);
 const english = new URL("/", site);
 const spanish = new URL("/es/", site);
+const ogImage = new URL(locale === "es" ? "/og-es.png" : "/og.png", site);
+const ogAlt =
+  locale === "es"
+    ? "Dashild — la capa de administración para Next.js y Prisma"
+    : "Dashild — the application admin layer for Next.js and Prisma";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Dashild",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Web",
+  description,
+  url: canonical.href,
+  isAccessibleForFree: true,
+  license: "https://github.com/dashild/dashild/blob/main/LICENSE",
+  sameAs: ["https://github.com/dashild/dashild"],
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
 ---
 
 <!doctype html>
@@ -33,8 +51,26 @@ const spanish = new URL("/es/", site);
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content={locale === "es" ? "es_ES" : "en_US"} />
+    <meta
+      property="og:locale:alternate"
+      content={locale === "es" ? "en_US" : "es_ES"}
+    />
+    <meta property="og:site_name" content="Dashild" />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={ogAlt} />
     <meta name="theme-color" content="#050505" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content={ogAlt} />
+    <script
+      type="application/ld+json"
+      set:html={JSON.stringify(structuredData)}
+    />
   </head>
   <body>
     <slot />
