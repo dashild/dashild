@@ -35,4 +35,7 @@ apps/playground/AGENTS.md
 
 # Artefactos de release local
 artifacts/
-/apps/docs/public/llms-full.txt
+/docs/public/llms-full.txt
+
+# Enlace local del proyecto de Vercel (la raíz es el repo; Root Directory: docs)
+/.vercel/

@@ -41,26 +41,26 @@ npx create-dashild@latest my-app \
 
 Add `--dry-run` to print the plan without writing anything, and
 `--list-templates` to list the bundled starters. The full documentation is on
-the docs site and in [`apps/docs`](apps/docs).
+the docs site and in [`docs`](docs).
 
 ## Documentation
 
-The site lives in `apps/docs` (Astro + Starlight):
+The site lives in `docs` (Astro + Starlight):
 
 - **English (primary)**: <https://dashild.vercel.app>
 - **Spanish (mirror)**: <https://dashild.vercel.app/es>
 
 ```bash
 pnpm docs:dev      # local server
-pnpm docs:build    # static build in apps/docs/dist
+pnpm docs:build    # static build in docs/dist
 ```
 
-It is ready for Vercel (Root Directory: `apps/docs`). Without a custom domain it
+It is ready for Vercel (Root Directory: `docs`). Without a custom domain it
 uses the `*.vercel.app` subdomain; when you have one, set `SITE_URL` in Vercel for
 canonical URLs, hreflang, and the sitemap.
 
-Content lives in `apps/docs/src/content/docs` (English) and
-`apps/docs/src/content/docs/es` (Spanish).
+Content lives in `docs/src/content/docs` (English) and
+`docs/src/content/docs/es` (Spanish).
 
 ## Manual installation
 
@@ -117,12 +117,11 @@ packages/
 
 apps/
   playground/      development and demo app; not published to npm
-  docs/            documentation site (Astro + Starlight), en/es
 
 examples/
   existing-next-app/   OUTSIDE the workspace: real install from tarballs
 
-docs/              pointer to the docs; the source lives in apps/docs
+docs/              documentation site (Astro + Starlight), en/es
 ```
 
 ## Requirements

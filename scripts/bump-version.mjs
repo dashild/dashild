@@ -47,8 +47,8 @@ for (const file of packageFiles) {
 const textFiles = [
   "README.md",
   "packages/create-dashild/README.md",
-  "apps/docs/src/content/docs/reference/templates.mdx",
-  "apps/docs/src/content/docs/es/reference/templates.mdx",
+  "docs/src/content/docs/reference/templates.mdx",
+  "docs/src/content/docs/es/reference/templates.mdx",
 ];
 const versionPattern = /0\.1\.0-alpha\.\d+/g;
 
