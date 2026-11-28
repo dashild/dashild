@@ -2,7 +2,7 @@
 
 Inventory and orders for a small shop: products, stock, suppliers, customers,
 orders, and order items. It is generated from the `shop` starter and installed
-from npm (`@dashild/*` 0.1.0-alpha.11), never through `workspace:*`.
+from npm (`@dashild/*` 0.1.0-alpha.12), never through `workspace:*`.
 
 ## Run it
 
@@ -31,6 +31,10 @@ Open <http://localhost:3000/admin>. SQLite database at `prisma/dev.db`.
   change the status. Open an order to manage its items (relation manager).
 - **Money**: `total` is denormalized in this example; a real checkout would
   update it when items change.
+- **Stripe**: customers have a `stripeCustomerId`; “Open in Stripe” opens the
+  dashboard (test mode).
+- **CSV**: export the current view and import new rows from a CSV that follows
+  the form fields.
 - **Relations**: supplier and category link to products; customers link to
   orders.
 

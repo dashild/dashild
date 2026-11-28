@@ -1,0 +1,59 @@
+---
+title: Blog
+description: Un admin editorial con scoping por autor, generado desde el starter blog.
+---
+
+El [ejemplo blog](https://github.com/dashild/dashild/tree/main/examples/blog) es
+el starter `blog` llevado a una app ejecutable: posts, categorías, etiquetas,
+comentarios y un flujo editorial. Los autores solo ven sus posts; los admin
+moderan todo.
+
+## Ejecutarlo
+
+```bash
+cd examples/blog
+cp .env.example .env   # configura BETTER_AUTH_SECRET si cambias la demo
+pnpm install
+pnpm prisma migrate deploy
+pnpm db:seed
+pnpm dev
+```
+
+Abre `http://localhost:3000/admin`.
+
+## Iniciar sesión
+
+| Email | Rol | Contraseña |
+| --- | --- | --- |
+| `ana@blog.test` | ADMIN | `dashild123` |
+| `bruno@blog.test` | AUTHOR | `dashild123` |
+| `carla@blog.test` | AUTHOR | `dashild123` |
+
+## Qué probar
+
+- **Posts**: filtra por estado, categoría o autor. “Publish” y “Unpublish”
+  cambian `status` y `publishedAt`. El formulario incluye categorías, etiquetas
+  m2m y portada (`Bytes`).
+- **Scoping por autor**: Bruno solo ve sus posts. Ana los ve todos.
+- **Comentarios**: los autores moderan los comentarios de sus posts; los admin
+  moderan todo. Aprueba o desaprueba desde el menú de fila.
+- **CSV**: exporta la vista actual e importa filas que sigan los campos del
+  formulario.
+
+## Cómo funciona
+
+- `src/lib/session.ts` lo reemplaza el starter (`overwrite`) para devolver
+  `roles` desde `User.role`.
+- `policies.ts` scopea `Post` por `authorId` para autores y `{}` para admins;
+  `Comment` scopea a través del autor del post.
+- `actions/index.ts` implementa `publish`, `unpublish`, `approve` y
+  `unapprove` con el cliente scopeado.
+
+## Genera el tuyo
+
+```bash
+pnpm create dashild@latest mi-blog --template blog
+```
+
+El starter es una plantilla con un `template.json` corto y los ficheros de
+arriba; el ejemplo se genera desde ella.

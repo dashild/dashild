@@ -1,0 +1,58 @@
+---
+title: Blog
+description: An editorial admin with author scoping, generated from the blog starter.
+---
+
+The [blog example](https://github.com/dashild/dashild/tree/main/examples/blog) is
+the `blog` starter taken to a runnable app: posts, categories, tags, comments,
+and an editorial workflow. Authors only see their own posts; admins moderate
+everything.
+
+## Run it
+
+```bash
+cd examples/blog
+cp .env.example .env   # set BETTER_AUTH_SECRET if you change the demo
+pnpm install
+pnpm prisma migrate deploy
+pnpm db:seed
+pnpm dev
+```
+
+Open `http://localhost:3000/admin`.
+
+## Sign in
+
+| Email | Role | Password |
+| --- | --- | --- |
+| `ana@blog.test` | ADMIN | `dashild123` |
+| `bruno@blog.test` | AUTHOR | `dashild123` |
+| `carla@blog.test` | AUTHOR | `dashild123` |
+
+## What to try
+
+- **Posts**: filter by status, category, or author. “Publish” and “Unpublish”
+  change `status` and `publishedAt`. The form includes categories, m2m tags, and
+  a cover image (`Bytes`).
+- **Author scoping**: Bruno only sees his posts. Ana sees all of them.
+- **Comments**: authors moderate comments on their own posts; admins moderate
+  everything. Approve or unapprove from the row menu.
+- **CSV**: export the current view and import rows that follow the form fields.
+
+## How it works
+
+- `src/lib/session.ts` is replaced by the starter (`overwrite`) to return
+  `roles` from `User.role`.
+- `policies.ts` scopes `Post` by `authorId` for authors and `{}` for admins;
+  `Comment` scopes through the post's author.
+- `actions/index.ts` implements `publish`, `unpublish`, `approve`, and
+  `unapprove` with the scoped client.
+
+## Generate your own
+
+```bash
+pnpm create dashild@latest my-blog --template blog
+```
+
+The starter is a template with a short `template.json` and the files above; the
+example is generated from it.

@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "stackVersion": "0.1.0-alpha.12",
+  "template": {
+    "name": "blog",
+    "version": "0.1.0",
+    "source": "bundled"
+  },
+  "auth": "better-auth",
+  "database": "sqlite",
+  "panelPath": "/admin",
+  "createdAt": "2026-11-28T15:16:33.178Z"
+}

@@ -111,12 +111,13 @@ model Product {
 }
 
 model Customer {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  orders    Order[]
-  createdAt DateTime @default(now())
+  id                   String   @id @default(uuid())
+  name                 String
+  email                String?
+  phone                String?
+  stripeCustomerId     String?
+  orders               Order[]
+  createdAt            DateTime @default(now())
 }
 
 model Order {

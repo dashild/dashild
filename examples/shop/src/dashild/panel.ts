@@ -1,4 +1,4 @@
-// dashild:generated 0.1.0-alpha.11
+// dashild:generated 0.1.0-alpha.12
 import { definePanel } from "@dashild/core";
 
 import { signOut } from "../lib/auth-actions";

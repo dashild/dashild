@@ -4,7 +4,7 @@ allowBuilds:
   esbuild: true
   better-sqlite3: true
 minimumReleaseAgeExclude:
-  - "@dashild/admin@0.1.0-alpha.11"
-  - "@dashild/cli@0.1.0-alpha.11"
-  - "@dashild/core@0.1.0-alpha.11"
-  - "@dashild/prisma@0.1.0-alpha.11"
+  - "@dashild/admin@0.1.0-alpha.11 || 0.1.0-alpha.12"
+  - "@dashild/cli@0.1.0-alpha.11 || 0.1.0-alpha.12"
+  - "@dashild/core@0.1.0-alpha.11 || 0.1.0-alpha.12"
+  - "@dashild/prisma@0.1.0-alpha.11 || 0.1.0-alpha.12"

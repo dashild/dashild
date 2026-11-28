@@ -1,4 +1,4 @@
-// dashild:generated 0.1.0-alpha.11
+// dashild:generated 0.1.0-alpha.12
 import type { DashildMetadata } from "@dashild/core";
 import { createDashildRuntime } from "@dashild/core/server";
 

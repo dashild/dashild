@@ -1,4 +1,5 @@
 import type { ActionHandler, CurrentUser } from "@dashild/core";
+import { stripeActionHandler } from "@dashild/core/server";
 
 type OrderStatus = "PAID" | "SHIPPED" | "CANCELLED";
 
@@ -38,6 +39,13 @@ export const resourceActions: Record<
   string,
   Record<string, ActionHandler<CurrentUser>>
 > = {
+  Customer: {
+    openInStripe: stripeActionHandler({
+      type: "customer",
+      field: "stripeCustomerId",
+      mode: "test",
+    }),
+  },
   Product: {
     restock: async (context) => {
       if (!context.id) return { ok: false, message: "Missing product id." };

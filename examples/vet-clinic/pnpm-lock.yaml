@@ -167,11 +167,11 @@ importers:
   .:
     dependencies:
       '@dashild/admin':
-        specifier: 0.1.0-alpha.11
-        version: 0.1.0-alpha.11(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript@5.9.3))
+        specifier: 0.1.0-alpha.12
+        version: 0.1.0-alpha.12(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript@5.9.3))
       '@dashild/core':
-        specifier: 0.1.0-alpha.11
-        version: 0.1.0-alpha.11
+        specifier: 0.1.0-alpha.12
+        version: 0.1.0-alpha.12
       '@prisma/adapter-better-sqlite3':
         specifier: 7.10.1
         version: 7.10.1
@@ -204,11 +204,11 @@ importers:
         version: 1.4.0
     devDependencies:
       '@dashild/cli':
-        specifier: 0.1.0-alpha.11
-        version: 0.1.0-alpha.11
+        specifier: 0.1.0-alpha.12
+        version: 0.1.0-alpha.12
       '@dashild/prisma':
-        specifier: 0.1.0-alpha.11
-        version: 0.1.0-alpha.11
+        specifier: 0.1.0-alpha.12
+        version: 0.1.0-alpha.12
       '@tailwindcss/turbopack':
         specifier: 4.3.3
         version: 4.3.3
@@ -474,25 +474,25 @@ packages:
   '@better-fetch/fetch@1.3.3':
     resolution: {integrity: sha512-U6SlDt/GUWtK2JAxS/NhdoYTEim+EL1G5byz2TUj83KjLZBUpYzb5SmX0aXaCnbGkAjFKnV/o/0+cyXMbEcqqg==}
 
-  '@dashild/admin@0.1.0-alpha.11':
-    resolution: {integrity: sha512-THhgF8SpVn4tAxD/S3tfi/f1GaZSMXwCCOiiX9ADyzz6NMoifNV6TIqWbMcXW9FyEnWUEbJqXEI2bKO7SKC7qw==}
+  '@dashild/admin@0.1.0-alpha.12':
+    resolution: {integrity: sha512-2TBKg/Txkw01jtqSssh9q5uWgZyVWSTj2Qakgsn/aKDp6g79HGVQkORnyhAXSZ6U6Rl9/iEs/Q28fQDxwz2jeQ==}
     engines: {node: '>=22'}
     peerDependencies:
       next: '>=15'
       react: '>=19'
       react-dom: '>=19'
 
-  '@dashild/cli@0.1.0-alpha.11':
-    resolution: {integrity: sha512-6j3uZEMO+tNt0JQSHKVypDoPZpAVt7Vp+ltfFRcqZTAkzZaOvOMxB/8FW5/OO5gPzC2HQ8Cc1w0tKuGJOAlouA==}
+  '@dashild/cli@0.1.0-alpha.12':
+    resolution: {integrity: sha512-3mfJMycg93G4Z9GaUIyHamtVepQt0KN1YgnLB2kbVIe6hpYOalI01q2ZeXMQjzMxVcNGLFzQ6Av26pzWKlOI3Q==}
     engines: {node: '>=22'}
     hasBin: true
 
-  '@dashild/core@0.1.0-alpha.11':
-    resolution: {integrity: sha512-xRyCoHlryNz3SpoR82NSeTkIN+x2MmOHQdGCA1sPIoyXVveajfTiyk2fljTYZEhO+OP9ZpSXLBgRGpHI8GBIoA==}
+  '@dashild/core@0.1.0-alpha.12':
+    resolution: {integrity: sha512-qoHYKN9qKM0tzmcuexTe6/8i5/zFazPTHZLzYsTK8WHQFGTZkoOCkkCf32JvKIK93RSbS0W2IfhVronN3J4tgA==}
     engines: {node: '>=22'}
 
-  '@dashild/prisma@0.1.0-alpha.11':
-    resolution: {integrity: sha512-/FoI1rsAk6w8I4EC51Al/rSfk//Cvbq/7gCR50RnereFwu7iEJqLmQJg0BlSIjIXc/p4jEJdpkGdPP4Ga6/sLg==}
+  '@dashild/prisma@0.1.0-alpha.12':
+    resolution: {integrity: sha512-5SdeqN0NTNniNeigsv0EjGvtf2C3I+jhYZ1jrcHHAwi0Aj+e8WMhnxBtekRCQBFWYppaE3ijDCL3uvgl8qYBJg==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -4953,9 +4953,9 @@ snapshots:
 
   '@better-fetch/fetch@1.3.3': {}
 
-  '@dashild/admin@0.1.0-alpha.11(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript@5.9.3))':
+  '@dashild/admin@0.1.0-alpha.12(@standard-schema/spec@1.1.0)(@types/react-dom@19.3.0(@types/react@19.3.3))(@types/react@19.3.3)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(next@16.4.6(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@20.19.43)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript@5.9.3))':
     dependencies:
-      '@dashild/core': 0.1.0-alpha.11
+      '@dashild/core': 0.1.0-alpha.12
       '@hookform/resolvers': 7.0.9(@standard-schema/spec@1.1.0)(ajv-formats@2.1.1(ajv@8.20.0))(ajv@8.20.0)(react-hook-form@7.92.0(@types/react@19.3.3)(react@19.3.0))(valibot@1.4.2(typescript@5.9.3))(zod@4.6.7)
       '@tanstack/react-table': 8.21.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       class-variance-authority: 0.7.1
@@ -4994,20 +4994,20 @@ snapshots:
       - vest
       - yup
 
-  '@dashild/cli@0.1.0-alpha.11':
+  '@dashild/cli@0.1.0-alpha.12':
     dependencies:
       '@babel/parser': 8.1.3
       '@babel/types': 8.1.3
-      '@dashild/core': 0.1.0-alpha.11
+      '@dashild/core': 0.1.0-alpha.12
       commander: 15.1.0
 
-  '@dashild/core@0.1.0-alpha.11':
+  '@dashild/core@0.1.0-alpha.12':
     dependencies:
       zod: 4.6.7
 
-  '@dashild/prisma@0.1.0-alpha.11':
+  '@dashild/prisma@0.1.0-alpha.12':
     dependencies:
-      '@dashild/core': 0.1.0-alpha.11
+      '@dashild/core': 0.1.0-alpha.12
       '@prisma/generator-helper': 7.10.1
 
   '@dotenvx/dotenvx@1.75.1':

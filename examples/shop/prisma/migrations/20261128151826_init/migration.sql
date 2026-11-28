@@ -86,6 +86,7 @@ CREATE TABLE "Customer" (
     "name" TEXT NOT NULL,
     "email" TEXT,
     "phone" TEXT,
+    "stripeCustomerId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

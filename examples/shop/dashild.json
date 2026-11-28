@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "stackVersion": "0.1.0-alpha.11",
+  "stackVersion": "0.1.0-alpha.12",
   "template": {
     "name": "shop",
     "version": "0.1.0",
@@ -9,5 +9,5 @@
   "auth": "better-auth",
   "database": "sqlite",
   "panelPath": "/admin",
-  "createdAt": "2026-11-28T13:56:42.246Z"
+  "createdAt": "2026-11-28T15:18:11.536Z"
 }

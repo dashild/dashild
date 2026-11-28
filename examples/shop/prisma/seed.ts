@@ -77,10 +77,18 @@ async function main() {
   });
 
   const lucia = await prisma.customer.create({
-    data: { name: "Lucía Fernández", email: "lucia@example.com" },
+    data: {
+      name: "Lucía Fernández",
+      email: "lucia@example.com",
+      stripeCustomerId: "cus_demo_lucia",
+    },
   });
   const marcos = await prisma.customer.create({
-    data: { name: "Marcos Gil", email: "marcos@example.com" },
+    data: {
+      name: "Marcos Gil",
+      email: "marcos@example.com",
+      stripeCustomerId: "cus_demo_marcos",
+    },
   });
 
   const orders = [

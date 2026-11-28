@@ -167,6 +167,11 @@ export default defineConfig({
               translations: { es: "Tienda" },
               slug: "examples/shop",
             },
+            {
+              label: "Blog",
+              translations: { es: "Blog" },
+              slug: "examples/blog",
+            },
           ],
         },
         {
