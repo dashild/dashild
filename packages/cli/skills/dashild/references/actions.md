@@ -73,9 +73,15 @@ export const resourceActions: Record<
 };
 ```
 
-`db` is Prisma extended with the policy scope. A row outside the scope cannot be
-updated, even with a guessed id. Do not import Prisma directly for tenant/author
-data.
+`db` is typed as `unknown` and can be `undefined`; cast it to the delegates you
+use. It is Prisma extended with the policy scope, so a row outside the scope
+cannot be updated even with a guessed id. Do not import Prisma directly for
+tenant/author data.
+
+`id` is optional: return an error when a row action receives none. Any exception
+thrown by the handler is swallowed by `runAction` and becomes the generic
+“action failed” message with no server log; debug with `runtime.client(user)`
+when an action silently fails.
 
 ## Context
 

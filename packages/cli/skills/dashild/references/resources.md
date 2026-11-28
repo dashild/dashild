@@ -55,7 +55,9 @@ export const customerResource = defineResource({
 });
 ```
 
-`policy` is a marker. The real rules live in `policies.ts`.
+`policy` is a marker. The string is arbitrary (`"organization"`, `"public"`,
+`"author"`...); it only signals that the resource is protected. The real rules
+live in `policies.ts`.
 
 ## Generate
 
@@ -69,8 +71,9 @@ pnpm dashild make:resource Customer
 - Write-once: it never overwrites an existing resource.
 - Options: `--dir`, `--metadata`, `--cwd`, `--dry-run`, `--no-register`.
 
-After editing the schema, run `pnpm prisma generate` (or `migrate dev`) before
-`make:resource`.
+After editing the schema, run `pnpm prisma generate` before `make:resource`.
+`migrate dev` writes the migration but does not regenerate Dashild metadata on
+Prisma 7.10, so the new models would be missing.
 
 ## Field types
 
@@ -98,6 +101,8 @@ After editing the schema, run `pnpm prisma generate` (or `migrate dev`) before
 
 - `format`: `text`, `badge`, `number`, `currency`, `date`, `datetime`, `json`.
 - `tone`: `accent`, `green`, `muted`, `danger` (badges).
+- `Decimal` values arrive as strings; `format: "currency"` converts them for
+  display. Custom cells must parse them.
 - `display`: the related field shown for a relation (`name`, `title`...).
 - `cell`: a component registered with `registerCell`.
 

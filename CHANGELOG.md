@@ -23,7 +23,10 @@
 - Fix: relation form options were empty in single-tenant apps.
 - Fix: successful row and form actions refresh the table without a reload.
 - Agent skill for Dashild (`pnpm dashild skill install`) that teaches coding
-  agents the resource/policy/action rules and the verification loop.
+  agents the resource/policy/action rules and the verification loop. Validated
+  on a library app; the run fixed the metadata-after-migrate step, added a seed
+  reference, and documented `db: unknown`, optional action ids and Decimal
+  strings.
 - `llms.txt` and generated `llms-full.txt` on the docs site.
 - Docs: Upgrading guide, `dashild upgrade` reference, blog starter, and the AI
   assistant page.

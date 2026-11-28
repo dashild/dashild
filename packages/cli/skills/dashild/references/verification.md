@@ -4,7 +4,7 @@ Run these after every change. Do not report "done" until `doctor` and `build`
 pass.
 
 ```bash
-pnpm prisma generate        # after schema changes (migrate dev does it)
+pnpm prisma generate        # mandatory after a schema change (migrate dev does NOT run it)
 pnpm dashild doctor         # resources, policies, handlers, slugs
 pnpm build                  # typecheck + production build
 ```
@@ -46,6 +46,10 @@ Use `type: "select"` in `form.fields`. `type: "enum"` is for filters.
 
 **Type errors after a schema change**
 Run `pnpm prisma generate` and restart the dev server.
+
+**`make:resource` says the model does not exist after a migration**
+The metadata is stale. `prisma migrate dev` does not regenerate it; run
+`pnpm prisma generate`, then retry.
 
 **`init` refuses tenancy**
 Tenancy requires Better Auth and a schema without auth models. Start from a
