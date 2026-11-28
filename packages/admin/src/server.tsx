@@ -29,6 +29,8 @@ import type { NavGroup } from "./components/nav-main.js";
 import type { ThemeMode } from "./theme.js";
 import type {
   DeleteAction,
+  ExportAction,
+  ImportAction,
   RelationAction,
   RunAction,
   SaveAction,
@@ -44,6 +46,8 @@ export interface AdminPageProps<TUser extends CurrentUser> {
   deleteAction: DeleteAction;
   runAction: RunAction;
   relationAction?: RelationAction;
+  exportAction?: ExportAction;
+  importAction?: ImportAction;
   /** A client component that mounts the app's icon registry. */
   IconProvider: ComponentType<{ children: ReactNode }>;
   params: Promise<{ dashild?: string[] }>;
@@ -72,6 +76,8 @@ export async function AdminPage<TUser extends CurrentUser>({
   saveAction,
   deleteAction,
   runAction,
+  exportAction,
+  importAction,
   relationAction,
   IconProvider,
   params,
@@ -205,6 +211,8 @@ export async function AdminPage<TUser extends CurrentUser>({
             policies={policies}
             deleteAction={deleteAction}
             runAction={runAction}
+            exportAction={exportAction}
+            importAction={importAction}
             basePath={panel.path}
           />
         )}
@@ -281,6 +289,8 @@ async function ResourceContent<TUser extends CurrentUser>({
   policies,
   deleteAction,
   runAction,
+  exportAction,
+  importAction,
   basePath,
 }: {
   runtime: DashboardRuntime<TUser>;
@@ -291,6 +301,8 @@ async function ResourceContent<TUser extends CurrentUser>({
   policies: PoliciesDefinition<TUser>;
   deleteAction: DeleteAction;
   runAction: RunAction;
+  exportAction?: ExportAction;
+  importAction?: ImportAction;
   basePath: string;
 }) {
   let data;
@@ -325,6 +337,8 @@ async function ResourceContent<TUser extends CurrentUser>({
       canDelete={capabilities.canDelete}
       allowedActions={capabilities.allowedActions}
       filterOptions={filterOptions}
+      exportAction={exportAction}
+      importAction={importAction}
       deleteAction={deleteAction}
       runAction={runAction}
       basePath={`${basePath}/${resource.navigation.slug}`}
@@ -429,6 +443,8 @@ async function ResourceViewPage<TUser extends CurrentUser>({
   user: TUser;
   policies: PoliciesDefinition<TUser>;
   relationAction?: RelationAction;
+  exportAction?: ExportAction;
+  importAction?: ImportAction;
   basePath: string;
 }) {
   let row;

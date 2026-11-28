@@ -132,6 +132,11 @@ export default defineConfig({
               slug: "guides/multi-tenancy",
             },
             {
+              label: "Import and export",
+              translations: { es: "Importar y exportar" },
+              slug: "guides/import-export",
+            },
+            {
               label: "Stripe",
               translations: { es: "Stripe" },
               slug: "guides/stripe",

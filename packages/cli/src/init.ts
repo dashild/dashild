@@ -1256,6 +1256,8 @@ import type {
   RelationActionInput,
   RuntimeActionInput,
   RuntimeActionResult,
+  RuntimeExportResult,
+  RuntimeImportResult,
   RuntimeSaveResult,
 } from "@dashild/core/server";
 
@@ -1293,6 +1295,50 @@ export async function toggleTheme(formData: FormData): Promise<void> {
       : panel.path;
 
   redirect(safeTarget);
+}
+
+export async function exportResource(input: {
+  slug: string;
+  params?: Record<string, string | string[] | undefined>;
+}): Promise<RuntimeExportResult> {
+  const user = await panel.auth.getCurrentUser();
+  if (!user) {
+    return { ok: false, message: translate(panel.locale, "error.session") };
+  }
+
+  const resource = panel.resources.find(
+    (entry) => entry.navigation.slug === input.slug,
+  );
+  if (!resource) {
+    return {
+      ok: false,
+      message: translate(panel.locale, "error.resourceNotFound"),
+    };
+  }
+
+  return runtime.exportCsv(resource, input.params ?? {}, user);
+}
+
+export async function importResource(input: {
+  slug: string;
+  csv: string;
+}): Promise<RuntimeImportResult> {
+  const user = await panel.auth.getCurrentUser();
+  if (!user) {
+    return { ok: false, message: translate(panel.locale, "error.session") };
+  }
+
+  const resource = panel.resources.find(
+    (entry) => entry.navigation.slug === input.slug,
+  );
+  if (!resource) {
+    return {
+      ok: false,
+      message: translate(panel.locale, "error.resourceNotFound"),
+    };
+  }
+
+  return runtime.importCsv(resource, input.csv, user);
 }
 
 export async function saveResource(input: {
@@ -1526,6 +1572,8 @@ import { policies } from ${quote(importPath(routePath, policiesModule))};
 import { runtime } from ${quote(importPath(routePath, runtimeModule))};
 import {
   deleteResource,
+  exportResource,
+  importResource,
   runRelationAction,
   runResourceAction,
   saveResource,
@@ -1575,6 +1623,8 @@ ${organizationBody}
         theme={theme}
         themeToggle={panel.theme?.toggle ?? false}
         themeAction={toggleTheme}
+        exportAction={exportResource}
+        importAction={importResource}
 ${organizationProps}      />
     </AppRegistryProvider>
   );

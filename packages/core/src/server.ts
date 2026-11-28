@@ -43,6 +43,8 @@ import type {
 const DEFAULT_PER_PAGE = 25;
 const MAX_PER_PAGE = 100;
 
+import { parseCsv, toCsv } from "./csv.js";
+
 export type RawListParams = Record<
   string,
   string | string[] | undefined
@@ -908,6 +910,23 @@ export interface ResourceListResult {
   params: NormalizedListParams;
 }
 
+export interface RuntimeExportResult {
+  ok: boolean;
+  csv?: string;
+  filename?: string;
+  rows?: number;
+  truncated?: boolean;
+  message?: string;
+}
+
+export interface RuntimeImportResult {
+  ok: boolean;
+  imported?: number;
+  failed?: number;
+  errors?: { row: number; message: string }[];
+  message?: string;
+}
+
 export interface FormOption {
   value: string;
   label: string;
@@ -993,6 +1012,18 @@ export interface DashboardRuntime<TUser extends CurrentUser> {
     resource: ResourceDefinition,
     user: TUser,
   ): Promise<Record<string, FormOption[]>>;
+  /** Exports the current view (filters and sorting) as CSV. */
+  exportCsv(
+    resource: ResourceDefinition,
+    raw: RawListParams,
+    user: TUser,
+  ): Promise<RuntimeExportResult>;
+  /** Creates rows from a CSV. Create-only and capped. */
+  importCsv(
+    resource: ResourceDefinition,
+    csv: string,
+    user: TUser,
+  ): Promise<RuntimeImportResult>;
   save(
     input: { slug: string; id?: string; values: Record<string, unknown> },
     user: TUser,
@@ -1416,6 +1447,154 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     return result;
   }
 
+  async function exportCsv(
+    resource: ResourceDefinition,
+    raw: RawListParams,
+    user: TUser,
+  ): Promise<RuntimeExportResult> {
+    const model = modelFor(options.metadata, resource.model);
+    if (!model) {
+      return { ok: false, message: translate(locale, "error.resourceNotFound") };
+    }
+
+    try {
+      const fields = new Map(model.fields.map((field) => [field.name, field]));
+      const columns = resource.table.columns.filter(
+        (column) => fields.get(column.field)?.type !== "Bytes",
+      );
+      const headers = columns.map((column) => column.field);
+      const maxRows = 5_000;
+      const pageSize = 100;
+      const values: unknown[][] = [];
+      let total = 0;
+      let page = 1;
+
+      while (values.length < maxRows) {
+        const result = await list(
+          resource,
+          { ...raw, page: String(page), perPage: String(pageSize) },
+          user,
+        );
+        total = result.total;
+        for (const row of result.rows) {
+          values.push(
+            columns.map((column) => {
+              const value = row[column.field];
+              if (
+                value &&
+                typeof value === "object" &&
+                !Array.isArray(value) &&
+                "id" in value
+              ) {
+                return (value as { id: unknown }).id;
+              }
+              return value;
+            }),
+          );
+          if (values.length >= maxRows) break;
+        }
+        if (values.length >= total || result.rows.length === 0) break;
+        page += 1;
+      }
+
+      return {
+        ok: true,
+        csv: toCsv(headers, values),
+        filename: `${resource.navigation.slug}-${new Date()
+          .toISOString()
+          .slice(0, 10)}.csv`,
+        rows: values.length,
+        truncated: total > values.length,
+      };
+    } catch (error) {
+      if (error instanceof PolicyDeniedError) {
+        return { ok: false, message: translate(locale, "error.denied") };
+      }
+      throw error;
+    }
+  }
+
+  async function importCsv(
+    resource: ResourceDefinition,
+    csv: string,
+    user: TUser,
+  ): Promise<RuntimeImportResult> {
+    if (csv.length > 2_000_000) {
+      return { ok: false, message: "CSV is larger than 2 MB." };
+    }
+
+    const rows = parseCsv(csv);
+    if (rows.length < 2) {
+      return { ok: false, message: "CSV needs a header and at least one row." };
+    }
+
+    const headers = (rows[0] ?? []).map((header) => header.trim());
+    const model = modelFor(options.metadata, resource.model);
+    const scalarTypes = new Map(
+      (model?.fields ?? []).map((field) => [field.name, field.type]),
+    );
+    const definitions = new Map(
+      resource.form.fields.map((field) => [field.field, field]),
+    );
+    const columns = headers.filter((header) => definitions.has(header));
+
+    if (columns.length === 0) {
+      return {
+        ok: false,
+        message: "No CSV column matches a form field of this resource.",
+      };
+    }
+
+    const maxRows = 1_000;
+    if (rows.length - 1 > maxRows) {
+      return { ok: false, message: `CSV has more than ${maxRows} rows.` };
+    }
+
+    let imported = 0;
+    let failed = 0;
+    const errors: { row: number; message: string }[] = [];
+
+    for (let index = 1; index < rows.length; index += 1) {
+      const row = rows[index];
+      if (!row) continue;
+      const values: Record<string, unknown> = {};
+
+      for (const [columnIndex, header] of headers.entries()) {
+        const definition = definitions.get(header);
+        if (!definition) continue;
+        const value = row[columnIndex] ?? "";
+        if (value === "") continue;
+        const scalar = scalarTypes.get(header);
+
+        if (definition.type === "boolean" || scalar === "Boolean") {
+          values[header] = value === "true" || value === "1";
+        } else if (scalar === "Int" || scalar === "Float") {
+          const number = Number(value);
+          values[header] = Number.isFinite(number) ? number : value;
+        } else {
+          values[header] = value;
+        }
+      }
+
+      const result = await save(
+        { slug: resource.navigation.slug, values },
+        user,
+      );
+
+      if (result.ok) {
+        imported += 1;
+      } else {
+        failed += 1;
+        const message = result.fieldErrors
+          ? Object.values(result.fieldErrors).flat().join(" ")
+          : result.message ?? "Could not import the row.";
+        errors.push({ row: index + 1, message });
+      }
+    }
+
+    return { ok: failed === 0, imported, failed, errors };
+  }
+
   function relationDisplay(resource: ResourceDefinition): string {
     const preferred = ["name", "title", "label", "email"];
     const column = resource.table.columns.find((entry) =>
@@ -1832,6 +2011,8 @@ export function createDashildRuntime<TUser extends CurrentUser>(
     record,
     formOptions,
     filterOptions,
+    exportCsv,
+    importCsv,
     save,
     remove,
     runAction,

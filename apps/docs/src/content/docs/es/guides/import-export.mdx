@@ -1,0 +1,54 @@
+---
+title: Importar y exportar
+description: Mueve filas de un recurso en CSV.
+---
+
+Cada página de listado tiene botones **Exportar** e **Importar**. Exportar
+descarga la vista actual (búsqueda, filtros y orden) en CSV; importar crea filas
+a partir de un CSV que sigue los campos del formulario.
+
+El servidor resuelve la política en ambas operaciones: exportar requiere permiso
+de lectura e importar pasa la misma validación y el `can.create` que el
+formulario.
+
+## Exportar
+
+- Las columnas son las de la tabla; una columna de relación exporta el **id**
+  relacionado, no la etiqueta.
+- Las columnas `Bytes` se omiten.
+- El límite es 5.000 filas. Si la vista tiene más, la exportación se trunca.
+- JSON y listas se serializan como JSON; las fechas en ISO 8601.
+
+## Importar
+
+- La primera fila es la cabecera. Los nombres deben coincidir con
+  `form.fields` (las columnas desconocidas se ignoran); si no coincide ninguna,
+  la importación falla.
+- Las filas se **crean**, nunca se actualizan. Para editar, usa el formulario.
+- `id`, `createdAt` y el resto de campos fuera del formulario se ignoran.
+- Números y booleanos se interpretan desde el texto; `Decimal` y `BigInt` se
+  quedan como cadenas.
+- Las relaciones usan el id relacionado. Exporta una fila existente para ver los
+  valores esperados.
+- El límite es 1.000 filas y 2 MB. Los errores se informan por número de fila;
+  las filas válidas se importan aunque otras fallen.
+
+## Apps nuevas y existentes
+
+`dashild init` genera las server actions `exportResource` e `importResource` y
+las pasa al panel. Las apps generadas antes de esta función no muestran los
+botones; añade las dos acciones y las dos props a la ruta de montaje, o sigue la
+guía de actualización.
+
+## API del runtime
+
+```ts
+const csv = await runtime.exportCsv(resource, { q: "acme" }, user);
+const result = await runtime.importCsv(resource, csvText, user);
+```
+
+`exportCsv(resource, raw, user)` acepta los mismos parámetros que el listado
+(`q`, `sort`, `dir` y campos de filtro). `importCsv` devuelve
+`{ ok, imported, failed, errors }`.
+
+Ambos son server-only y usan el cliente scopeado.

@@ -46,3 +46,30 @@ export type RunAction = (input: RunActionInput) => Promise<RunActionResult>;
 export type RelationAction = (
   input: import("@dashild/core/server").RelationActionInput,
 ) => Promise<SaveResult>;
+
+export interface ExportResult {
+  ok: boolean;
+  csv?: string;
+  filename?: string;
+  rows?: number;
+  truncated?: boolean;
+  message?: string;
+}
+
+export type ExportAction = (input: {
+  slug: string;
+  params?: Record<string, string | string[] | undefined>;
+}) => Promise<ExportResult>;
+
+export interface ImportResult {
+  ok: boolean;
+  imported?: number;
+  failed?: number;
+  errors?: { row: number; message: string }[];
+  message?: string;
+}
+
+export type ImportAction = (input: {
+  slug: string;
+  csv: string;
+}) => Promise<ImportResult>;

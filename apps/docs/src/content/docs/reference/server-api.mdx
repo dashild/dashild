@@ -38,6 +38,8 @@ export const runtime = createDashildRuntime({
 | `record(resource, id, user)` | One row, scoped and converted, or `null`. |
 | `formOptions(resource, user, recordId?)` | Enum values and relation options for the form. |
 | `filterOptions(resource, user)` | Enum values and relation labels for the filter bar. |
+| `exportCsv(resource, raw, user)` | CSV of the current view (5,000-row cap). |
+| `importCsv(resource, csv, user)` | Creates rows from CSV (1,000-row cap). |
 | `save({ slug, id?, values }, user)` | Validates, writes, and maps Prisma errors. |
 | `remove({ slug, id }, user)` | Deletes through the policy. |
 | `runAction({ slug, name, id?, values?, data? }, user)` | Runs a declared action handler. |

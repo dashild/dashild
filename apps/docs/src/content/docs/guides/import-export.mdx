@@ -1,0 +1,52 @@
+---
+title: Import and export
+description: Move rows in and out of a resource as CSV.
+---
+
+Every list page has **Export** and **Import** buttons. Export downloads the
+current view (search, filters, and sorting) as CSV; import creates rows from a
+CSV that follows the form fields of the resource.
+
+The server resolves the policy for both operations: export needs read access,
+import runs the same validation and `can.create` check as the form.
+
+## Export
+
+- Columns are the resource's table columns; a relation column exports the
+  related **id**, not the label.
+- `Bytes` columns are skipped.
+- The cap is 5,000 rows. If the view has more, the export is truncated.
+- JSON and lists are serialized as JSON strings; dates are ISO 8601.
+
+## Import
+
+- The first row is the header. Header names must match `form.fields` (unknown
+  columns are ignored); if no column matches, the import fails.
+- Rows are **created**, never updated. Use the form for edits.
+- `id`, `createdAt`, and other fields outside the form are ignored.
+- Numbers and booleans are parsed from their CSV text; `Decimal` and `BigInt`
+  stay strings.
+- Relations take the related id. Export an existing row to see the expected
+  values.
+- The cap is 1,000 rows and 2 MB. Errors are reported by row number; valid rows
+  are imported even when others fail.
+
+## New and existing apps
+
+`dashild init` generates `exportResource` and `importResource` server actions and
+passes them to the panel. Apps generated before this feature do not show the
+buttons; add the two actions and the two props to the mount route, or use the
+upgrade guide.
+
+## Runtime API
+
+```ts
+const csv = await runtime.exportCsv(resource, { q: "acme" }, user);
+const result = await runtime.importCsv(resource, csvText, user);
+```
+
+`exportCsv(resource, raw, user)` accepts the same query params as the list
+(`q`, `sort`, `dir`, and filter fields). `importCsv` returns
+`{ ok, imported, failed, errors }`.
+
+Both are server-only and use the scoped client.

@@ -18,11 +18,19 @@ import {
   EmptyTitle,
 } from "../ui/empty.js";
 import { Input } from "../ui/input.js";
-import type { DeleteAction, FormOption, RunAction } from "../types.js";
+import type {
+  DeleteAction,
+  ExportAction,
+  FormOption,
+  ImportAction,
+  RunAction,
+} from "../types.js";
 
 import { ActionButton } from "./action-button.js";
 import { DataTable } from "./data-table.js";
+import { ExportButton } from "./export-button.js";
 import { FilterBar } from "./filter-bar.js";
+import { ImportButton } from "./import-button.js";
 
 interface ResourceTableProps {
   resource: ResourceDefinition;
@@ -39,6 +47,8 @@ interface ResourceTableProps {
   allowedActions?: string[];
   /** Options for enum and relation filters, resolved on the server. */
   filterOptions?: Record<string, FormOption[]>;
+  exportAction?: ExportAction;
+  importAction?: ImportAction;
   deleteAction: DeleteAction;
   runAction: RunAction;
 }
@@ -56,6 +66,8 @@ export function ResourceTable({
   canDelete = true,
   allowedActions,
   filterOptions,
+  exportAction,
+  importAction,
   deleteAction,
   runAction,
 }: ResourceTableProps) {
@@ -103,6 +115,16 @@ export function ResourceTable({
     return query ? `${basePath}?${query}` : basePath;
   };
 
+  const exportParams: Record<string, string> = {};
+  if (params.search) exportParams.q = params.search;
+  if (params.sort) {
+    exportParams.sort = params.sort;
+    exportParams.dir = params.direction;
+  }
+  for (const filter of params.filters) {
+    exportParams[filter.field] = filter.value;
+  }
+
   const records =
     total === 1
       ? translate(locale, "shell.record", { count: total })
@@ -119,6 +141,21 @@ export function ResourceTable({
         </div>
 
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          {exportAction ? (
+            <ExportButton
+              slug={resource.navigation.slug}
+              params={exportParams}
+              action={exportAction}
+              locale={locale}
+            />
+          ) : null}
+          {importAction && canCreate ? (
+            <ImportButton
+              slug={resource.navigation.slug}
+              action={importAction}
+              locale={locale}
+            />
+          ) : null}
           {headerActions.map((action) =>
             action.name === "create" ? (
               <Button
