@@ -344,3 +344,40 @@ test("the saas starter requires tenancy", async () => {
     }),
   );
 });
+
+test("the blog starter is single-tenant and ships content resources", async () => {
+  const template = await loadTemplate("blog", "en");
+
+  assert.equal(template.manifest.requires?.tenancy, false);
+  assert.ok(
+    template.manifest.overwrite?.includes("src/lib/session.ts"),
+  );
+  assert.ok(
+    template.manifest.overwrite?.includes("src/dashild/actions/index.ts"),
+  );
+  assert.ok(template.files.has("src/dashild/resources/post.ts"));
+  assert.ok(template.files.has("src/dashild/resources/comment.ts"));
+  assert.ok(template.files.has("prisma/seed.ts"));
+
+  assert.doesNotThrow(() =>
+    validateTemplate(template, {
+      auth: "better-auth",
+      database: "sqlite",
+      dashildVersion: DASHILD_VERSION,
+      locale: "en",
+      tenancy: false,
+    }),
+  );
+
+  assert.throws(
+    () =>
+      validateTemplate(template, {
+        auth: "better-auth",
+        database: "sqlite",
+        dashildVersion: DASHILD_VERSION,
+        locale: "en",
+        tenancy: true,
+      }),
+    /cannot be combined|no se puede combinar/i,
+  );
+});

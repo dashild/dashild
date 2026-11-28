@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+- `dashild upgrade`: updates the four `@dashild/*` packages from a dist-tag,
+  installs them, runs `prisma generate`, and records the stack version in
+  `dashild.json`. `--check` reports drift for CI; `--dry-run` previews.
+- Generated glue carries `// dashild:generated <version>` and `upgrade` lists
+  the marker of each file so older glue is visible.
+- New `blog` starter: posts, categories, tags, comments, editorial workflow, and
+  author-scoped policies.
+- Templates can replace generated files listed in `overwrite` (the blog starter
+  uses it for `session.ts` and `actions/index.ts`).
+- Fix: relation form options were empty in single-tenant apps.
+- Fix: successful row and form actions refresh the table without a reload.
+- Docs: Upgrading guide, `dashild upgrade` reference, and the blog starter.
+
 ## 0.1.0-alpha.11 — 2026-11-27
 
 - Filter bar: declared filters render as controls (enum, relation, boolean,

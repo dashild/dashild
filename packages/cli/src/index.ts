@@ -16,6 +16,7 @@ import { formatDoctor, runDoctor } from "./doctor.js";
 import { eject } from "./eject.js";
 import { generateResourceFile } from "./generate.js";
 import { makeAction } from "./make-action.js";
+import { DASHILD_PACKAGES, upgrade } from "./upgrade.js";
 import { applyInit, formatInitPlan, planInit } from "./init.js";
 import { cliMessage, resolveCliLocale } from "./messages.js";
 import { findMetadata, readMetadata } from "./metadata.js";
@@ -162,6 +163,90 @@ program
         console.log(
           "Declare the action in the resource (table.actions or form.actions); the resource stays write-once.",
         );
+      } catch (error) {
+        console.error(
+          `dashild: ${error instanceof Error ? error.message : String(error)}`,
+        );
+        process.exitCode = 1;
+      }
+    },
+  );
+
+program
+  .command("upgrade")
+  .description("Update the Dashild stack and regenerate Prisma metadata")
+  .option("--cwd <dir>", "project root", process.cwd())
+  .option("--tag <tag>", "npm dist-tag: latest or alpha", "latest")
+  .option("--version <version>", "exact version to install")
+  .option("--check", "report whether the app is up to date (exit 1 if not)")
+  .option("--dry-run", "print the plan without changing anything")
+  .option("--no-install", "skip the package manager install")
+  .option("--no-generate", "skip prisma generate")
+  .action(
+    async (options: {
+      cwd: string;
+      tag: string;
+      version?: string;
+      check?: boolean;
+      dryRun?: boolean;
+      install?: boolean;
+      generate?: boolean;
+    }) => {
+      try {
+        if (options.tag !== "latest" && options.tag !== "alpha") {
+          throw new Error('Use --tag latest or --tag alpha.');
+        }
+
+        const result = await upgrade({
+          cwd: resolve(options.cwd),
+          tag: options.tag,
+          version: options.version,
+          check: options.check,
+          dryRun: options.dryRun,
+          install: options.install,
+          generate: options.generate,
+        });
+
+        console.log(`dashild upgrade`);
+        console.log(
+          `  ${DASHILD_PACKAGES.map((name) => `${name}@${result.current[name]}`).join("\n  ")}`,
+        );
+        console.log(`  target: ${result.target} (${options.tag})`);
+        console.log(`  package manager: ${result.packageManager}`);
+
+        if (result.glue.length > 0) {
+          console.log("\nGlue:");
+          for (const file of result.glue) {
+            console.log(`  ${file.path}  ${file.version ?? "no marker"}`);
+          }
+        }
+
+        for (const note of result.notes) console.log(`\nNote: ${note}`);
+
+        if (options.check) {
+          if (result.outdated) {
+            console.log("\nOutdated. Run `dashild upgrade` to update.");
+            process.exitCode = 1;
+          } else {
+            console.log("\nUp to date.");
+          }
+          return;
+        }
+
+        if (options.dryRun) {
+          console.log("\nDry run: nothing was written.");
+          return;
+        }
+
+        if (!result.updated && !result.installed && !result.generated) {
+          console.log("\nNothing to do.");
+          return;
+        }
+
+        console.log(
+          `\nUpdated${result.installed ? ", installed" : ""}${result.generated ? ", regenerated Prisma metadata" : ""}.`,
+        );
+        console.log("Run `dashild doctor` and your test suite before shipping.");
       } catch (error) {
         console.error(
           `dashild: ${error instanceof Error ? error.message : String(error)}`,

@@ -60,6 +60,22 @@ evita el conflicto de ruta cuando pasas un `--path` explícito; elige otra ruta.
 Ejecutar `init` por segunda vez falla en los ficheros que ya escribió, y
 `--force` los reescribe.
 
+## `upgrade`
+
+```bash
+pnpm dashild upgrade --check
+pnpm dashild upgrade --dry-run
+pnpm dashild upgrade
+```
+
+Actualiza los cuatro paquetes `@dashild/*` al tag `latest` de npm, los instala,
+ejecuta `prisma generate` y guarda la versión en `dashild.json`. Nunca reescribe
+el glue generado; lista el marcador de versión de cada fichero para que revises
+los de una CLI anterior. Ver [Actualizar](/es/getting-started/upgrading/).
+
+Opciones: `--tag alpha`, `--version <v>`, `--check`, `--dry-run`, `--no-install`,
+`--no-generate`, `--cwd`.
+
 ## `make:resource`
 
 ```bash

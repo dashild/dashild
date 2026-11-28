@@ -123,10 +123,11 @@ export async function promptOptions(
     if (!interactive) {
       template = "basic";
     } else {
-      const choice = await choose<"basic" | "demo" | "saas" | "__other">(
+      const choice = await choose<"basic" | "blog" | "demo" | "saas" | "__other">(
         t(locale, "template"),
         [
           { value: "basic", label: t(locale, "templateBasic") },
+          { value: "blog", label: t(locale, "templateBlog") },
           { value: "demo", label: t(locale, "templateDemo") },
           { value: "saas", label: t(locale, "templateSaas") },
           { value: "__other", label: t(locale, "templateOther") },
@@ -164,7 +165,10 @@ export async function promptOptions(
     throw new Error(t(locale, "authInvalid"));
   }
 
-  if ((template === "demo" || template === "saas") && auth === "none") {
+  if (
+    (template === "blog" || template === "demo" || template === "saas") &&
+    auth === "none"
+  ) {
     if (!interactive) {
       throw new Error(t(locale, "templateAuth", { auth: "better-auth" }));
     }
@@ -263,7 +267,7 @@ export async function promptOptions(
 
   const seed =
     flags.seed ??
-    (template === "demo" || template === "saas"
+    (template === "blog" || template === "demo" || template === "saas"
       ? await confirm(t(locale, "seed"), true)
       : false);
 

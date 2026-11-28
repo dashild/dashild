@@ -90,6 +90,7 @@ function invalidOption(
 function listTemplates(locale: Locale): void {
   const lines = [
     `basic — ${t(locale, "templateBasic")}`,
+    `blog — ${t(locale, "templateBlog")}`,
     `demo — ${t(locale, "templateDemo")}`,
     `saas — ${t(locale, "templateSaas")}`,
     t(locale, "templateLocal"),

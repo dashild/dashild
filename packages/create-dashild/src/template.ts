@@ -47,6 +47,7 @@ const manifestSchema = z
       })
       .optional(),
     extend: z.record(z.string(), z.array(z.string())).optional(),
+    overwrite: z.array(z.string()).optional(),
     dependencies: z.record(z.string(), z.string()).optional(),
     devDependencies: z.record(z.string(), z.string()).optional(),
     env: z.array(z.string()).optional(),
@@ -281,8 +282,11 @@ export function validateTemplate(
     );
   }
 
-  if (manifest.requires?.tenancy && !options.tenancy) {
+  if (manifest.requires?.tenancy === true && !options.tenancy) {
     throw new Error(t(options.locale, "templateTenancy"));
+  }
+  if (manifest.requires?.tenancy === false && options.tenancy) {
+    throw new Error(t(options.locale, "templateNoTenancy"));
   }
 
   const providers = manifest.prisma?.provider;
@@ -517,7 +521,8 @@ export function applyTemplate(input: ApplyTemplateInput): ApplyTemplateResult {
     }
 
     const destination = resolve(projectDir, key);
-    if (existsSync(destination)) {
+    const overwrite = template.manifest.overwrite?.includes(key) ?? false;
+    if (existsSync(destination) && !overwrite) {
       warnings.push(`Skipped ${key}: it already exists.`);
       continue;
     }

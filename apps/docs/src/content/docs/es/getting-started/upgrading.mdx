@@ -1,0 +1,100 @@
+---
+title: Actualizar
+description: Pasa una app a una versión nueva de Dashild sin sorpresas.
+---
+
+Las apps generadas por `create-dashild` y `dashild init` fijan la versión exacta
+de los cuatro paquetes, así que nada cambia hasta que lo pides:
+
+```json title="package.json"
+"@dashild/core": "0.1.0-alpha.11",
+"@dashild/admin": "0.1.0-alpha.11",
+"@dashild/prisma": "0.1.0-alpha.11",
+"@dashild/cli": "0.1.0-alpha.11"
+```
+
+## Comprobar si hay versión nueva
+
+```bash
+pnpm dashild upgrade --check
+```
+
+Muestra la versión actual y la de destino, y sale con código 1 si la app está
+desactualizada. Úsalo en CI si quieres que te avise cuando haya release.
+
+```bash
+pnpm dashild upgrade --dry-run
+```
+
+`--dry-run` enseña el plan sin escribir ni instalar.
+
+## Actualizar
+
+```bash
+pnpm dashild upgrade
+```
+
+Hace lo siguiente:
+
+1. Resuelve la versión de destino del tag `latest` de npm (los cuatro paquetes
+   deben coincidir; si no, se detiene).
+2. Reescribe las cuatro versiones en `package.json`.
+3. Guarda la versión en `dashild.json` (`stackVersion`).
+4. Ejecuta el package manager del proyecto (`pnpm`, `npm`, `yarn` o `bun`).
+5. Ejecuta `prisma generate`, para que el cliente y los metadatos de Dashild
+   coincidan con los paquetes nuevos.
+
+Opciones:
+
+| Flag | Efecto |
+| --- | --- |
+| `--tag alpha` | Usa el tag `alpha` en vez de `latest`. |
+| `--version <v>` | Instala una versión exacta. |
+| `--no-install` | Omite el paso del package manager. |
+| `--no-generate` | Omite `prisma generate`. |
+| `--cwd <dir>` | Raíz del proyecto (por defecto, el directorio actual). |
+
+## El glue generado es tuyo
+
+`dashild init` escribe `panel.ts`, `policies.ts`, `runtime.ts`, la ruta y los
+helpers de auth una sola vez. `upgrade` nunca los reescribe: son código de la
+app, y un framework que los reemplaza en silencio es peor que uno que pregunta.
+
+Los ficheros nuevos llevan un marcador con la CLI que los creó:
+
+```ts title="src/dashild/panel.ts"
+// dashild:generated 0.1.0-alpha.11
+import { definePanel } from "@dashild/core";
+```
+
+Tras actualizar, el comando lista el glue encontrado y la versión de cada
+marcador. Los ficheros sin marcador se generaron antes de que existieran:
+revísalos a mano contra la documentación actual. Cambios habituales entre
+releases:
+
+- Una ruta puede necesitar una prop nueva (`themeAction`, `organizations`, ...).
+- Una sesión generada puede necesitar campos de tenant.
+- El panel puede necesitar `brand` o una entrada de recurso nueva.
+
+Si una release cambia el glue, el changelog dice qué fichero y qué añadir, y el
+comando enlaza a esta guía.
+
+## Qué puede romperse
+
+| Área | Por qué puede romperse |
+| --- | --- |
+| Tipos de `@dashild/core` | Cambios de API pública (`defineResource`, `definePanel`, `CurrentUser`). |
+| Metadatos | El generador y el runtime comparten `formatVersion`; ejecuta siempre `prisma generate`. |
+| Glue generado | Una feature nueva puede requerir una prop o un fichero a mano. |
+| Imports de `@dashild/admin` | `@dashild/admin/ui/*` y la ruta `@source` de Tailwind. |
+| Base de datos | Solo si la release añade una feature que actives (tenencia añade campos). |
+
+## Política alpha
+
+Mientras Dashild está en alpha, cada release documenta los breaking changes en
+el [changelog](https://github.com/dashild/dashild/blob/main/CHANGELOG.md) y la
+versión mantiene el formato `0.1.0-alpha.N`, así que el número solo no dice si
+actualizar es seguro. Lee la entrada y ejecuta tus tests.
+
+Desde 1.0 se aplica semver: los breaking changes son majors con guía de
+migración.

@@ -86,6 +86,7 @@ export function ActionButton({
       }
 
       toast.success(result.message ?? translate(locale, "shell.confirm"));
+      router.refresh();
       if (result.href) router.push(result.href);
     });
   }

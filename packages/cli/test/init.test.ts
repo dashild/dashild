@@ -433,3 +433,22 @@ test("init: tenancy refuses a schema with existing auth models", () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("init: generated glue carries a version marker", () => {
+  const directory = project();
+
+  try {
+    const plan = planInit({ cwd: directory, auth: "better-auth" });
+    const panel = plan.files.find((file) =>
+      file.path.endsWith("src/dashild/panel.ts"),
+    )?.content;
+    assert.match(panel ?? "", /^\/\/ dashild:generated \d+\.\d+\.\d+/);
+
+    const session = plan.files.find((file) =>
+      file.path.endsWith("src/lib/session.ts"),
+    )?.content;
+    assert.match(session ?? "", /\/\/ dashild:generated/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

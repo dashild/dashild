@@ -58,15 +58,23 @@ jobs:
           - pm: npm
             database: sqlite
             url: ""
+            template: demo
           - pm: pnpm
             database: sqlite
             url: ""
+            template: demo
+          - pm: npm
+            database: sqlite
+            url: ""
+            template: blog
           - pm: npm
             database: postgresql
             url: postgresql://postgres:lerd@127.0.0.1:5432/dashild_ci
+            template: demo
           - pm: npm
             database: mysql
             url: mysql://root:lerd@127.0.0.1:3306/dashild_ci
+            template: demo
     services:
       postgres:
         image: postgres:16
@@ -118,5 +126,5 @@ jobs:
           path: artifacts
 
       - name: Scaffold smoke
-        run: node scripts/smoke-scaffold.mjs --pm ${{ matrix.pm }} --database ${{ matrix.database }} --url "${{ matrix.url }}"
+        run: node scripts/smoke-scaffold.mjs --pm ${{ matrix.pm }} --database ${{ matrix.database }} --template ${{ matrix.template }} --url "${{ matrix.url }}"
 

@@ -7,6 +7,9 @@ description: Starters incluidos y el formato de template.json.
 
 - `basic`: sin ficheros extra. El dashboard muestra el estado vacío; con el
   `--auth better-auth` por defecto también tienes login, signup y reset.
+- `blog`: posts, categorías, etiquetas, comentarios y un flujo editorial. Los
+  autores solo ven sus posts; los admin moderan todo (`ana@blog.test` admin,
+  `bruno@blog.test` / `carla@blog.test` autores; contraseña `dashild123`).
 - `demo`: usuarios, posts y etiquetas, con políticas de demo permisivas y un
   seed (`ana@acme.test` / `dashild123`).
 - `saas`: organizaciones, miembros y proyectos, aislados por tenant. Activa la
@@ -55,7 +58,8 @@ Una plantilla es una carpeta con `template.json` y ficheros del proyecto:
 | `dashild` | Rango semver de Dashild soportado. |
 | `prisma.provider` | Proveedores de base de datos permitidos. |
 | `requires.auth` | Integración de auth requerida (array). |
-| `requires.tenancy` | El starter necesita el cableado de organizaciones (`--tenancy`). |
+| `requires.tenancy` | `true` necesita `--tenancy`; `false` lo prohíbe. |
+| `overwrite` | Ficheros generados que esta plantilla reemplaza a propósito (bajo `src/`). |
 | `extend` | Campos Prisma extra para un modelo existente. |
 | `dependencies`, `devDependencies` | Dependencias extra de la app. |
 | `env` | Claves de entorno añadidas a `.env.example` si faltan. |
@@ -70,7 +74,9 @@ Una plantilla es una carpeta con `template.json` y ficheros del proyecto:
   campos que ya están presentes se omiten en silencio.
 - Un modelo o enum cuyo nombre ya existe en el esquema es un error duro.
 - `src/dashild/resources/*.ts` se copian y se registran en `panel.ts`.
-- `src/dashild/policies.ts` sustituye las políticas por defecto.
+- `src/dashild/policies.ts` sustituye las políticas por defecto, y los ficheros
+  de `overwrite` reemplazan el glue generado (`blog` lo usa para `session.ts` y
+  `actions/index.ts`).
 - `prisma/seed.ts` se ejecuta solo si los pasos de instalación y migración
   terminaron bien; con `--seed` pero sin migración queda pendiente.
 - Las claves de `env` se añaden a `.env.example` con valor vacío; los valores

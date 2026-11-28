@@ -59,6 +59,11 @@ export default defineConfig({
               translations: { es: "Instalación" },
               slug: "getting-started/installation",
             },
+            {
+              label: "Upgrading",
+              translations: { es: "Actualizar" },
+              slug: "getting-started/upgrading",
+            },
           ],
         },
         {

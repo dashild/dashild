@@ -1270,20 +1270,30 @@ export function createDashildRuntime<TUser extends CurrentUser>(
         const delegate = runtimeDelegate(client, field.type);
         if (!related || !delegate) continue;
 
-        if (!organizationId) {
+        const relatedHasOrganization = related.fields.some(
+          (entry) => entry.name === "organizationId",
+        );
+
+        // A tenant-scoped relation needs an active organization; without one it
+        // is empty. Relations in a single-tenant app list all (scoped) rows.
+        if (!organizationId && (field.type === "Organization" || relatedHasOrganization)) {
           result[definition.field] = [];
           continue;
         }
 
         const idField = related.fields.find((entry) => entry.isId)?.name ?? "id";
-        const display = definition.display ?? "name";
+        const requested = definition.display;
+        const display =
+          requested && related.fields.some((entry) => entry.name === requested)
+            ? requested
+            : related.fields.some((entry) => entry.name === "name")
+              ? "name"
+              : idField;
 
         let baseWhere: Record<string, unknown> =
           field.type === "Organization"
             ? { id: organizationId }
-            : related.fields.some(
-                  (entry) => entry.name === "organizationId",
-                )
+            : relatedHasOrganization && organizationId
               ? { organizationId }
               : {};
 

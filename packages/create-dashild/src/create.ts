@@ -73,6 +73,7 @@ function writeDashildJson(
 ): void {
   const payload = {
     version: 1,
+    stackVersion: DASHILD_VERSION,
     template: {
       name: template.manifest.name,
       version: template.manifest.version,

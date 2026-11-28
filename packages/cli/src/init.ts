@@ -18,6 +18,7 @@ import type { Locale } from "@dashild/core";
 
 import { cliMessage } from "./messages.js";
 import { findMetadata, readMetadata } from "./metadata.js";
+import { CLI_VERSION } from "./version.js";
 
 export type AuthProvider = "none" | "better-auth";
 
@@ -1581,6 +1582,17 @@ ${organizationProps}      />
 `;
 }
 
+function withMarker(content: string): string {
+  const marker = `// dashild:generated ${CLI_VERSION}`;
+  if (content.startsWith('"use client";')) {
+    return content.replace('"use client";', `"use client";\n\n${marker}`);
+  }
+  if (content.startsWith('"use server";')) {
+    return content.replace('"use server";', `"use server";\n\n${marker}`);
+  }
+  return `${marker}\n${content}`;
+}
+
 export function planInit(options: InitOptions): InitPlan {
   const cwd = resolve(options.cwd);
   const locale = options.locale ?? "en";
@@ -1980,6 +1992,25 @@ export function planInit(options: InitOptions): InitPlan {
       ...packageJson.scripts,
       dashild: "dashild",
     };
+  }
+
+  const glueFiles = new Set(
+    [
+      panelFilePath,
+      resolve(dashildDir, "policies.ts"),
+      resolve(dashildDir, "actions/index.ts"),
+      resolve(dashildDir, "icons.tsx"),
+      runtimePath,
+      resolve(dashildDir, "server.ts"),
+      resolve(dashildDir, "registry.tsx"),
+      routePath,
+      organizationActionsPath,
+      sessionPath,
+      resolve(libDir, "auth-actions.ts"),
+    ].filter((path): path is string => Boolean(path)),
+  );
+  for (const file of files) {
+    if (glueFiles.has(file.path)) file.content = withMarker(file.content);
   }
 
   return {

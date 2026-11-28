@@ -100,6 +100,7 @@ export function RowActions({
       }
 
       toast.success(result.message ?? translate(locale, "shell.actionDone"));
+      router.refresh();
       if (result.href) router.push(result.href);
     });
   }
