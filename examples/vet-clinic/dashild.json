@@ -8,5 +8,6 @@
   "auth": "better-auth",
   "database": "sqlite",
   "panelPath": "/admin",
-  "createdAt": "2026-11-27T14:32:56.643Z"
+  "createdAt": "2026-11-27T14:32:56.643Z",
+  "stackVersion": "0.1.0-alpha.12"
 }

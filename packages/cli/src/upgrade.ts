@@ -2,6 +2,8 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
+import { applyUpgradeCodemods } from "./upgrade-codemods.js";
+
 export const DASHILD_PACKAGES = [
   "@dashild/core",
   "@dashild/prisma",
@@ -27,6 +29,7 @@ export interface UpgradeResult {
   generated: boolean;
   packageManager: PackageManager;
   glue: GlueFile[];
+  codemods: string[];
   notes: string[];
 }
 
@@ -216,10 +219,21 @@ export async function upgrade(options: UpgradeOptions): Promise<UpgradeResult> {
     generated: false,
     packageManager,
     glue,
+    codemods: [],
     notes,
   };
 
-  if (options.check || options.dryRun) return result;
+  if (options.check) return result;
+
+  if (options.dryRun) {
+    result.codemods = applyUpgradeCodemods({
+      cwd,
+      panelPath,
+      target,
+      dryRun: true,
+    }).applied;
+    return result;
+  }
 
   if (outdated) {
     const next = {
@@ -254,6 +268,8 @@ export async function upgrade(options: UpgradeOptions): Promise<UpgradeResult> {
     runBinary(cwd, "prisma", ["generate"], run);
     result.generated = true;
   }
+
+  result.codemods = applyUpgradeCodemods({ cwd, panelPath, target }).applied;
 
   return result;
 }

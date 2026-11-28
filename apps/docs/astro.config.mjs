@@ -162,6 +162,11 @@ export default defineConfig({
               translations: { es: "Clínica veterinaria" },
               slug: "examples/vet-clinic",
             },
+            {
+              label: "Shop",
+              translations: { es: "Tienda" },
+              slug: "examples/shop",
+            },
           ],
         },
         {

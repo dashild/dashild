@@ -64,7 +64,7 @@ A starter is a folder with `template.json` and project files:
 {
   "name": "my-starter",
   "version": "1.0.0",
-  "dashild": ">=0.1.0-alpha.11",
+  "dashild": ">=0.1.0-alpha.12",
   "prisma": { "provider": ["postgresql"] },
   "requires": { "auth": ["better-auth"] },
   "extend": { "User": ["role Role @default(USER)"] }

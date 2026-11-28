@@ -17,8 +17,8 @@
     "db:deploy": "prisma migrate deploy"
   },
   "dependencies": {
-    "@dashild/admin": "0.1.0-alpha.11",
-    "@dashild/core": "0.1.0-alpha.11",
+    "@dashild/admin": "0.1.0-alpha.12",
+    "@dashild/core": "0.1.0-alpha.12",
     "@prisma/adapter-better-sqlite3": "7.10.1",
     "@prisma/client": "7.10.1",
     "better-auth": "^1.7.27",
@@ -31,8 +31,8 @@
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
-    "@dashild/cli": "0.1.0-alpha.11",
-    "@dashild/prisma": "0.1.0-alpha.11",
+    "@dashild/cli": "0.1.0-alpha.12",
+    "@dashild/prisma": "0.1.0-alpha.12",
     "@tailwindcss/turbopack": "4.3.3",
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^20",

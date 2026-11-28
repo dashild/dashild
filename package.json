@@ -1,6 +1,6 @@
 {
   "name": "dashild",
-  "version": "0.1.0-alpha.11",
+  "version": "0.1.0-alpha.12",
   "private": true,
   "type": "module",
   "description": "The application admin layer for Next.js",
@@ -22,7 +22,8 @@
     "smoke:scaffold": "node scripts/smoke-scaffold.mjs",
     "release:bump": "node scripts/bump-version.mjs",
     "pack:all": "rm -rf artifacts && mkdir -p artifacts && pnpm --filter @dashild/core pack --pack-destination artifacts && pnpm --filter @dashild/prisma pack --pack-destination artifacts && pnpm --filter @dashild/admin pack --pack-destination artifacts && pnpm --filter @dashild/cli pack --pack-destination artifacts && pnpm --filter create-dashild pack --pack-destination artifacts",
-    "release:alpha": "pnpm clean && pnpm build && pnpm typecheck && pnpm test && pnpm --filter @dashild/core publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/prisma publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/admin publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/cli publish --tag alpha --access public --no-git-checks && pnpm --filter create-dashild publish --tag alpha --access public --no-git-checks && pnpm release:verify"
+    "release:alpha": "pnpm clean && pnpm build && pnpm typecheck && pnpm test && pnpm --filter @dashild/core publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/prisma publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/admin publish --tag alpha --access public --no-git-checks && pnpm --filter @dashild/cli publish --tag alpha --access public --no-git-checks && pnpm --filter create-dashild publish --tag alpha --access public --no-git-checks && pnpm release:verify",
+    "smoke:upgrade": "node scripts/smoke-upgrade.mjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

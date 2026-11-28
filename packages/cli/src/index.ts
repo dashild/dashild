@@ -216,7 +216,7 @@ program
   .description("Update the Dashild stack and regenerate Prisma metadata")
   .option("--cwd <dir>", "project root", process.cwd())
   .option("--tag <tag>", "npm dist-tag: latest or alpha", "latest")
-  .option("--version <version>", "exact version to install")
+  .option("--to <version>", "exact version to install")
   .option("--check", "report whether the app is up to date (exit 1 if not)")
   .option("--dry-run", "print the plan without changing anything")
   .option("--no-install", "skip the package manager install")
@@ -225,7 +225,7 @@ program
     async (options: {
       cwd: string;
       tag: string;
-      version?: string;
+      to?: string;
       check?: boolean;
       dryRun?: boolean;
       install?: boolean;
@@ -239,7 +239,7 @@ program
         const result = await upgrade({
           cwd: resolve(options.cwd),
           tag: options.tag,
-          version: options.version,
+          version: options.to,
           check: options.check,
           dryRun: options.dryRun,
           install: options.install,
@@ -258,6 +258,10 @@ program
           for (const file of result.glue) {
             console.log(`  ${file.path}  ${file.version ?? "no marker"}`);
           }
+        }
+
+        if (result.codemods.length > 0) {
+          console.log(`\nGlue codemods: ${result.codemods.join(", ")}`);
         }
 
         for (const note of result.notes) console.log(`\nNote: ${note}`);

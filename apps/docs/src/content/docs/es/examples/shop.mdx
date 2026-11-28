@@ -1,0 +1,54 @@
+---
+title: Tienda
+description: Inventario y pedidos para una tienda pequeña, generado desde el starter shop.
+---
+
+El [ejemplo shop](https://github.com/dashild/dashild/tree/main/examples/shop) es
+el starter `shop` llevado a una app ejecutable: productos, stock, proveedores,
+clientes, pedidos y líneas de pedido. Instala `@dashild/*` desde npm y vive
+fuera del workspace.
+
+## Ejecutarlo
+
+```bash
+cd examples/shop
+cp .env.example .env   # configura BETTER_AUTH_SECRET si cambias la demo
+pnpm install
+pnpm prisma migrate deploy
+pnpm db:seed
+pnpm dev
+```
+
+Abre `http://localhost:3000/admin`. La base de datos es SQLite
+(`prisma/dev.db`).
+
+## Iniciar sesión
+
+| Email | Contraseña |
+| --- | --- |
+| `ana@shop.test` | `dashild123` |
+| `bruno@shop.test` | `dashild123` |
+
+## Qué probar
+
+- **Productos**: `price` es `Decimal` renderizado en EUR y `stock` un número. La
+  acción “Restock +10” incrementa el stock y refresca la tabla.
+- **Pedidos**: filtra por estado y cliente; “Mark paid”, “Ship” y “Cancel”
+  cambian el estado. Abre un pedido para gestionar sus líneas con un relation
+  manager.
+- **Dinero**: `total` está desnormalizado en el ejemplo; un checkout real lo
+  actualizaría al cambiar las líneas.
+- **Stripe**: los clientes tienen `stripeCustomerId` y “Open in Stripe” enlaza al
+  dashboard (modo test).
+- **CSV**: exporta la vista actual e importa filas nuevas desde un CSV que siga
+  los campos del formulario.
+
+## Genera el tuyo
+
+```bash
+pnpm create dashild@latest mi-tienda --template shop
+```
+
+El starter es una plantilla de carpeta con un `template.json` corto y ficheros
+reales en `packages/create-dashild/templates/shop`; el ejemplo se genera desde
+ella, no se mantiene a mano.

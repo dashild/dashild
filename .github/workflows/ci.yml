@@ -48,6 +48,31 @@ jobs:
           path: artifacts/*.tgz
           if-no-files-found: error
 
+  upgrade:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.21.0
+          run_install: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and pack
+        run: pnpm build && pnpm pack:all
+
+      - name: Upgrade smoke (alpha.11 -> alpha.12)
+        run: node scripts/smoke-upgrade.mjs
+
   scaffold:
     needs: check
     runs-on: ubuntu-latest

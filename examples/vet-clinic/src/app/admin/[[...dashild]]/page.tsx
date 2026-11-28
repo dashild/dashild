@@ -1,3 +1,4 @@
+// dashild:generated 0.1.0-alpha.12
 import { cookies } from "next/headers";
 
 import { DEFAULT_THEME_MODE, type ThemeMode } from "@dashild/admin";
@@ -10,6 +11,8 @@ import { policies } from "../../../dashild/policies";
 import { runtime } from "../../../dashild/runtime";
 import {
   deleteResource,
+  exportResource,
+  importResource,
   runRelationAction,
   runResourceAction,
   saveResource,
@@ -63,6 +66,8 @@ export default async function DashildPage({
         theme={theme}
         themeToggle={panel.theme?.toggle ?? false}
         themeAction={toggleTheme}
+        exportAction={exportResource}
+        importAction={importResource}
         organizations={organization?.organizations}
         activeOrganizationId={organization?.activeOrganizationId}
         switchOrganization={switchOrganization}
