@@ -9,6 +9,8 @@
   the marker of each file so older glue is visible.
 - New `blog` starter: posts, categories, tags, comments, editorial workflow, and
   author-scoped policies.
+- New `shop` starter and example: products, stock, suppliers, customers, orders,
+  order items, decimal money, and status actions.
 - Templates can replace generated files listed in `overwrite` (the blog starter
   uses it for `session.ts` and `actions/index.ts`).
 - Fix: relation form options were empty in single-tenant apps.

@@ -10,4 +10,4 @@ export const BUNDLED_TEMPLATES: Record<string, LoadedTemplate> = {
   saas: saasTemplate,
 };
 
-export const BUNDLED_TEMPLATE_NAMES = ["basic", "blog", "demo", "saas"] as const;
+export const BUNDLED_TEMPLATE_NAMES = ["basic", "blog", "demo", "saas", "shop"] as const;

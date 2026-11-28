@@ -68,6 +68,10 @@ jobs:
             url: ""
             template: blog
           - pm: npm
+            database: sqlite
+            url: ""
+            template: shop
+          - pm: npm
             database: postgresql
             url: postgresql://postgres:lerd@127.0.0.1:5432/dashild_ci
             template: demo

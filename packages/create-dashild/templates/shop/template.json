@@ -1,0 +1,21 @@
+{
+  "name": "shop",
+  "version": "0.1.0",
+  "description": "Inventory and orders for a small shop",
+  "dashild": ">=0.1.0-alpha.11",
+  "prisma": {
+    "provider": [
+      "postgresql",
+      "mysql",
+      "sqlite"
+    ]
+  },
+  "requires": {
+    "auth": [
+      "better-auth"
+    ]
+  },
+  "overwrite": [
+    "src/dashild/actions/index.ts"
+  ]
+}

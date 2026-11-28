@@ -1,0 +1,10 @@
+allowBuilds:
+  prisma: true
+  "@prisma/engines": true
+  esbuild: true
+  better-sqlite3: true
+minimumReleaseAgeExclude:
+  - "@dashild/admin@0.1.0-alpha.11"
+  - "@dashild/cli@0.1.0-alpha.11"
+  - "@dashild/core@0.1.0-alpha.11"
+  - "@dashild/prisma@0.1.0-alpha.11"

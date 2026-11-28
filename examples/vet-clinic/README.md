@@ -10,6 +10,7 @@ This example is **outside the workspace**: it installs `@dashild/*` from npm
 ## Run it
 
 ```bash
+cp .env.example .env   # set BETTER_AUTH_SECRET if you change the demo
 pnpm install
 pnpm prisma migrate deploy
 pnpm db:seed

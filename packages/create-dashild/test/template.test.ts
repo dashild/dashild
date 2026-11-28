@@ -381,3 +381,15 @@ test("the blog starter is single-tenant and ships content resources", async () =
     /cannot be combined|no se puede combinar/i,
   );
 });
+
+test("the shop starter ships catalog and order resources", async () => {
+  const template = await loadTemplate("shop", "en");
+
+  assert.equal(template.manifest.name, "shop");
+  assert.ok(template.files.has("src/dashild/resources/product.ts"));
+  assert.ok(template.files.has("src/dashild/resources/order.ts"));
+  assert.ok(template.files.has("prisma/seed.ts"));
+  assert.ok(
+    template.manifest.overwrite?.includes("src/dashild/actions/index.ts"),
+  );
+});

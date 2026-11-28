@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
+import { fileURLToPath } from "node:url";
 import { dirname, relative, resolve, sep } from "node:path";
 
 import { registerResource } from "@dashild/cli/register";
@@ -137,6 +138,31 @@ function findTemplateRoot(directory: string): string | undefined {
   return candidates.length === 1 ? candidates[0] : undefined;
 }
 
+function loadTemplateDirectory(
+  templateRoot: string,
+  source: string,
+  locale: Locale,
+): LoadedTemplate {
+  const manifest = parseManifest(
+    readFileSync(resolve(templateRoot, "template.json"), "utf8"),
+    locale,
+  );
+
+  return {
+    manifest,
+    files: readFiles(templateRoot),
+    source,
+  };
+}
+
+function bundledTemplateDirectory(name: string): string | undefined {
+  for (const candidate of [`../templates/${name}`, `../../templates/${name}`]) {
+    const directory = fileURLToPath(new URL(candidate, import.meta.url));
+    if (existsSync(resolve(directory, "template.json"))) return directory;
+  }
+  return undefined;
+}
+
 function loadLocalTemplate(
   spec: string,
   locale: Locale,
@@ -149,16 +175,7 @@ function loadLocalTemplate(
     throw new Error(t(locale, "templateNotFound", { spec }));
   }
 
-  const manifest = parseManifest(
-    readFileSync(resolve(templateRoot, "template.json"), "utf8"),
-    locale,
-  );
-
-  return {
-    manifest,
-    files: readFiles(templateRoot),
-    source: spec,
-  };
+  return loadTemplateDirectory(templateRoot, spec, locale);
 }
 
 async function githubDefaultBranch(
@@ -250,6 +267,11 @@ export async function loadTemplate(
 
   const bundled = BUNDLED_TEMPLATES[spec];
   if (bundled) return bundled;
+
+  const bundledDirectory = bundledTemplateDirectory(spec);
+  if (bundledDirectory) {
+    return loadTemplateDirectory(bundledDirectory, spec, locale);
+  }
 
   if (spec.startsWith("github:")) {
     return loadGitHubTemplate(spec, locale);
